@@ -1,0 +1,34 @@
+*.bkp
+*.dtmp
+
+src/build/
+*.json
+*.fasm
+*.frames
+*.bit
+
+# Artefactos de sesion de Vivado (batch mode, generados en el cwd al invocarlo)
+.Xil/
+*.jou
+*.log
+*.tcl
+clockInfo.txt
+
+__pycache__/
+*.pyc
+
+sw/.venv/
+
+#archivos lock de PDFs
+.~lock.*#
+
+# Intermedios del ensamblado (sw/ensamblar.sh). El .hex de la ROM si se versiona.
+sw/build/
+
+# El Block Design exportado si se versiona, es lo que regenera el proyecto
+!src/bd/*.tcl
+
+# Proyecto de Vivado y workspace de Vitis, se regeneran desde src/bd y sw
+vivado/
+vitis/
+*.str
