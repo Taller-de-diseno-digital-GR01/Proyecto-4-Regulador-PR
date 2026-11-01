@@ -115,7 +115,7 @@ Se guarda la lectura de los botones de la vuelta anterior, y el flanco de subida
 
 ### h.5) Valores provisionales
 
-- `FREQ_SEL_INICIAL` vale `01`, que en la tabla provisional de `nucleo_pwm.md` es 20 kHz y coincide con los 20 kHz de `PR_FRECUENCIA_MUESTREO_HZ`. Si Jefferson y PEDP cambian las frecuencias de la tabla, este código se cambia con ellas.
+- `FREQ_SEL_INICIAL` vale `01`, que en la tabla provisional de `nucleo_pwm.md` es 20 kHz y coincide con los 20 kHz de `PR_FRECUENCIA_MUESTREO_HZ`. Si Jefferson y Nicolás cambian las frecuencias de la tabla, este código se cambia con ellas.
 - El período del Timer en ciclos sale de `PR_FRECUENCIA_MUESTREO_HZ`. Con el AXI Timer contando hacia abajo y recarga automática, el período es `TLR + 2` ciclos, así que `TLR = 100 MHz / PR_FRECUENCIA_MUESTREO_HZ - 2`. Con los 20 kHz de partida da `100 MHz / 20 kHz - 2 = 4998`, división exacta. La portadora del PWM a 20 kHz dura `2 · MAX = 5000` ciclos según `nucleo_pwm.md`, los mismos del Timer, así que no deberían derivar entre sí. Falta medirlo con el GPIO de la interrupción contra `pwm_trigger_o`, y repetir la cuenta si cambia la frecuencia.
 
 ## i) Diagrama esquemático detallado del diseño
