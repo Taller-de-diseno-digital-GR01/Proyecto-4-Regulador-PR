@@ -20,12 +20,29 @@ La versión amortiguada cambia exactitud en 50 Hz por tolerancia a que la frecue
 
 El puente H con modulación unipolar entrega `v = Vdc·u`, con `u` el índice de modulación entre -1 y 1. La carga cumple `I(s)/V(s) = 1/(Ls + R)`. La modulación unipolar sale del enunciado y de ella se toma que la frecuencia efectiva del rizado es el doble de la de conmutación (Mohan, sección 8-3-2-2, y Hart, capítulo 8).
 
-Además hay un retardo. La muestra se toma en el centro del pulso con `pwm_trigger_o`, la interrupción calcula con ella y escribe `duty_ref`, y el periférico lo aplica en el siguiente pico o valle de la portadora. Eso es un período de muestreo de cómputo más medio de actualización, y se modela como `Td = 1,5·Ts`, con `Ts = 1/fs`. Es el modelo habitual de los lazos digitales de corriente y es una suposición mía hasta medir el lazo real con el GPIO de la ISR.
+Además hay un retardo. La muestra se toma en el centro del pulso con `pwm_trigger_o`, la interrupción calcula con ella y escribe `duty_ref`, y el periférico lo aplica en el siguiente pico o valle de la portadora. Eso es un período de muestreo de cómputo más medio de actualización, y se modela como `Td = 1,5·Ts`, con `Ts = 1/fs`. Es el modelo habitual de los lazos digitales de corriente y es una suposición mía hasta medir el lazo real con el GPIO de la ISR. `nucleo_pwm.md` lo respalda en lo que toca al periférico, porque `pwm_trigger_o` sale en el valle y lo que el software escribe a mitad de período rige desde el valle siguiente. A ese `Td` todavía hay que sumarle el retardo del filtro analógico del sensor, que se calcula en la sección siguiente.
+
+## Aliasing y filtro del sensor
+
+El criterio `fs > 2·BW` se cumple de sobra para la señal. La referencia es de 50 Hz y el lazo cruza en 1 kHz, contra una `fs` de 20 kHz. Lo que el criterio no mira es todo lo demás que entra al ADC, porque al muestrear cualquier contenido por encima de `fs/2` se pliega hacia la banda del lazo y se confunde con corriente.
+
+- El rizado de conmutación se sincroniza solo. Si la captura cae en el valle o en el pico de la portadora, el rizado es un múltiplo exacto de `fs` y se pliega a continua. En una simulación en lazo abierto del puente unipolar con los valores provisionales, el error de la fundamental por esa causa fue 0,01 %. En el cruce de portadora, que es donde está el flanco del pulso de tensión, la sensibilidad al instante de captura es unas 9 veces mayor y un error de 200 ns ya da 0,42 %. Por eso `pwm_trigger_o` tiene que caer en el valle o el pico.
+- El ruido de banda ancha del sensor y de la conmutación no se sincroniza con nada, y lo único que lo frena es un filtro analógico antes del ADC. Ese filtro todavía no existe. Su corte sale de medir el ruido real del sensor, y lo mide Nicolás.
+
+El filtro cuesta fase en el cruce. Para un RC de primer orden con corte `fF`, el retardo de grupo a baja frecuencia es `τF = 1/(2π·fF)` y la fase que se pierde en `fc = 1 kHz` es `arctan(fc/fF)`.
+
+- `fF = 5 kHz`, `τF = 32 µs` (0,64 `Ts`), pierde 11,3°.
+- `fF = 3 kHz`, `τF = 53 µs` (1,06 `Ts`), pierde 18,4°.
+- `fF = 2 kHz`, `τF = 80 µs` (1,59 `Ts`), pierde 26,6°.
+
+Contra los 79° de margen de fase de `Kr = 1000` quedan unos 68°, 61° y 52°. Son cuentas aproximadas que no mueven el cruce de ganancia, y eso se cumple bien a 5 kHz (la ganancia en 1 kHz baja 2 %) y menos a 2 kHz (baja 11 %). Un filtro de segundo orden tipo Butterworth a 5 kHz atenúa 12 dB en `fs/2` y 36 dB a 40 kHz, contra los 7 dB y 18 dB del RC a esa misma frecuencia, y pierde 16° en 1 kHz, o sea deja el margen cerca de 63°. Todavía no hay corte ni orden elegidos, así que el retardo total del lazo queda como `Td = 1,5·Ts + τF` con `τF` pendiente, y los márgenes de la sección de `Kp` se recalculan cuando Nicolás fije el filtro.
+
+Con `freq_sel` pasa algo parecido. La tabla provisional de `nucleo_pwm.md` de Jefferson pone `00` en 10 kHz, `01` en 20 kHz y `10` en 40 kHz, con el `11` pendiente. A 10 kHz el lazo muestrea a 10 kHz, el Nyquist baja a 5 kHz y un filtro pensado para 20 kHz casi no atenuaría nada ahí. Conviene que los códigos sean frecuencias de 20 kHz o más, por ejemplo 20, 30 y 40 kHz, pero la tabla depende de lo que cierre PEDP, y falta confirmar con Nicolás que su puente aguanta 40 kHz.
 
 ## Valores provisionales de partida
 
 - `Vdc = 18 V`, punto medio del rango de 12 a 24 V del enunciado. Con 24 V el rizado sube un tercio, con 12 V la carga se ve más.
-- `fsw = fs = 20 kHz`, muestreando una vez por período. A 100 MHz son 5000 ciclos de reloj por iteración, de sobra para las siete multiplicaciones del PR incluso en flotante por software. Es una frecuencia habitual para MOSFET de baja tensión, pero Nicolás tiene que confirmar que su puente y su tiempo muerto la aguantan. Las otras dos frecuencias de `freq_sel` podrían ser 10 y 40 kHz, y cada una pide regenerar los coeficientes.
+- `fsw = fs = 20 kHz`, muestreando una vez por período. A 100 MHz son 5000 ciclos de reloj por iteración, de sobra para las siete multiplicaciones del PR incluso en flotante por software. Es una frecuencia habitual para MOSFET de baja tensión, pero Nicolás tiene que confirmar que su puente y su tiempo muerto la aguantan. La tabla provisional de `nucleo_pwm.md` trae 10 y 40 kHz en las otras dos, con un cuarto código pendiente (ver la sección de aliasing), y cada frecuencia pide regenerar los coeficientes.
 - `L = 1 mH` y `R = 2 Ω`. La `L` sale del criterio de rizado de abajo, con un inductor que no sature a 1,5 A. La `R` es del orden en que 1 A pico cae 2 V, muy por debajo de `Vdc`, y una resistencia de 5 W lo disipa sin problema (1 W rms). Jefferson mide los valores reales.
 
 ## Rizado y la `L` mínima
@@ -98,7 +115,11 @@ Eso no cubre el rizado de conmutación, la cuantización del ADC, el ruido del s
 - Confirmar `Vdc`, `fsw` y que el puente aguanta la frecuencia con el tiempo muerto elegido.
 - Ganancia y offset del sensor de corriente, para la conversión de cuentas del ADC a amperes en `lazo_control`.
 - Medir el retardo efectivo del lazo (GPIO en la ISR) y comparar con `1,5·Ts`.
-- Habilitar o no la FPU del MicroBlaze V, y definir `U_MAX` dentro del rango del periférico PWM.
+- Filtro analógico del sensor, tipo y corte, que sale de medir el ruido (Nicolás). Con él se suma `τF` al `Td` y se recalculan los márgenes.
+- Acordar entre Jefferson y Nicolás que la captura del XADC caiga en el valle o el pico, y cuántos ciclos adelantar el trigger por el tiempo que tarda en cerrarse el sample and hold.
+- Que el Timer y la portadora cuenten exactamente lo mismo (5000 ciclos a 20 kHz), y medir con el GPIO de la ISR contra `pwm_trigger_o` que la fase no deriva.
+- Habilitar o no la FPU del MicroBlaze V, y fijar `U_MAX`, que tiene 1,0 como tope porque `duty_ref` va en Q2.14 de -1,0 a +1,0, y baja según el tiempo muerto.
+- Decidir con Jefferson y PEDP las frecuencias de `freq_sel`, por el 10 kHz de la tabla provisional.
 - Implementar `tustin_prewarp` en `generar_pr_params.py`.
 
 ## Referencias
