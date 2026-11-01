@@ -69,3 +69,48 @@ flowchart TD
 El programa tiene dos contextos. `lazo_control` corre dentro de la interrupción del Timer y es lo único con plazo fijo, junto con lo que llama (`ref_senoidal`, `pr_discreto`, `supervisor_falla` y la escritura en `buffer_muestras`). `control_principal` y `exportador_uart` corren en el lazo principal, que nunca bloquea y puede ser interrumpido en cualquier punto. Ningún acceso que espere a un periférico lento, como la UART, entra a la interrupción.
 
 Los dos contextos comparten pocas variables, cada una de 32 bits y declarada `volatile`, con un solo escritor. `control_principal` escribe `control_habilitado` y `amplitud_ref`, y la interrupción solo las lee. La interrupción escribe `falla` y el lazo principal solo la lee. Así ninguna necesita candado.
+
+## Periférico PWM
+
+El bloque 6 del nivel 2 se abre en dos módulos de SystemVerilog dentro de `periferico_pwm`, que es el módulo superior que se empaqueta como IP. `interfaz_axi_pwm` atiende el bus y guarda los registros, y `nucleo_pwm` genera la portadora, las compuertas y el disparo del ADC. Van en archivos separados para que cada uno se trabaje en su rama sin pisarse.
+
+```mermaid
+flowchart LR
+    AXI(["Interconexión AXI"])
+    CR(["clk y rst_n"])
+
+    subgraph PER["periferico_pwm"]
+        IF["interfaz_axi_pwm<br/>registros 0x00 y 0x04"]
+        NUC["nucleo_pwm<br/>portadora, comparadores,<br/>tiempo muerto y trigger"]
+
+        IF -->|"enable, freq_sel, duty_ref"| NUC
+        NUC -->|"running"| IF
+    end
+
+    ADC(["Interfaz ADC/XADC"])
+    PH(["Drivers del puente H"])
+
+    AXI <-->|"AXI4-Lite"| IF
+    CR --> IF
+    CR --> NUC
+    NUC -->|"pwm_trigger_o"| ADC
+    NUC -->|"compuerta_a_alta, compuerta_a_baja,<br/>compuerta_b_alta, compuerta_b_baja"| PH
+```
+
+### Módulos
+
+- `interfaz_axi_pwm`, esclavo AXI4-Lite con el registro de control y estado y el de `duty_ref`.
+- [`nucleo_pwm`](../modulos/nucleo_pwm.md), portadora triangular, modulación unipolar, tiempo muerto y `pwm_trigger_o`.
+
+### Registros
+
+- `0x00`, control y estado. `enable` en el bit 0, `freq_sel` en los bits [2:1] y `running` en el bit 3, de solo lectura.
+- `0x04`, `duty_ref` en los bits [15:0], en Q2.14 con signo.
+
+### Reparto de funciones
+
+La interfaz guarda lo que escribe el software y lo pasa tal cual al núcleo. Los registros sombra, la saturación de `duty_ref` y la espera al valle están en el núcleo, así que la interfaz no necesita saber nada de la portadora. `running` va en sentido contrario, lo produce el núcleo y la interfaz solo lo expone en lectura.
+
+El tiempo muerto no pasa por la interfaz. Es el `parameter` `DEAD_TIME_CICLOS` de `nucleo_pwm`, que `periferico_pwm` expone como parámetro de la IP para fijarlo al armar el Block Design.
+
+Los dos módulos usan el reloj y el reinicio del bus, así que no hay cruce de dominios de reloj entre la interfaz y el núcleo.
