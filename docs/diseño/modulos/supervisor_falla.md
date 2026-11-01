@@ -49,34 +49,34 @@ El contador de iteraciones sin dato vuelve a cero en cada `supervisor_falla_revi
 
 ## h) Diseño
 
-### Enclavamiento
+### h.1) Enclavamiento
 
 `falla` es una variable `static` que solo pasa de cero a uno. Ninguna función del módulo la baja, y `supervisor_falla_iniciar` la deja en cero en el arranque. Como `BTN_RST` reinicia la plataforma completa y el programa vuelve a arrancar desde `main`, ese es el único camino para salir de la falla. `BTN_HABILITAR` no la borra, para que un operador no pueda reenergizar el puente sin revisar qué pasó.
 
-### Por qué la sobrecorriente no lleva filtro
+### h.2) Por qué la sobrecorriente no lleva filtro
 
 Comparar una sola muestra contra el umbral hace que un pico aislado de ruido pueda disparar la falla. Se acepta así, porque un falso disparo solo obliga a reiniciar, y un filtro de varias muestras retrasa el apagado justo cuando la corriente está creciendo. Si en el banco aparecen disparos falsos, la primera revisión es el filtro antialias y el muestreo en el centro del pulso, antes que agregar un filtro acá.
 
-### Comparación sin valor absoluto
+### h.3) Comparación sin valor absoluto
 
-La sobrecorriente se revisa con dos comparaciones en vez de con `fabsf`. Funciona igual con `valor_t` en punto flotante o en punto fijo y no necesita una función de valor absoluto en `numerico.h`.
+La sobrecorriente se revisa con dos comparaciones en vez de con `fabsf`. Funciona igual con `valor_t` en punto flotante o en punto fijo y no necesita una función de valor absoluto en `numerico.h`. Las comparaciones van negadas, `!(corriente <= umbral && corriente >= -umbral)`, para que un NaN dé falla en lugar de pasar por falso en las dos.
 
-### Valores provisionales
+### h.4) Valores provisionales
 
 Ninguno de los umbrales está acordado todavía. Quedan con un valor provisional marcado con `// TODO: Revisar` en `supervisor_falla.h`.
 
-- `UMBRAL_SOBRECORRIENTE` depende de la corriente máxima de los ensayos (1,0 A pico) más el rizado, y de lo que aguanten el puente y la carga. Lo fija la etapa de potencia.
+- `UMBRAL_SOBRECORRIENTE` depende de la corriente máxima de los ensayos (1,0 A pico) más el rizado, y de lo que aguanten el puente y la carga. Lo fija la etapa de potencia. Se simuló el escalón de 0,2 A a 1,0 A pico con el PR de `potencia/diseno_pr.md` en el lazo discreto promedio, en 20 instantes del período y con `L` de 0,7 a 1,3 mH y `R` de 1,5 a 2,5 Ω. El pico máximo fue 1,016 A, así que el transitorio no se acerca a 1,3 A. Falta sumarle el rizado de conmutación (unos 0,02 A de pico con la `L` de partida), que no entra en esa simulación, y el ruido del sensor.
 - `CUENTA_ADC_MIN` y `CUENTA_ADC_MAX` dependen de la ganancia y el offset reales del acondicionamiento, que mide Nicolás.
 - `ITERACIONES_SIN_DATO_MAX` depende de la relación entre el período del Timer y el del disparo del PWM.
 
-### Interfaz en C
+### h.5) Interfaz en C
 
 - `void supervisor_falla_iniciar(void)`, deja `falla` y el contador en cero.
 - `bool supervisor_falla_revisar(uint16_t cuenta, valor_t corriente)`, revisa las dos primeras condiciones y reinicia el contador sin dato.
 - `bool supervisor_falla_sin_dato(void)`, cuenta una iteración más sin dato y revisa la tercera condición.
 - `bool supervisor_falla_activa(void)`, consulta el estado sin modificarlo.
 
-### Prueba en la PC
+### h.6) Prueba en la PC
 
 `sw/pruebas/prueba_supervisor_falla.c` se compila con gcc y recorre cada condición por separado, los bordes de cada umbral, el enclavamiento después de que la medición vuelve a la normalidad y la tolerancia a iteraciones aisladas sin dato.
 
