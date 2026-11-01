@@ -33,7 +33,7 @@ Decide en cada iteración si la medición obliga a apagar el puente, y una vez q
 
 ## f) Explicación de la relación con otros módulos
 
-Solo lo llama [`lazo_control`](lazo_control.md), una vez por interrupción y antes de calcular el PR. Si devuelve falla, `lazo_control` apaga el PWM por medio de [`drivers`](drivers.md) en esa misma iteración y publica `falla` para [`control_principal`](control_principal.md), que enciende el LED y deja de aceptar `BTN_HABILITAR`. La protección física y el corte del driver los diseña la etapa de potencia, este módulo los complementa. El apagado por software no es instantáneo, porque el núcleo PWM toma `enable` en el valle de la portadora, y entre que se detecta la falla y las compuertas quedan en bajo pasa hasta un período, 50 µs a 20 kHz.
+Solo lo llama [`lazo_control`](lazo_control.md), una vez por interrupción y antes de calcular el PR. Si devuelve falla, `lazo_control` apaga el PWM por medio de [`drivers`](drivers.md) en esa misma iteración y publica `falla` para [`control_principal`](control_principal.md), que enciende el LED y deja de aceptar `BTN_HABILITAR`. La protección física y el corte del driver los diseña Nicolás en la etapa de potencia, este módulo los complementa. El apagado por software no es instantáneo, porque el núcleo PWM toma `enable` en el valle de la portadora, y entre que se detecta la falla y las compuertas quedan en bajo pasa hasta un período, 50 µs a 20 kHz.
 
 ## g) Explicación de funcionamiento
 
@@ -66,7 +66,7 @@ La sobrecorriente se revisa con dos comparaciones en vez de con `fabsf`. Funcion
 Ninguno de los umbrales está acordado todavía. Quedan con un valor provisional marcado con `// TODO: Revisar` en `supervisor_falla.h`.
 
 - `UMBRAL_SOBRECORRIENTE` depende de la corriente máxima de los ensayos (1,0 A pico) más el rizado, y de lo que aguanten el puente y la carga. Lo fija la etapa de potencia. Se simuló el escalón de 0,2 A a 1,0 A pico con el PR de `potencia/diseno_pr.md` en el lazo discreto promedio, en 20 instantes del período y con `L` de 0,7 a 1,3 mH y `R` de 1,5 a 2,5 Ω. El pico máximo fue 1,016 A, así que el transitorio no se acerca a 1,3 A. El rizado de conmutación no entra en esa simulación y es de unos 0,02 A de pico con la `L` de partida, así que el pico total ronda 1,04 A, bien debajo de 1,3 A. Falta el ruido del sensor, y que durante el período que tarda el apagado la corriente puede seguir subiendo.
-- `CUENTA_ADC_MIN` y `CUENTA_ADC_MAX` dependen de la ganancia y el offset reales del acondicionamiento, que mide Nicolás.
+- `CUENTA_ADC_MIN` y `CUENTA_ADC_MAX` dependen de la ganancia y el offset reales del acondicionamiento, que mide Jefferson.
 - `ITERACIONES_SIN_DATO_MAX` depende de la relación entre el período del Timer y el del disparo del PWM.
 
 ### h.5) Interfaz en C
