@@ -9,6 +9,7 @@ flowchart LR
         RST(["BTN_RST<br/>reinicio general"])
         HAB(["BTN_HABILITAR<br/>habilita el control"])
         EXP(["BTN_EXPORTAR<br/>envía las muestras"])
+        SWI(["SW[1:0]<br/>amplitud de la referencia"])
         ADC(["corriente_i<br/>entrada analógica 0 a 1 V"])
     end
 
@@ -31,6 +32,7 @@ flowchart LR
     RST --> SYS
     HAB --> SYS
     EXP --> SYS
+    SWI --> SYS
     ADC --> SYS
     SYS -->|"tx, 115200 8N1<br/>muestras de corriente"| PC
     SYS --> GATE
@@ -58,6 +60,7 @@ flowchart LR
 - `BTN_RST`, reinicio general del sistema. El botón y el pin se definen en `basys3.xdc`.
 - `BTN_HABILITAR`, habilita o deshabilita el control. Mientras no se presione, las compuertas se quedan apagadas.
 - `BTN_EXPORTAR`, pide al sistema enviar por UART el histórico de muestras guardado en memoria.
+- `SW[1:0]`, switches `SW0` y `SW1` de la Basys 3 que eligen la amplitud pico de la referencia, 0 A, 0,2 A, 0,5 A o 1,0 A. Se pueden mover con el control andando, que es lo que pide el ensayo de cambio de amplitud.
 - `corriente_i`, entrada analógica de 0 a 1 V hacia el XADC, por el Pmod JXADC. Llega ya acondicionada desde el sensor, con un offset para representar corriente alterna en un rango unipolar.
 
 Los botones y los pines concretos de cada entrada están por confirmar, y su nombre es provisional hasta que se asigne el `.xdc`.
