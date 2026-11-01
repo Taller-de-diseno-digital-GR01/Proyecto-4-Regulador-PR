@@ -107,6 +107,7 @@ B lleva el seguimiento del repositorio y de los documentos. Eso incluye vigilar 
 El puente H recibe las cuatro señales del núcleo de A por los pines que C asigna en `basys3.xdc`.
 
 - Elegir los semiconductores (MOSFET) según Vdc de 12 a 24 V y la corriente pico de 1,0 A más el rizado, y justificar la elección con las pérdidas de conducción y de conmutación estimadas de forma simplificada.
+- Aislar las cuatro señales de compuerta entre la Basys3 y el puente H, para que la tierra del puente quede propia del lado de potencia. Hay que comparar opciones (optoacopladores u otras) por el retardo y su asimetría, que entran al tiempo muerto, la velocidad a la frecuencia de conmutación, la alimentación de cada lado y el inventario. Va antes de elegir el driver.
 - Elegir y justificar el driver de compuertas (bootstrap o aislado), incluyendo el nivel lógico, porque las salidas de la Basys3 son de 3,3 V. Hay que revisar que el driver acepte ese nivel o agregar una etapa.
 - Justificar el tiempo muerto mínimo que necesita el par MOSFET y driver elegido, a partir de las hojas de datos (tiempos de encendido y apagado). Este valor fija el `parameter` `DEAD_TIME_CICLOS` del núcleo de A.
 - Dibujar el circuito del inversor, identificar los estados de conmutación y explicar los caminos de corriente de la carga en cada uno.
