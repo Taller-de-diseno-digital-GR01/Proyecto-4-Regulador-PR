@@ -2,7 +2,7 @@
 #include "supervisor_falla.h"
 
 // Solo pasa de cero a uno, la única salida es BTN_RST que vuelve a correr supervisor_falla_iniciar
-static bool falla;
+static volatile bool falla;
 static uint32_t sin_dato;
 
 void supervisor_falla_iniciar(void)
@@ -15,7 +15,8 @@ bool supervisor_falla_revisar(uint16_t cuenta, valor_t corriente)
 {
     sin_dato = 0;
 
-    if (corriente > UMBRAL_SOBRECORRIENTE || corriente < -UMBRAL_SOBRECORRIENTE)
+    // Escrito en negativo para que un NaN también dispare falla, las comparaciones directas con NaN dan falso
+    if (!(corriente <= UMBRAL_SOBRECORRIENTE && corriente >= -UMBRAL_SOBRECORRIENTE))
         falla = true;
     else if (cuenta <= CUENTA_ADC_MIN || cuenta >= CUENTA_ADC_MAX)
         falla = true;
