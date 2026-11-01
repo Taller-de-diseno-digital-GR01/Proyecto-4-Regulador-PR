@@ -92,6 +92,8 @@ Al habilitar, primero reinicia los estados del PR y la fase de la referencia, de
 
 Al deshabilitar el orden se invierte. Primero baja `enable`, para que las compuertas se apaguen cuanto antes, y después `control_habilitado`. Si en medio cae una interrupción y escribe un `duty_ref` más, el periférico ya está apagado y no pasa nada.
 
+Bajar `enable` no corta las compuertas en el acto. El núcleo PWM lo toma en el valle siguiente de la portadora, así que el puente puede seguir conmutando hasta un período más, 50 µs a 20 kHz, y `running` baja recién entonces. El orden de arriba no cambia por eso, y el tiempo hasta el corte es el mismo en la deshabilitación por botón y en la falla.
+
 La escritura de `enable` es una lectura, modificación y escritura del offset `0x00`, compartido con `freq_sel`, y la interrupción también lo escribe cuando declara falla. `drivers` la hace con las interrupciones deshabilitadas, para que una falla declarada en medio no quede pisada por un `enable` en uno.
 
 ### h.3) Amplitud de la referencia
@@ -105,7 +107,7 @@ La escritura de `enable` es una lectura, modificación y escritura del offset `0
 
 Se lee en cada vuelta y se aplica aunque el control esté andando, que es lo que necesita el ensayo de cambio de amplitud. El código `00` sirve para habilitar el puente con corriente nula antes de subir a un punto de operación. Los switches son niveles que no se mueven durante un ensayo, así que se usa el valor directo y no se les saca flanco.
 
-Los switches son `SW0` y `SW1` de la Basys 3. Todavía faltan en la entrada del nivel 1 y del bloque 11 del nivel 2.
+Los switches son `SW0` y `SW1` de la Basys 3.
 
 ### h.4) Detección de flancos
 
@@ -113,8 +115,8 @@ Se guarda la lectura de los botones de la vuelta anterior, y el flanco de subida
 
 ### h.5) Valores provisionales
 
-- `FREQ_SEL_INICIAL`, el código de `freq_sel` con el que arranca el PWM. Depende de qué frecuencia vaya en cada código, que define Jefferson.
-- El período del Timer en ciclos sale de `PR_FRECUENCIA_MUESTREO_HZ`. Con el AXI Timer contando hacia abajo y recarga automática, el período es `TLR + 2` ciclos, así que `TLR = 100 MHz / PR_FRECUENCIA_MUESTREO_HZ - 2`. Con los 20 kHz de partida da `100 MHz / 20 kHz - 2 = 4998`, división exacta. Hay que verificarlo de nuevo si cambia la frecuencia, y confirmar con Jefferson que la portadora del PWM dura los mismos 5000 ciclos, porque de eso depende que el Timer y `pwm_trigger_o` no deriven entre sí.
+- `FREQ_SEL_INICIAL` vale `01`, que en la tabla provisional de `nucleo_pwm.md` es 20 kHz y coincide con los 20 kHz de `PR_FRECUENCIA_MUESTREO_HZ`. Si Jefferson y PEDP cambian las frecuencias de la tabla, este código se cambia con ellas.
+- El período del Timer en ciclos sale de `PR_FRECUENCIA_MUESTREO_HZ`. Con el AXI Timer contando hacia abajo y recarga automática, el período es `TLR + 2` ciclos, así que `TLR = 100 MHz / PR_FRECUENCIA_MUESTREO_HZ - 2`. Con los 20 kHz de partida da `100 MHz / 20 kHz - 2 = 4998`, división exacta. La portadora del PWM a 20 kHz dura `2 · MAX = 5000` ciclos según `nucleo_pwm.md`, los mismos del Timer, así que no deberían derivar entre sí. Falta medirlo con el GPIO de la interrupción contra `pwm_trigger_o`, y repetir la cuenta si cambia la frecuencia.
 
 ## i) Diagrama esquemático detallado del diseño
 
