@@ -5,7 +5,7 @@
 #include <stdint.h>
 
 // TODO: Revisar cuando se enlace el programa completo y se sepa cuánto sobra de los 32 KB, tiene que ser potencia de dos
-#define BUFFER_REGISTROS 1024u
+#define BUFFER_REGISTROS 2048u
 
 #define BANDERA_SATURADO     (1u << 15)
 #define BANDERA_DATO_AUSENTE (1u << 14)
