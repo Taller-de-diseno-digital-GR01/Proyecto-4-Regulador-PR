@@ -34,7 +34,7 @@ flowchart TD
         PWM -->|"pwm_trigger_o"| ADC
     end
 
-    BOT(["BTN_HABILITAR y BTN_EXPORTAR"])
+    BOT(["BTN_HABILITAR, BTN_EXPORTAR y SW[1:0]"])
     LED(["led de habilitación y falla"])
     MED(["salida de depuración temporal"])
     PC["Aplicación de PC: recepción y gráficas"]
@@ -192,16 +192,16 @@ La comunicación de la aplicación es de la FPGA hacia la PC. No se incorpora un
 
 ### Bloque 11: Interfaz de usuario y AXI GPIO
 
-Recoge `BTN_HABILITAR` y `BTN_EXPORTAR`, y permite al software actualizar los LEDs de habilitación y falla y la salida de depuración temporal. El bloque agrupa el AXI GPIO y el acondicionamiento digital necesario para obtener eventos de botón utilizables por el programa.
+Recoge `BTN_HABILITAR`, `BTN_EXPORTAR` y los switches `SW[1:0]`, y permite al software actualizar los LEDs de habilitación y falla y la salida de depuración temporal. El bloque agrupa el AXI GPIO y el acondicionamiento digital necesario para obtener eventos de botón utilizables por el programa.
 
-`BTN_HABILITAR` solicita habilitar o deshabilitar la actuación. `BTN_EXPORTAR` solicita transmitir el histórico. La interpretación de ambos eventos corresponde al software; GPIO comunica las entradas y mantiene las salidas que le indique el procesador. El reinicio general `BTN_RST` se atiende en la infraestructura de reset, no como un comando que dependa de que el programa esté ejecutándose.
+`BTN_HABILITAR` solicita habilitar o deshabilitar la actuación. `BTN_EXPORTAR` solicita transmitir el histórico. `SW[1:0]` elige la amplitud de la referencia. La interpretación de ambos eventos corresponde al software; GPIO comunica las entradas y mantiene las salidas que le indique el procesador. El reinicio general `BTN_RST` se atiende en la infraestructura de reset, no como un comando que dependa de que el programa esté ejecutándose.
 
-Los botones requieren tratamiento del rebote y de su llegada desde el exterior del dominio síncrono. En este nivel se establece esa necesidad sin abrir todavía el bloque en sincronizadores, contadores o detectores de flanco.
+Los switches son niveles estables y llegan por el mismo GPIO, pero no necesitan detección de flancos. Los botones requieren tratamiento del rebote y de su llegada desde el exterior del dominio síncrono. En este nivel se establece esa necesidad sin abrir todavía el bloque en sincronizadores, contadores o detectores de flanco.
 
 El LED de habilitación debe representar el estado efectivo del control, y el LED de falla, la condición detectada por el sistema. La salida de depuración se activa al entrar a la rutina periódica y se desactiva al salir. Su duración y repetición permiten medir el tiempo de servicio y la variación temporal de atención; no sustituyen la comprobación del instante de adquisición del XADC.
 
-- **Entradas:** `BTN_HABILITAR`, `BTN_EXPORTAR`, reloj, reinicio y accesos AXI de lectura/escritura desde el procesador.
-- **Salidas:** estado de botones hacia el procesador mediante AXI, `led[1:0]` hacia la placa y salida de depuración hacia el punto de medición.
+- **Entradas:** `BTN_HABILITAR`, `BTN_EXPORTAR`, `SW[1:0]`, reloj, reinicio y accesos AXI de lectura/escritura desde el procesador.
+- **Salidas:** estado de botones y switches hacia el procesador mediante AXI, `led[1:0]` hacia la placa y salida de depuración hacia el punto de medición.
 
 La cantidad de instancias o canales GPIO se fijará al integrar el Block Design, según las entradas y salidas requeridas. El bloque del diagrama representa esa función completa.
 
