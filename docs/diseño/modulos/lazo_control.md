@@ -93,7 +93,7 @@ La rutina no baja `control_habilitado`, porque esa variable la escribe solo `con
 
 ### h.6) Calibración
 
-`ADC_OFFSET_CUENTAS` y `ADC_AMPERES_POR_CUENTA` salen de medir el sensor montado, y los mide Nicolás. Mientras tanto quedan con el valor teórico del nivel 2, 0 A en 0,5 V, o sea la mitad de la escala de 12 bits, marcados con `// TODO: Revisar` en `lazo_control.h`. `ADC_AMPERES_POR_CUENTA` no tiene valor teórico acordado y queda también como pendiente.
+`ADC_OFFSET_CUENTAS` y `ADC_AMPERES_POR_CUENTA` salen de medir el sensor montado, y los mide Jefferson. Mientras tanto quedan con el valor teórico del nivel 2, 0 A en 0,5 V, o sea la mitad de la escala de 12 bits, marcados con `// TODO: Revisar` en `lazo_control.h`. `ADC_AMPERES_POR_CUENTA` no tiene valor teórico acordado y queda también como pendiente.
 
 ### h.7) Presupuesto de tiempo
 
