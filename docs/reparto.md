@@ -141,7 +141,7 @@ D lleva el PR completo, desde la estructura hasta los coeficientes que corre el 
 
 - Seleccionar y justificar la estructura del PR. Una forma habitual es un proporcional más un término resonante a 50 Hz, ideal o con amortiguamiento para hacerlo menos sensible a la desviación de frecuencia. Hay que investigar las dos y quedarse con una.
 - Establecer un procedimiento de diseño y de sintonización con criterios explícitos (márgenes de estabilidad, ancho de banda, seguimiento de la referencia de 50 Hz) y justificar las ganancias elegidas.
-- Analizar la estabilidad y el efecto del muestreo y de los retardos sobre el lazo. Hay que contar el retardo del cómputo, el de la actualización del PWM, el del filtro antialias que diseña C, y el del propio período de muestreo. Los retardos reales los mide D.
+- Analizar la estabilidad y el efecto del muestreo y de los retardos sobre el lazo. Hay que contar el retardo del cómputo, el de la actualización del PWM, el del filtro antialias que diseña A, y el del propio período de muestreo. Los retardos reales los mide D.
 - Validar el controlador sobre el modelo de la planta en PLECS que arma C, antes de pasarlo al MicroBlaze.
 - Conjunto con A y C, el período de muestreo y de actualización del control, y los valores de `L`, `R` y `Vdc` con los que se sintoniza.
 - Elegir el método de discretización (Tustin con o sin precorrección en 50 Hz, ZOH, y otros) y obtener la ecuación en diferencias que implementará la ISR.
