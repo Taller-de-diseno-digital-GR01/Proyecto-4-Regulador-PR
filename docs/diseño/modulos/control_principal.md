@@ -42,7 +42,7 @@ Es el dueño del arranque. Inicia todos los demás módulos y registra `lazo_con
 
 ## g) Explicación de funcionamiento
 
-### Arranque
+### g.1) Arranque
 
 1. Deja el PWM con `enable` en cero y `freq_sel` en `FREQ_SEL_INICIAL`.
 2. Configura el ADC, la UART y el GPIO, con los LEDs y la salida de depuración en cero.
@@ -52,7 +52,7 @@ Es el dueño del arranque. Inicia todos los demás módulos y registra `lazo_con
 
 El Timer va al final para que la primera interrupción ya encuentre todo listo.
 
-### Lazo principal
+### g.2) Lazo principal
 
 En cada vuelta, en este orden.
 
@@ -68,7 +68,7 @@ Ningún paso espera a un periférico, así que una vuelta dura pocos microsegund
 
 ## h) Diseño
 
-### Estados del control
+### h.1) Estados del control
 
 | Estado | `control_habilitado` | `enable` | `led[0]` | `led[1]` |
 | --- | --- | --- | --- | --- |
@@ -86,7 +86,7 @@ Ningún paso espera a un periférico, así que una vuelta dura pocos microsegund
 
 No hace falta una variable de estado aparte, porque el estado queda determinado por `control_habilitado` y `falla`.
 
-### Orden al habilitar y al deshabilitar
+### h.2) Orden al habilitar y al deshabilitar
 
 Al habilitar, primero reinicia los estados del PR y la fase de la referencia, después sube `control_habilitado` y por último `enable`. Mientras `control_habilitado` está en cero la interrupción no toca ni el PR ni la referencia, así que el reinicio no puede chocar con ella, y el primer `duty_ref` sale de un PR limpio y de una referencia que arranca en cero.
 
@@ -94,7 +94,7 @@ Al deshabilitar el orden se invierte. Primero baja `enable`, para que las compue
 
 La escritura de `enable` es una lectura, modificación y escritura del offset `0x00`, compartido con `freq_sel`, y la interrupción también lo escribe cuando declara falla. `drivers` la hace con las interrupciones deshabilitadas, para que una falla declarada en medio no quede pisada por un `enable` en uno.
 
-### Amplitud de la referencia
+### h.3) Amplitud de la referencia
 
 | `SW[1:0]` | `amplitud_ref` |
 | --- | --- |
@@ -107,14 +107,14 @@ Se lee en cada vuelta y se aplica aunque el control esté andando, que es lo que
 
 Los switches son `SW0` y `SW1` de la Basys 3. Todavía faltan en la entrada del nivel 1 y del bloque 11 del nivel 2.
 
-### Detección de flancos
+### h.4) Detección de flancos
 
 Se guarda la lectura de los botones de la vuelta anterior, y el flanco de subida es `actual & ~anterior`. El antirrebote ya viene resuelto por el bloque 11, así que una pulsación da un solo flanco. Como el lazo principal da miles de vueltas por segundo, no hay forma de perder una pulsación humana.
 
-### Valores provisionales
+### h.5) Valores provisionales
 
 - `FREQ_SEL_INICIAL`, el código de `freq_sel` con el que arranca el PWM. Depende de qué frecuencia vaya en cada código, que define Jefferson.
-- El período del Timer en ciclos sale de `PR_FRECUENCIA_MUESTREO_HZ`. Con el AXI Timer contando hacia abajo y recarga automática, el período es `TLR + 2` ciclos, así que `TLR = 100 MHz / PR_FRECUENCIA_MUESTREO_HZ - 2`. Hay que verificar que la división dé exacta para la frecuencia que se acuerde.
+- El período del Timer en ciclos sale de `PR_FRECUENCIA_MUESTREO_HZ`. Con el AXI Timer contando hacia abajo y recarga automática, el período es `TLR + 2` ciclos, así que `TLR = 100 MHz / PR_FRECUENCIA_MUESTREO_HZ - 2`. Con los 20 kHz de partida da `100 MHz / 20 kHz - 2 = 4998`, división exacta. Hay que verificarlo de nuevo si cambia la frecuencia, y confirmar con Jefferson que la portadora del PWM dura los mismos 5000 ciclos, porque de eso depende que el Timer y `pwm_trigger_o` no deriven entre sí.
 
 ## i) Diagrama esquemático detallado del diseño
 
