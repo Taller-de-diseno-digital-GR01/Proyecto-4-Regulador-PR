@@ -47,11 +47,11 @@ Su única fuente es `exportador_uart`, y su única referencia de formato es la t
 
 ## h) Diseño
 
-### Lectura de la trama
+### h.1) Lectura de la trama
 
 La trama se desempaca con `struct` y el formato little-endian `<`, que calza con el orden del MicroBlaze V. La cabecera es `<HIfffB` después del `0xAA` y cada registro es `<Hhh`, con `duty_ref` leído como entero sin signo cuando `duty_con_signo` es 0. El puerto se abre con un tiempo de espera, para que una exportación cortada a la mitad termine en un error claro en vez de dejar el script colgado.
 
-### Error de la fundamental
+### h.2) Error de la fundamental
 
 Se ajusta por mínimos cuadrados `a · cos(2π · 50 · t) + b · sin(2π · 50 · t) + c` a la corriente medida y, aparte, a la referencia, sobre una ventana de un número entero de períodos de 50 Hz, de al menos cinco. El ajuste sirve aunque la frecuencia de muestreo no sea múltiplo de 50 Hz, cosa que una DFT directa no permite sin fuga espectral.
 
@@ -61,17 +61,17 @@ De cada ajuste salen el fasor de la fundamental, con amplitud `sqrt(a² + b²)` 
 
 con `I1` y `R1` los fasores de la corriente y de la referencia. Ese error incluye amplitud y fase a la vez, y por eso también se informan las dos por separado. Si la ventana contiene iteraciones con `habilitado` en cero o con `falla`, el script lo avisa, porque el resultado ya no representa un ensayo en régimen.
 
-### Rizado de conmutación
+### h.3) Rizado de conmutación
 
 El rizado no se puede medir con estas muestras. El ADC muestrea en el centro del pulso, sincronizado con `pwm_trigger_o`, justamente para no ver el rizado, y además muestrea a lo sumo una vez por período de conmutación. Lo que queda en la corriente después de quitarle la fundamental es distorsión de baja frecuencia y no el rizado. El criterio de menos de 0,20 A pico a pico se mide con el osciloscopio sobre la corriente de la carga, y el script solo informa ese residuo con su nombre para no confundirlo.
 
-### Archivos y dependencias
+### h.4) Archivos y dependencias
 
 - `sw/receptor_pc.py`, el script, con la ruta del puerto o de una trama guardada como argumento opcional.
 - `sw/enlace.py`, copiado del Proyecto 3 sin la parte de envío.
 - `pyserial`, `numpy` y `matplotlib`, en `sw/requirements.txt`.
 
-### Prueba sin la placa
+### h.5) Prueba sin la placa
 
 La trama que genera la prueba en la PC de `exportador_uart` se guarda en un archivo, y `receptor_pc` se corre sobre ese archivo. Si con una senoidal conocida en la trama sale la amplitud y el error esperados, el formato y la conversión quedan verificados de punta a punta antes de conectar la Basys 3.
 

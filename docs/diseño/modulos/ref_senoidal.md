@@ -40,7 +40,7 @@ El cambio de amplitud entra en la muestra siguiente sin tocar la fase, que es lo
 
 ## h) Diseño
 
-### Por qué un acumulador de fase
+### h.1) Por qué un acumulador de fase
 
 En el nivel 3 quedaron dos caminos, una tabla de un período exacto si la frecuencia de muestreo es múltiplo de 50 Hz, o un acumulador si no. El acumulador sirve en los dos casos, así que se elige desde ya y el módulo no depende de una frecuencia que todavía no se acordó con PEDP.
 
@@ -50,7 +50,7 @@ El incremento por iteración es
 
 y se calcula una vez en `ref_senoidal_iniciar` con aritmética entera de 64 bits. El error de frecuencia que deja el redondeo es como mucho `frecuencia_muestreo_hz / 2^33`, del orden de microhertz para cualquier frecuencia de muestreo razonable, y la fase no acumula error porque el acumulador desborda solo al completar la vuelta.
 
-### Tabla de un cuarto de onda
+### h.2) Tabla de un cuarto de onda
 
 Con 32 KB para programa, datos e histórico, una tabla de un período completo con buena resolución no cabe. Se guarda solo el primer cuarto, de 0 a π/2, en 257 entradas, y los otros tres cuadrantes salen por simetría. La entrada 256 es sin(π/2) = 1 y hace falta para que el segundo cuadrante, que recorre la tabla al revés, empiece exacto.
 
@@ -70,11 +70,11 @@ Cortar la fase a 1024 posiciones produce un error de amplitud de a lo sumo 2π/1
 
 La tabla se llena en `ref_senoidal_iniciar` con `sinf`. Así no hace falta generar un arreglo constante aparte, y el costo de `sinf` queda en el arranque y nunca en la interrupción. Con `valor_t` en punto flotante ocupa 257 · 4 = 1028 bytes.
 
-### Formato numérico
+### h.3) Formato numérico
 
 La amplitud, la tabla y la salida son `valor_t`, el tipo único que define `sw/numerico.h`. Hoy es `float` porque todavía no se sabe si el MicroBlaze V lleva FPU. Si se pasa a punto fijo, el cambio queda en `numerico.h` y en las dos líneas de este módulo que multiplican y llenan la tabla, porque usan `valor_mul` y `VALOR` en vez de operar directo sobre `float`.
 
-### Interfaz en C
+### h.4) Interfaz en C
 
 - `void ref_senoidal_iniciar(uint32_t frecuencia_muestreo_hz)`, llena la tabla, calcula el incremento y deja la fase en cero.
 - `void ref_senoidal_reiniciar_fase(void)`, deja la fase en cero.
@@ -82,7 +82,7 @@ La amplitud, la tabla y la salida son `valor_t`, el tipo único que define `sw/n
 
 El estado es la fase, el incremento y la tabla, todos `static` dentro de `ref_senoidal.c`. La fase la escribe solo la interrupción, salvo en el reinicio, que `control_principal` hace con el control deshabilitado.
 
-### Prueba en la PC
+### h.5) Prueba en la PC
 
 `sw/pruebas/prueba_ref_senoidal.c` se compila con gcc y revisa que la primera muestra sea cero, que un período tenga la cantidad de muestras esperada, que los picos lleguen a la amplitud y que un cambio de amplitud no mueva la fase.
 

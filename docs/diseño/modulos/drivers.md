@@ -46,7 +46,7 @@ En el flujo de Vitis 2025.1 los drivers de Xilinx se inicializan con la direcci�
 
 ## h) Diseño
 
-### Periférico PWM
+### h.1) Periférico PWM
 
 Mapa de la sección 4.2.3 del enunciado.
 
@@ -63,7 +63,7 @@ Funciones.
 
 Hacen falta dos versiones del apagado porque la del lazo principal tiene que protegerse de la interrupción y la de la interrupción no puede tocar la habilitación global de interrupciones, ya que al salir la volvería a dejar en uno a destiempo.
 
-### Interfaz ADC/XADC
+### h.2) Interfaz ADC/XADC
 
 Su mapa de registros lo define Nicolás y todavía no está. Las funciones que necesita el resto del programa sí se pueden fijar.
 
@@ -74,7 +74,7 @@ Su mapa de registros lo define Nicolás y todavía no está. Las funciones que n
 
 Si el XADC entrega el resultado alineado a la izquierda en 16 bits, como hace su registro de estado, el corrimiento a 12 bits se hace acá y no en `lazo_control`.
 
-### AXI GPIO
+### h.3) AXI GPIO
 
 Se necesitan tres grupos de señales que no pueden compartir registro de salida, por la regla de `lazo_control`.
 
@@ -88,20 +88,20 @@ La propuesta es una instancia de AXI GPIO de dos canales, el canal 1 como entrad
 - `void drivers_gpio_leds(uint32_t leds)`.
 - `void drivers_depuracion(bool nivel)`, una escritura al registro de datos de la segunda instancia, sin leer antes.
 
-### AXI UART Lite
+### h.4) AXI UART Lite
 
 - `bool drivers_uart_enviar(uint8_t byte)`. Lee el registro de estado y, si el bit de FIFO de transmisión llena está en cero, escribe el byte en el registro de transmisión y devuelve uno. Si la FIFO está llena devuelve cero sin escribir. No se usa `XUartLite_SendByte` porque espera activamente a que haya espacio.
 
 La recepción no se usa, igual que en el nivel 2.
 
-### AXI Timer y AXI INTC
+### h.5) AXI Timer y AXI INTC
 
 - `void drivers_timer_iniciar(uint32_t tlr)`, deja el contador 0 en modo de generación, contando hacia abajo, con recarga automática y con la interrupción habilitada, y lo arranca. El período queda en `tlr + 2` ciclos de 100 MHz.
 - `void drivers_timer_reconocer(void)`, escribe uno en el bit de interrupción del registro de control y estado del contador 0, que es como el AXI Timer limpia la interrupción, sin tocar los demás bits.
 - `void drivers_interrupciones_iniciar(void (*rutina)(void *))`, inicia el INTC, conecta la rutina a la entrada del Timer, arranca el INTC en modo real y habilita las excepciones del procesador.
 - `void drivers_interrupciones_deshabilitar(void)` y `void drivers_interrupciones_habilitar(void)`, para las secciones protegidas del lazo principal.
 
-### Prueba en la PC
+### h.6) Prueba en la PC
 
 Las funciones de `drivers` son las únicas que no se pueden compilar en la PC. Para probar con gcc los demás módulos, cada prueba define su propia versión de las funciones de `drivers` que necesita, que escriben en variables en vez de en registros. Así `drivers.h` es la frontera entre lo que se prueba en la PC y lo que solo corre en la placa.
 

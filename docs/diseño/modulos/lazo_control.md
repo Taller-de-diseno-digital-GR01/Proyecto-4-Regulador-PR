@@ -63,43 +63,43 @@ Con el control deshabilitado la rutina sigue corriendo y registrando la corrient
 
 ## h) Diseño
 
-### Orden respecto al enunciado
+### h.1) Orden respecto al enunciado
 
 La sección 4.2.4 pide, en cada período y siempre igual, adquirir y validar el dato, calcular el PR, escribir `duty_ref` y guardar en el buffer. Los pasos 3 y 4 son la adquisición y su validación, el 6 es el cálculo y la escritura, y el 7 es el buffer. La revisión de falla del paso 5 se mete entre la medición y el cálculo para que, si la corriente ya se pasó, el PR no llegue a escribir un `duty_ref` nuevo.
 
-### Reconocimiento del Timer
+### h.2) Reconocimiento del Timer
 
 Se reconoce escribiendo directo el bit de interrupción del registro de control y estado del AXI Timer, por medio de `drivers`, en vez de pasar por el manejador genérico del driver de Xilinx. El manejador genérico recorre los contadores y llama a una función de usuario, y eso agrega llamadas en el camino más sensible al tiempo del programa.
 
 Reconocerlo al principio y no al final no cambia nada mientras la rutina dure menos que el período, y si algún día dura más, la interrupción siguiente queda pendiente en vez de perderse.
 
-### Salida de depuración
+### h.3) Salida de depuración
 
 La sube al entrar y la baja al salir, así que en el osciloscopio el ancho del pulso es el tiempo de servicio y la distancia entre flancos de subida es el período efectivo, con su jitter. Los retardos que se midan así se le entregan a quien analice la estabilidad del PR.
 
 La escribe solo esta rutina, y los LEDs solo `control_principal`. Por eso tienen que quedar en canales distintos del AXI GPIO. Si compartieran registro, una lectura y escritura del lazo principal interrumpida a la mitad podría pisar el valor que dejó la rutina.
 
-### Apagado ante falla
+### h.4) Apagado ante falla
 
 `enable` vive en el mismo registro que `freq_sel`, así que apagarlo es leer, modificar y escribir el offset `0x00`. Dentro de la interrupción eso es seguro porque nada la interrumpe. El apagado se hace una sola vez, en la iteración en que la falla aparece. Las siguientes ya no tocan el registro de control.
 
 La rutina no baja `control_habilitado`, porque esa variable la escribe solo `control_principal`. En su lugar revisa `falla` antes de calcular, y `control_principal` baja `control_habilitado` en su siguiente vuelta.
 
-### Registro de la iteración
+### h.5) Registro de la iteración
 
 - `cuenta_banderas` lleva la cuenta en `[11:0]`, `saturado` en el bit 15, `dato_ausente` en el 14, si el control estaba habilitado en el 13 y `falla` en el 12.
 - `duty_ref` es el último valor escrito en el PWM, aunque en esta iteración no se haya calculado.
 - `i_ref_ma` es `i_ref · 1000` truncado a entero, cero con el control deshabilitado.
 
-### Calibración
+### h.6) Calibración
 
 `ADC_OFFSET_CUENTAS` y `ADC_AMPERES_POR_CUENTA` salen de medir el sensor montado, y los mide Nicolás. Mientras tanto quedan con el valor teórico del nivel 2, 0 A en 0,5 V, o sea la mitad de la escala de 12 bits, marcados con `// TODO: Revisar` en `lazo_control.h`. `ADC_AMPERES_POR_CUENTA` no tiene valor teórico acordado y queda también como pendiente.
 
-### Presupuesto de tiempo
+### h.7) Presupuesto de tiempo
 
 El período del Timer sale de `PR_FRECUENCIA_MUESTREO_HZ`, que todavía no está acordado. La rutina hace un puñado de accesos AXI, siete multiplicaciones del PR y una de la referencia y otra de la conversión, así que a 100 MHz debería caber en pocos microsegundos con FPU. Sin FPU, cada multiplicación en `float` por software cuesta decenas de ciclos, y eso es justo lo que se mide con la salida de depuración antes de decidir si se pasa a punto fijo.
 
-### Interfaz en C
+### h.8) Interfaz en C
 
 - `void lazo_control_isr(void *ref)`, la rutina que `control_principal` registra en el AXI INTC.
 - Las variables compartidas `volatile uint32_t control_habilitado`, `volatile valor_t amplitud_ref` y `volatile uint32_t falla`, declaradas en `lazo_control.h`.
