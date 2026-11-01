@@ -31,7 +31,7 @@ Calcula en cada iteración la ecuación en diferencias del regulador PR y la ent
 
 ## f) Explicación de la relación con otros módulos
 
-Solo lo llama `lazo_control`, una vez por interrupción y con el control habilitado. `control_principal` le reinicia los estados al habilitar, mientras la interrupción todavía no lo usa. La estructura del PR y sus ganancias las diseña PEDP. Este módulo solo implementa la forma discreta que sale de esa estructura. El formato de `duty_ref` se acuerda con Jefferson, que es quien satura en el periférico.
+Solo lo llama `lazo_control`, una vez por interrupción y con el control habilitado. `control_principal` le reinicia los estados al habilitar, mientras la interrupción todavía no lo usa. La estructura del PR, las ganancias y la discretización las diseña Mattio, y están justificadas en `potencia/diseno_pr.md`. Este módulo solo ejecuta la forma discreta que sale de ahí. El formato de `duty_ref` se acuerda con Jefferson, que es quien satura en el periférico.
 
 ## g) Explicación de funcionamiento
 
@@ -39,9 +39,9 @@ En cada llamada calcula el error, la parte proporcional y el término resonante,
 
 ## h) Diseño
 
-### Ecuación en diferencias
+### h.1) Ecuación en diferencias
 
-Cualquiera de las dos estructuras que se estudian en PEDP, resonante ideal o con amortiguamiento, discretizada con cualquiera de los métodos candidatos (Tustin con o sin precorrección en 50 Hz, ZOH, invariante al impulso), deja el término resonante como un filtro de segundo orden. Con eso el módulo puede quedar escrito antes de que se elija.
+El resonante, ideal o amortiguado y discretizado con cualquiera de los métodos candidatos, queda como un filtro de segundo orden. La forma de abajo vale para todos, y lo que cambia de uno a otro son solo los coeficientes.
 
 - `e[k] = i_ref[k] - corriente[k]`
 - `u_p[k] = KP · e[k]`
@@ -50,13 +50,29 @@ Cualquiera de las dos estructuras que se estudian en PEDP, resonante ideal o con
 
 Los estados son `e[k-1]`, `e[k-2]`, `r[k-1]` y `r[k-2]`. Cada iteración cuesta siete multiplicaciones y seis sumas o restas, más la conversión final.
 
-Si PEDP agrega compensación del retardo de cómputo o un segundo resonante para algún armónico, la ecuación crece en estados y coeficientes, pero la forma de la interfaz no cambia.
+Si más adelante se agrega compensación del retardo de cómputo o un segundo resonante para algún armónico, la ecuación crece en estados y coeficientes, pero la forma de la interfaz no cambia.
 
-### Unidades de la salida
+### h.2) Estructura y método elegidos
+
+- Estructura ideal, `Gc(s) = Kp + Kr · s / (s² + ω0²)` con `ω0 = 2π · 50`. La referencia la genera el propio MicroBlaze a 50 Hz exactos, así que no hay desvío de frecuencia que justifique el amortiguamiento. La pregunta 5 de `potencia/preguntas_profesor_pr.tex` le consulta esto al profesor.
+- Discretización por Tustin con precorrección en 50 Hz, `s = (ω0 / tan(ω0·Ts/2)) · (z-1)/(z+1)`. Con Tustin simple el polo se corre por debajo de 50 Hz y la ganancia infinita deja de caer en la frecuencia de la referencia. Con la precorrección el polo cae exacto en `ω0`.
+- Con `θ = ω0 · Ts` los coeficientes salen en forma cerrada. `B0 = Kr · sin(θ) / (2 · ω0)`, `B1 = 0`, `B2 = -B0`, `A1 = -2 · cos(θ)` y `A2 = 1`. Se verificó que reproducen los valores de la tabla de abajo.
+
+### h.3) Coeficientes de partida
+
+Con `Vdc = 18 V`, `fs = 20 kHz`, `Kp = 6,59 V/A` y `Kr = 1000`, ya divididos entre `Vdc`.
+
+- `PR_KP = 0,3661`
+- `PR_B0 = 1,3888e-3`, `PR_B1 = 0`, `PR_B2 = -1,3888e-3`
+- `PR_A1 = -1,99975`, `PR_A2 = 1`
+
+Son provisionales hasta medir `L` y `R` reales y confirmar `Vdc` y la frecuencia de muestreo. Si cambian, se regeneran con el script y este módulo no se toca.
+
+### h.4) Unidades de la salida
 
 `u[k]` sale como índice de modulación, la tensión que se le pide al puente dividida entre `Vdc`. El script que genera `pr_params.h` mete el `1 / Vdc` dentro de `KP`, `B0`, `B1` y `B2`, así la interrupción no divide y el módulo no necesita conocer `Vdc`.
 
-### Saturación y anti-windup
+### h.5) Saturación y anti-windup
 
 `u[k]` se recorta a `[-PR_U_MAX, PR_U_MAX]`, con `PR_U_MAX` de `pr_params.h`. Si hubo recorte, el estado que se guarda como `r[k]` no es el calculado sino
 
@@ -66,29 +82,31 @@ es decir, el valor que el resonante tendría que haber dado para que la suma cay
 
 El periférico también satura `duty_ref`, pero el PR no debe depender de eso. Si recortara solo el periférico, el resonante seguiría integrando un error que la planta nunca va a poder seguir, y el software no sabría que se saturó. `PR_U_MAX` tiene que quedar dentro del rango admisible del periférico a cualquier frecuencia de `freq_sel`.
 
-### Conversión a duty_ref
+### h.6) Conversión a duty_ref
 
 `duty_ref = round(u_sat[k] / DUTY_ESCALA)`, con `DUTY_ESCALA` el índice de modulación que vale un LSB de `duty_ref`. Si `DUTY_CON_SIGNO` es 1 el resultado se guarda en complemento a dos, y si es 0 se le suma el desplazamiento que defina el formato. Las dos constantes viven en `pr_discreto.h` y quedan provisionales con `// TODO: Revisar` hasta acordar el formato con Jefferson.
 
-### Formato numérico
+### h.7) Formato numérico
 
-Coeficientes, estados y entradas son `valor_t`, de `sw/numerico.h`. Las multiplicaciones pasan por `valor_mul` para que el cambio a punto fijo quede en un solo lugar. En punto fijo los estados del resonante son los que más crecen, y el formato se elige mirando el valor máximo que alcanza `r[k]` en el modelo con la amplitud de 1,0 A. Esa decisión espera a saber si el MicroBlaze V lleva FPU.
+Coeficientes, estados y entradas son `valor_t`, de `sw/numerico.h`. Las multiplicaciones pasan por `valor_mul` para que el cambio a punto fijo quede en un solo lugar. En punto fijo los estados del resonante son los que más crecen, y el formato se elige mirando el valor máximo que alcanza `r[k]` en el modelo con la amplitud de 1,0 A. `A1` es el coeficiente que manda. Está a 2,5e-4 de -2 y esa diferencia fija la frecuencia del polo, para mantenerlo a 0,1 Hz de 50 Hz hace falta resolverla a 1e-6, o sea unos 20 bits fraccionarios. En punto fijo eso obliga a un formato con dos bits enteros y multiplicaciones con intermedio de 64 bits. En flotante de 32 bits sobra resolución, así que el diseño apunta a habilitar la FPU y dejar `valor_t` en `float`. La decisión final es de Nicolás en el Block Design, y si no hay FPU se pasa a punto fijo cambiando solo `numerico.h`.
 
-### Coeficientes
+### h.8) Generador de coeficientes
 
-`sw/generar_pr_params.py` recibe la estructura, las ganancias, `Vdc`, la frecuencia de muestreo y el método de discretización, y escribe `pr_params.h` con `PR_FRECUENCIA_MUESTREO_HZ`, los coeficientes `PR_KP`, `PR_B0`, `PR_B1`, `PR_B2`, `PR_A1` y `PR_A2` (los `KP`, `B0` y demás de las ecuaciones de arriba) y `PR_U_MAX`. Para retocar ganancias en el banco se cambia la entrada del script, se regenera el header y se recompila, sin tocar `pr_discreto.c`. `PR_FRECUENCIA_MUESTREO_HZ` es la única fuente de la frecuencia de muestreo en todo el programa, porque los coeficientes solo valen para esa frecuencia, y el Timer, `ref_senoidal` y la cabecera de la exportación la toman de ahí.
+`sw/generar_pr_params.py` recibe la estructura, las ganancias, `Vdc`, la frecuencia de muestreo y el método de discretización, y escribe `pr_params.h` con `PR_FRECUENCIA_MUESTREO_HZ`, los coeficientes `PR_KP`, `PR_B0`, `PR_B1`, `PR_B2`, `PR_A1` y `PR_A2` (los `KP`, `B0` y demás de las ecuaciones de arriba) y `PR_U_MAX`. Para retocar ganancias en el banco se cambia la entrada del script, se regenera el header y se recompila, sin tocar `pr_discreto.c`. La fórmula de `tustin_prewarp` de h.2 todavía no está implementada en `coeficientes_resonante`, y las demás combinaciones lanzan `NotImplementedError`. `PR_FRECUENCIA_MUESTREO_HZ` es la única fuente de la frecuencia de muestreo en todo el programa, porque los coeficientes solo valen para esa frecuencia, y el Timer, `ref_senoidal` y la cabecera de la exportación la toman de ahí.
 
-### Interfaz en C
+### h.9) Interfaz en C
 
 - `void pr_discreto_reiniciar(void)`, deja los cuatro estados en cero.
 - `uint16_t pr_discreto_calcular(valor_t i_ref, valor_t corriente, bool *saturado)`.
 
-### Pendientes
+### h.10) Pendientes
 
-- Estructura del PR, ganancias, `Vdc` y frecuencia de muestreo, de PEDP.
-- Método de discretización, que se elige comparando cuál deja el pico resonante en 50 Hz con la frecuencia de muestreo acordada.
-- Formato y rango de `duty_ref`, con Jefferson.
-- Punto fijo o flotante, según la FPU.
+- `L` y `R` reales de la carga, `Vdc` y frecuencia de muestreo definitiva, que miden y confirman Jefferson y Nicolás. Con ellos se repite la sintonización.
+- Formato y rango de `duty_ref`, con Jefferson, que fija `DUTY_ESCALA`, `DUTY_CON_SIGNO` y `PR_U_MAX`.
+- FPU del MicroBlaze V, con Nicolás.
+- Sumar el retardo del filtro antialias al `Td = 1,5 · Ts` de `potencia/diseno_pr.md` y recalcular los márgenes, cuando se fije el filtro.
+- Respuesta del profesor sobre la estructura ideal.
+- Validar saturación y anti-windup contra el modelo de la planta, que la simulación de `potencia/diseno_pr.md` no cubre.
 
 ## i) Diagrama esquemático detallado del diseño
 
