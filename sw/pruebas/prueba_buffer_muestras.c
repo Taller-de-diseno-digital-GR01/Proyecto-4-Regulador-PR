@@ -52,10 +52,11 @@ int main(void)
     revisar(en_orden(37, BUFFER_REGISTROS), "se escribió con el buffer congelado");
 
     buffer_muestras_liberar();
+    revisar(buffer_muestras_cantidad() == 0, "al liberar no se vació el buffer");
     guardar(9000);
+    guardar(9001);
     buffer_muestras_congelar();
-    revisar(buffer_muestras_leer(BUFFER_REGISTROS - 1)->duty_ref == 9000, "al liberar no siguió desde donde quedó");
-    revisar(buffer_muestras_leer(0)->duty_ref == 38, "al liberar no pisó el registro más viejo");
+    revisar(en_orden(9000, 2), "después de liberar quedaron muestras viejas mezcladas");
 
     uint16_t cb = (uint16_t)(BANDERA_SATURADO | BANDERA_FALLA | 0x0ABC);
     revisar((cb & CUENTA_MASCARA) == 0x0ABC, "las banderas pisan la cuenta");

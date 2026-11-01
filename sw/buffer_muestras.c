@@ -36,6 +36,9 @@ void buffer_muestras_congelar(void)
 
 void buffer_muestras_liberar(void)
 {
+    // Se vacía antes de soltar el congelado para que una exportación nueva no mezcle muestras viejas
+    indice = 0;
+    llenos = 0;
     congelado = 0;
 }
 
