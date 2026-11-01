@@ -73,7 +73,7 @@ La PC no manda comandos en este proyecto, solo recibe, así que `rx` no se usa e
 
 ### Elementos externos
 
-La etapa de potencia no está dentro de la FPGA. Los drivers de compuerta y el puente H reciben las cuatro señales de la FPGA y aplican la tensión sobre la carga RL. La corriente de la carga la mide el sensor, que la lleva al rango de 0 a 1 V y cierra el lazo hacia `corriente_i`. La definición y construcción de esta etapa es de PEDP, y la frontera con la FPGA son las cuatro compuertas, la entrada analógica y la tierra común.
+La etapa de potencia no está dentro de la FPGA. Los drivers de compuerta y el puente H reciben las cuatro señales de la FPGA y aplican la tensión sobre la carga RL. La corriente de la carga la mide el sensor, que la lleva al rango de 0 a 1 V y cierra el lazo hacia `corriente_i`. La definición y construcción de esta etapa es de PEDP, y la frontera con la FPGA son las cuatro compuertas y la entrada analógica, con la etapa de potencia aislada de la Basys 3.
 
 La aplicación de PC es otro elemento externo. Recibe las muestras por el puerto serial y las grafica fuera de línea, sin intervenir en el control.
 
