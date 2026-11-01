@@ -103,12 +103,12 @@ Coeficientes, estados y entradas son `valor_t`, de `sw/numerico.h`. Las multipli
 
 ### h.10) Pendientes
 
-- `L` y `R` reales de la carga, `Vdc` y frecuencia de muestreo definitiva, que miden y confirman Jefferson y Nicolás. Con ellos se repite la sintonización.
-- `PR_U_MAX`, que queda con 1,0 como tope por el rango del periférico y se fija por debajo según el `DEAD_TIME_CICLOS` que elijan Jefferson y Nicolás.
+- `L` y `R` reales de la carga, que caracteriza Jefferson, y `Vdc` y la frecuencia de muestreo definitiva, que salen de la `f_sw` que elige Nicolás. Con ellos se repite la sintonización.
+- `PR_U_MAX`, que queda con 1,0 como tope por el rango del periférico y se fija por debajo según el tiempo muerto que fija Nicolás para el puente y que Jefferson implementa como `DEAD_TIME_CICLOS`.
 - FPU del MicroBlaze V, con Nicolás.
-- Sumar el retardo del filtro antialias al `Td = 1,5 · Ts` de `potencia/diseno_pr.md` y recalcular los márgenes, cuando se fije el filtro.
+- Sumar el retardo del filtro antialias y el de los optoacopladores de las compuertas al `Td = 1,5 · Ts` de `potencia/diseno_pr.md` y recalcular los márgenes, cuando se fijen el filtro, que diseña Jefferson, y el aislamiento de las compuertas, que elige Nicolás.
 - Respuesta del profesor sobre la estructura ideal.
-- Validar saturación y anti-windup contra el modelo de la planta, que la simulación de `potencia/diseno_pr.md` no cubre.
+- Validar saturación y anti-windup contra el modelo de la planta, el PLECS que arma Nicolás, que la simulación de `potencia/diseno_pr.md` no cubre.
 
 ## i) Diagrama esquemático detallado del diseño
 
