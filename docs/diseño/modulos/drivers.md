@@ -51,17 +51,21 @@ En el flujo de Vitis 2025.1 los drivers de Xilinx se inicializan con la direcci�
 Mapa de la sección 4.2.3 del enunciado.
 
 - Offset `0x00`, control y estado. Bit 0 `enable`, bits `[2:1]` `freq_sel`, bit 3 `running` de solo lectura.
-- Offset `0x04`, `duty_ref` en `[15:0]`.
+- Offset `0x04`, `duty_ref` en `[15:0]`, en Q2.14 con signo en complemento a dos, de -16384 (-1,0) a 16384 (1,0). Lo que pase de esos límites lo satura el periférico.
+
+El periférico copia `freq_sel` y `duty_ref` a registros sombra en el valle de la portadora y `running` toma el valor de `enable` en ese mismo instante, según `nucleo_pwm.md`. Lo que el software escribe a mitad de período rige desde el valle siguiente.
 
 Funciones.
 
 - `void drivers_pwm_configurar(uint32_t freq_sel)`, escribe `freq_sel` con `enable` en cero. Solo en el arranque.
 - `void drivers_pwm_habilitar(bool habilitar)`, desde el lazo principal. Lee el offset `0x00`, cambia el bit 0 y lo escribe, con las interrupciones deshabilitadas durante esas tres operaciones.
 - `void drivers_pwm_apagar(void)`, desde la interrupción ante falla. La misma lectura, modificación y escritura, sin deshabilitar nada porque la interrupción no se interrumpe.
-- `void drivers_pwm_escribir_duty(uint16_t duty_ref)`, una escritura al offset `0x04`.
-- `bool drivers_pwm_running(void)`, lee el bit 3.
+- `void drivers_pwm_escribir_duty(uint16_t duty_ref)`, una escritura al offset `0x04`. El argumento es el patrón de 16 bits en Q2.14 que devuelve `pr_discreto_calcular`, sin conversión.
+- `bool drivers_pwm_running(void)`, lee el bit 3. Sube y baja en un valle, así que se retrasa entre un ciclo de `clk` y un período completo respecto a `enable`.
 
 Hacen falta dos versiones del apagado porque la del lazo principal tiene que protegerse de la interrupción y la de la interrupción no puede tocar la habilitación global de interrupciones, ya que al salir la volvería a dejar en uno a destiempo.
+
+Ninguna de las dos apaga las compuertas al instante. Bajar `enable` surte efecto en el valle siguiente, y no hay otra escritura que lo adelante, porque `duty_ref` también espera al valle. Desde la escritura hasta que las compuertas quedan en bajo pasa hasta un período de portadora, 50 µs a 20 kHz.
 
 ### h.2) Interfaz ADC/XADC
 
