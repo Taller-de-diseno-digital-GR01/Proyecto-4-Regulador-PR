@@ -20,14 +20,14 @@ La versión amortiguada cambia exactitud en 50 Hz por tolerancia a que la frecue
 
 El puente H con modulación unipolar entrega `v = Vdc·u`, con `u` el índice de modulación entre -1 y 1. La carga cumple `I(s)/V(s) = 1/(Ls + R)`. La modulación unipolar sale del enunciado y de ella se toma que la frecuencia efectiva del rizado es el doble de la de conmutación (Mohan, sección 8-3-2-2, y Hart, capítulo 8).
 
-Además hay un retardo. La muestra se toma en el centro del pulso con `pwm_trigger_o`, la interrupción calcula con ella y escribe `duty_ref`, y el periférico lo aplica en el siguiente pico o valle de la portadora. Eso es un período de muestreo de cómputo más medio de actualización, y se modela como `Td = 1,5·Ts`, con `Ts = 1/fs`. Es el modelo habitual de los lazos digitales de corriente y es una suposición mía hasta medir el lazo real con el GPIO de la ISR. `nucleo_pwm.md` lo respalda en lo que toca al periférico, porque `pwm_trigger_o` sale en el valle y lo que el software escribe a mitad de período rige desde el valle siguiente. A ese `Td` todavía hay que sumarle el retardo del filtro analógico del sensor, que se calcula en la sección siguiente.
+Además hay un retardo. La muestra se toma en el centro del pulso con `pwm_trigger_o`, la interrupción calcula con ella y escribe `duty_ref`, y el periférico lo aplica en el siguiente pico o valle de la portadora. Eso es un período de muestreo de cómputo más medio de actualización, y se modela como `Td = 1,5·Ts`, con `Ts = 1/fs`. Es el modelo habitual de los lazos digitales de corriente y es una suposición mía hasta medir el lazo real con el GPIO de la ISR. `nucleo_pwm.md` lo respalda en lo que toca al periférico, porque `pwm_trigger_o` sale en el valle y lo que el software escribe a mitad de período rige desde el valle siguiente. A ese `Td` todavía hay que sumarle el retardo del filtro analógico del sensor, que se calcula en la sección siguiente. También el de los optoacopladores que separan la tierra de la Basys 3 de la del puente, que quedan en la ruta de las cuatro compuertas y todavía no tienen componente elegido. Se espera del orden de cientos de nanosegundos a pocos microsegundos contra `Ts = 50 µs`, así que mueve poco el `Td`, y pesa más en el tiempo muerto, porque el retardo no es igual al subir que al bajar.
 
 ## Aliasing y filtro del sensor
 
 El criterio `fs > 2·BW` se cumple de sobra para la señal. La referencia es de 50 Hz y el lazo cruza en 1 kHz, contra una `fs` de 20 kHz. Lo que el criterio no mira es todo lo demás que entra al ADC, porque al muestrear cualquier contenido por encima de `fs/2` se pliega hacia la banda del lazo y se confunde con corriente.
 
 - El rizado de conmutación se sincroniza solo. Si la captura cae en el valle o en el pico de la portadora, el rizado es un múltiplo exacto de `fs` y se pliega a continua. En una simulación en lazo abierto del puente unipolar con los valores provisionales, el error de la fundamental por esa causa fue 0,01 %. En el cruce de portadora, que es donde está el flanco del pulso de tensión, la sensibilidad al instante de captura es unas 9 veces mayor y un error de 200 ns ya da 0,42 %. Por eso `pwm_trigger_o` tiene que caer en el valle o el pico.
-- El ruido de banda ancha del sensor y de la conmutación no se sincroniza con nada, y lo único que lo frena es un filtro analógico antes del ADC. Ese filtro todavía no existe. Su corte sale de medir el ruido real del sensor, y lo mide Nicolás.
+- El ruido de banda ancha del sensor y de la conmutación no se sincroniza con nada, y lo único que lo frena es un filtro analógico antes del ADC. Ese filtro todavía no existe. Su corte sale de medir el ruido real del sensor, y lo mide Jefferson, que también diseña el filtro.
 
 El filtro cuesta fase en el cruce. Para un RC de primer orden con corte `fF`, el retardo de grupo a baja frecuencia es `τF = 1/(2π·fF)` y la fase que se pierde en `fc = 1 kHz` es `arctan(fc/fF)`.
 
@@ -107,7 +107,7 @@ Con los valores provisionales y dividiendo entre `Vdc` para que la salida sea í
 
 El mismo lazo discreto se probó con `L` entre 0,7 y 1,3 mH y `R` entre 1,5 y 2,5 Ω, y con un cambio de `R` de 2,0 a 2,5 Ω (25 %) a 1 A pico. En todos los casos el lazo es estable y el error de la fundamental baja de 10 % antes del tercer período, el peor caso es 13,6 % en el primero. En el cambio de `R` el error sube a 3,4 % en el primer período y vuelve a menos de 1 % en el tercero.
 
-Eso no cubre el rizado de conmutación, la cuantización del ADC, el ruido del sensor, el tiempo muerto ni la saturación con anti-windup. Se modela la corriente promedio con retardo de un muestreo y nada más. Estos puntos se validan en el modelo de PLECS de PEDP y en el banco.
+Eso no cubre el rizado de conmutación, la cuantización del ADC, el ruido del sensor, el tiempo muerto ni la saturación con anti-windup. Se modela la corriente promedio con retardo de un muestreo y nada más. Estos puntos se validan en el modelo de PLECS de Nicolás y en el banco.
 
 ## Pendientes
 
@@ -115,7 +115,9 @@ Eso no cubre el rizado de conmutación, la cuantización del ADC, el ruido del s
 - Confirmar `Vdc`, `fsw` y que el puente aguanta la frecuencia con el tiempo muerto elegido.
 - Ganancia y offset del sensor de corriente, para la conversión de cuentas del ADC a amperes en `lazo_control`.
 - Medir el retardo efectivo del lazo (GPIO en la ISR) y comparar con `1,5·Ts`.
-- Filtro analógico del sensor, tipo y corte, que sale de medir el ruido (Nicolás). Con él se suma `τF` al `Td` y se recalculan los márgenes.
+- Filtro analógico del sensor, tipo y corte, que sale de medir el ruido (Jefferson, #29). Con él se suma `τF` al `Td` y se recalculan los márgenes.
+- Con las tierras separadas por optoacopladores, el sensor tiene que ser aislado o cruzar la barrera de otra forma, y su offset y su ruido pueden no ser los del supuesto de 0 A en 0,5 V. Se mide con el sensor montado.
+- Retardo de los optoacopladores de las compuertas, subida y bajada por separado, para sumarlo al `Td` y para que el tiempo muerto lo cubra.
 - Acordar entre Jefferson y Nicolás que la captura del XADC caiga en el valle o el pico, y cuántos ciclos adelantar el trigger por el tiempo que tarda en cerrarse el sample and hold.
 - Que el Timer y la portadora cuenten exactamente lo mismo (5000 ciclos a 20 kHz), y medir con el GPIO de la ISR contra `pwm_trigger_o` que la fase no deriva.
 - Habilitar o no la FPU del MicroBlaze V, y fijar `U_MAX`, que tiene 1,0 como tope porque `duty_ref` va en Q2.14 de -1,0 a +1,0, y baja según el tiempo muerto.
