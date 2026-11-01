@@ -80,11 +80,13 @@ Son provisionales hasta medir `L` y `R` reales y confirmar `Vdc` y la frecuencia
 
 es decir, el valor que el resonante tendría que haber dado para que la suma cayera justo en el límite. Con eso el resonante no acumula energía durante la saturación y, al salir de ella, arranca desde un estado coherente con lo que el puente aplicó de verdad. Es la variante más simple de anti-windup por realimentación de la salida saturada, y se valida contra el modelo de la planta antes de llevarla al banco.
 
-El periférico también satura `duty_ref`, pero el PR no debe depender de eso. Si recortara solo el periférico, el resonante seguiría integrando un error que la planta nunca va a poder seguir, y el software no sabría que se saturó. `PR_U_MAX` tiene que quedar dentro del rango admisible del periférico a cualquier frecuencia de `freq_sel`.
+El periférico también satura `duty_ref`, pero el PR no debe depender de eso. Si recortara solo el periférico, el resonante seguiría integrando un error que la planta nunca va a poder seguir, y el software no sabría que se saturó. `PR_U_MAX` tiene que quedar dentro del rango admisible del periférico, que según Jefferson es de -1,0 a +1,0 igual en todas las frecuencias de `freq_sel`, así que 1,0 es el tope. Por debajo de eso lo fija el tiempo muerto, porque con el índice cerca de 1,0 un pulso queda más corto que `DEAD_TIME_CICLOS` y el puente deja de seguir.
 
 ### h.6) Conversión a duty_ref
 
-`duty_ref = round(u_sat[k] / DUTY_ESCALA)`, con `DUTY_ESCALA` el índice de modulación que vale un LSB de `duty_ref`. Si `DUTY_CON_SIGNO` es 1 el resultado se guarda en complemento a dos, y si es 0 se le suma el desplazamiento que defina el formato. Las dos constantes viven en `pr_discreto.h` y quedan provisionales con `// TODO: Revisar` hasta acordar el formato con Jefferson.
+`duty_ref = round(u_sat[k] / DUTY_ESCALA)`, con `DUTY_ESCALA` el índice de modulación que vale un LSB de `duty_ref`. El formato lo fijó Jefferson en Q2.14 con signo en complemento a dos, con bits `[15:0]` del offset `0x04`, así que `DUTY_ESCALA = 1/16384` y `DUTY_CON_SIGNO = 1`. El valor 1,0 es 16384 (`0x4000`) y -1,0 es -16384 (`0xC000`), los dos caben en 16 bits. Las dos constantes viven en `pr_discreto.h`.
+
+El LSB de 1/16384 es más fino que lo que el núcleo PWM resuelve de verdad, que es `2/MAX`, o sea 0,0008 a 20 kHz. La cuantización que importa es la del periférico y no la del formato.
 
 ### h.7) Formato numérico
 
@@ -102,7 +104,7 @@ Coeficientes, estados y entradas son `valor_t`, de `sw/numerico.h`. Las multipli
 ### h.10) Pendientes
 
 - `L` y `R` reales de la carga, `Vdc` y frecuencia de muestreo definitiva, que miden y confirman Jefferson y Nicolás. Con ellos se repite la sintonización.
-- Formato y rango de `duty_ref`, con Jefferson, que fija `DUTY_ESCALA`, `DUTY_CON_SIGNO` y `PR_U_MAX`.
+- `PR_U_MAX`, que queda con 1,0 como tope por el rango del periférico y se fija por debajo según el `DEAD_TIME_CICLOS` que elijan Jefferson y Nicolás.
 - FPU del MicroBlaze V, con Nicolás.
 - Sumar el retardo del filtro antialias al `Td = 1,5 · Ts` de `potencia/diseno_pr.md` y recalcular los márgenes, cuando se fije el filtro.
 - Respuesta del profesor sobre la estructura ideal.
