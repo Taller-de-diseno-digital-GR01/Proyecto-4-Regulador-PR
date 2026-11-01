@@ -8,14 +8,15 @@ Cada tarea de abajo lleva una etiqueta.
 - Potencia, cae en la nota de PEDP.
 - Conjunto, la tienen que resolver juntas las dos mitades y por eso se anota en las dos partes.
 
-Los nombres de las personas se asignan después. Mientras tanto son Persona A, B, C y D.
+Persona A es Jefferson Chinchilla, B es Carlos Castro, C es Nicolás Mena y D es Mattio Coghi. Desde el 28 de octubre Carlos está solo en Taller y no en PEDP, así que lo que este reparto le daba de potencia a B se movió. El PR completo pasó a D y la carga RL con el modelo en PLECS quedaron entre A y C.
 
 ## En una oración por persona
 
 - A diseña el PWM en SystemVerilog (portadora, tiempo muerto, trigger) y arma el puente H con sus drivers y protecciones.
-- B escribe la interfaz AXI4-Lite con su testbench y la simulación temporizada, dimensiona la carga RL, y diseña y sintoniza el PR en PLECS.
+- B escribe la interfaz AXI4-Lite con su testbench y la simulación temporizada.
 - C arma el Block Design con MicroBlaze V, periféricos y XADC, y construye el sensor de corriente con su acondicionamiento de 0 a 1 V.
-- D escribe todo el software en C (ISR, buffer, UART, falla) y el script de PC, y discretiza el PR para correrlo en punto fijo o flotante.
+- D escribe todo el software en C (ISR, buffer, UART, falla) y el script de PC, y diseña, sintoniza y discretiza el PR completo para correrlo en punto fijo o flotante.
+- La carga RL y el modelo en PLECS se reparten entre A y C, todavía sin confirmar quién lleva cuál.
 
 ## Cómo se pesan las dos notas
 
@@ -32,9 +33,9 @@ La consecuencia práctica es que la parte de potencia no debe quedar esperando a
 Cada persona tiene una tarea digital y una de potencia, elegidas para que se toquen entre sí. Así nadie es solo digital o solo potencia, y en la defensa todos pueden hablar de la interfaz entre las dos mitades.
 
 - Persona A. Núcleo del PWM (digitales) con puente H y drivers (potencia). Ambos comparten el tiempo muerto.
-- Persona B. Interfaz AXI4-Lite y verificación del PWM (digitales) con carga RL, modelo, PLECS y diseño del PR (potencia).
+- Persona B. Interfaz AXI4-Lite y verificación del PWM (digitales), sin parte de potencia desde que Carlos quedó solo en Taller.
 - Persona C. Block Design y XADC (digitales) con sensor de corriente y acondicionamiento (potencia). Ambos comparten el rango de 0 a 1 V.
-- Persona D. Software en C, UART y script de PC (digitales) con la discretización del PR (potencia). Ambos comparten la ecuación en diferencias que corre en la ISR.
+- Persona D. Software en C, UART y script de PC (digitales) con el diseño completo del PR (potencia), de la estructura y la sintonización hasta la ecuación en diferencias que corre en la ISR.
 
 Revisión cruzada de pull requests, A con B y C con D, y los pares se rotan cuando haga falta para que más de una persona entienda cada módulo.
 
@@ -77,7 +78,13 @@ Es la parte física que recibe las cuatro señales de A. Por eso va en la misma 
 - Simulación post-implementación temporizada del periférico (netlist con `write_verilog -mode timesim` y `.sdf` con `write_sdf`). Es un entregable explícito de la presentación funcional.
 - Propietario de los diagramas de estado del periférico y de la descripción formal de la interfaz que pide el informe.
 
-### Potencia, carga RL, modelo, PLECS y diseño del PR
+### Extra de B
+
+B lleva el seguimiento del repositorio y de los documentos. Eso incluye vigilar issues, ramas, PRs, el README y que `docs/diseño/` y `docs/informe/` se mantengan al día.
+
+## Carga RL, modelo y PLECS
+
+Antes eran de B. Quedan entre A y C, sin confirmar quién lleva cuál, y los números que salgan de acá (`L`, `R`, `Vdc` y frecuencia de conmutación) son los que D usa para sintonizar el PR.
 
 - Dimensionar R y L de la carga para alcanzar 0,2, 0,5 y 1,0 A pico a 50 Hz con la tensión disponible. La tensión pico necesaria es la corriente pico por el módulo de la impedancia R más jωL, y tiene que caber en Vdc con margen para que el control no sature.
 - Verificar la disipación. Con una referencia sinusoidal de 1,0 A pico circula una corriente eficaz de unos 0,71 A, o sea que la potencia en R es aproximadamente R por 0,5 W. Con resistencias de 5 W hay que dejar margen, el enunciado lo exige para el punto de 1,0 A. Hay que diseñar también para el ensayo de cambio de R de al menos 25 %, que debe ser realizable dentro de los límites térmicos.
@@ -86,15 +93,6 @@ Es la parte física que recibe las cuatro señales de A. Por eso va en la misma 
 - Construir el modelo del inversor en PLECS y contrastarlo con el análisis teórico.
 - Estimar el rizado de conmutación en cada punto de operación. En PWM unipolar la tensión diferencial de salida tiene componentes al doble de la frecuencia de cada transistor, y el enunciado pide no confundirlas.
 - Seleccionar la frecuencia de conmutación (rizado menor a 0,20 A pico a pico, pérdidas, capacidad del driver y resolución del PWM). De ahí sale el valor máximo de portadora de A.
-- Seleccionar y justificar la estructura del PR. Una forma habitual es un proporcional más un término resonante a 50 Hz, ideal o con amortiguamiento para hacerlo menos sensible a la desviación de frecuencia. Hay que investigar las dos y quedarse con una.
-- Establecer un procedimiento de diseño y de sintonización con criterios explícitos (márgenes de estabilidad, ancho de banda, seguimiento de la referencia de 50 Hz) y justificar las ganancias elegidas.
-- Analizar la estabilidad y el efecto del muestreo y de los retardos sobre el lazo. Hay que contar el retardo del cómputo, el de la actualización del PWM, el del filtro antialias que diseña C, y el del propio período de muestreo. Los retardos reales los mide D.
-- Validar el controlador en PLECS sobre el modelo de la planta antes de pasarlo al MicroBlaze.
-- Conjunto con D, el período de muestreo y de actualización del control, el formato de `duty_ref` y las ganancias, que B entrega a D como Kp, Kr y parámetros del resonante.
-
-### Extra de B
-
-B lleva el seguimiento del repositorio y de los documentos. Eso incluye vigilar issues, ramas, PRs, el README y que `docs/diseño/` y `docs/informe/` se mantengan al día.
 
 ## Persona C
 
@@ -117,7 +115,7 @@ El XADC de la Basys3 solo acepta de 0 a 1 V unipolar y la corriente es AC. Este 
 
 - Elegir el método de medición (resistencia shunt con amplificador diferencial, o sensor Hall), justificar la elección y definir los límites de operación.
 - Diseñar el acondicionamiento para llevar una corriente de ±1,0 A pico (más margen para el rizado y las transiciones) a un rango de 0 a 1 V con un offset de aproximadamente 0,5 V. Hay que dejar margen en ambos extremos para que ningún transitorio sature la entrada del XADC o la dañe.
-- Diseñar el filtro antialias, equilibrando el atenuar el rizado de conmutación con no introducir un retardo de fase que degrade el PR. Ese retardo lo incorpora B en su análisis de estabilidad.
+- Diseñar el filtro antialias, equilibrando el atenuar el rizado de conmutación con no introducir un retardo de fase que degrade el PR. Ese retardo lo incorpora D en su análisis de estabilidad.
 - Medir la ganancia y el offset reales del montaje, para que el software convierta cuentas del ADC a amperes con valores calibrados y no con los teóricos.
 - Proteger la entrada del XADC (diodos o limitación) y definir la referencia de tierra común entre la etapa de potencia y la Basys3.
 - Conjunto con D, entregar la constante de conversión de cuentas a amperes y el offset en cuentas, para que el PR trabaje en unidades físicas.
@@ -133,26 +131,31 @@ Casi todo el trabajo de D es C y Python y no pasa por Vivado. Lo único que nece
 - Decidir si el PR corre en punto fijo o en punto flotante. Depende de si se habilita la FPU en el MicroBlaze V y de si el cálculo cabe en el período de muestreo. Con un período de decenas de microsegundos a 100 MHz hay miles de ciclos por interrupción, pero hay que medir en vez de suponer. Si es punto fijo, hay que cuidar el formato de los coeficientes y los estados del resonante, que se acumulan y pueden saturar.
 - Buffer circular en la BRAM. Comparte los 32 KB con el programa, así que su tamaño sale de lo que sobre, y D tiene que reportar cuánto cabe. Cada registro guarda la corriente, `duty_ref` y un contador de saturaciones, no solo la corriente, para poder separar lo que pide el controlador de lo que hace la planta.
 - Exportación por UART al presionar el botón. La transmisión va en el lazo principal, nunca dentro de la ISR, y no debe corromper el buffer mientras la ISR sigue escribiendo en él (por ejemplo, congelar una copia del índice de escritura al empezar la exportación).
-- Medición del período efectivo y del jitter del lazo. La técnica propuesta es un GPIO que sube al entrar a la ISR y baja al salir, visto en el osciloscopio. Entra en la sección 6 del enunciado como precisión temporal. Los retardos medidos se entregan a B para el análisis de estabilidad.
+- Medición del período efectivo y del jitter del lazo. La técnica propuesta es un GPIO que sube al entrar a la ISR y baja al salir, visto en el osciloscopio. Entra en la sección 6 del enunciado como precisión temporal. Los retardos medidos entran directo al análisis de estabilidad del PR, que también es de D.
 - Script de PC que recibe las muestras por el puerto serial y las grafica fuera de línea. Se parte de `enlace.py` del Proyecto 3 (detección de la Basys3 por el FT2232 con pyserial), cambiando el envío por lectura, y se agrega el parseo y la gráfica. Falta decidir dónde vive.
 - Lógica de falla en software. Si la corriente supera un umbral configurable, la ISR baja `enable`, enciende el LED de falla y deja el sistema en un estado seguro. Se coordina con la desconexión por hardware que diseña A.
 - Puede arrancar antes de tener el hardware, probando la lógica del PR y del buffer en el PC o contra un modelo de la planta, mientras C termina el Block Design.
 
-### Potencia, discretización del PR
+### Potencia, diseño y discretización del PR
 
-D recibe de B la estructura del PR y sus ganancias, y las lleva a algo que corra en el MicroBlaze.
+D lleva el PR completo, desde la estructura hasta los coeficientes que corre el MicroBlaze. La justificación de cada decisión está en `potencia/diseno_pr.md`.
 
+- Seleccionar y justificar la estructura del PR. Una forma habitual es un proporcional más un término resonante a 50 Hz, ideal o con amortiguamiento para hacerlo menos sensible a la desviación de frecuencia. Hay que investigar las dos y quedarse con una.
+- Establecer un procedimiento de diseño y de sintonización con criterios explícitos (márgenes de estabilidad, ancho de banda, seguimiento de la referencia de 50 Hz) y justificar las ganancias elegidas.
+- Analizar la estabilidad y el efecto del muestreo y de los retardos sobre el lazo. Hay que contar el retardo del cómputo, el de la actualización del PWM, el del filtro antialias que diseña C, y el del propio período de muestreo. Los retardos reales los mide D.
+- Validar el controlador sobre el modelo de la planta, en PLECS si A o C lo tienen, antes de pasarlo al MicroBlaze.
+- Conjunto con A y C, el período de muestreo y de actualización del control, y los valores de `L`, `R` y `Vdc` con los que se sintoniza.
 - Elegir el método de discretización (Tustin con o sin precorrección en 50 Hz, ZOH, y otros) y obtener la ecuación en diferencias que implementará la ISR.
 - Definir el formato de los coeficientes y los estados, las cotas de saturación y el anti-windup.
-- Acordar con A y B el formato de `duty_ref` (por ejemplo Qn.m con signo) y el rango admisible, para que lo que el PR calcula no se sature de forma inesperada en el periférico.
+- Acordar con A el formato de `duty_ref` (por ejemplo Qn.m con signo) y el rango admisible, para que lo que el PR calcula no se sature de forma inesperada en el periférico.
 
-### Mecanismos para el ida y vuelta con B
+### Mecanismos para el ida y vuelta con la planta
 
-La sintonización con la planta real genera iteraciones entre B y D. Para que cada ajuste no sea una negociación se acuerda lo siguiente.
+La sintonización con la planta real genera iteraciones entre D y quienes arman la carga y el puente. Para que cada ajuste no sea una negociación se acuerda lo siguiente.
 
-- Un script en Python, de D, que recibe Kp, Kr, la frecuencia de muestreo y el método de discretización, y genera un `pr_params.h` con los coeficientes ya en el formato correcto. B cambia dos números, corre el script y recompila. Cambiar las ganancias por UART en caliente queda como mejora si sobra tiempo.
+- Un script en Python, de D, que recibe Kp, Kr, la frecuencia de muestreo y el método de discretización, y genera un `pr_params.h` con los coeficientes ya en el formato correcto. Retocar las ganancias es cambiar dos números, correr el script y recompilar. Cambiar las ganancias por UART en caliente queda como mejora si sobra tiempo.
 - Un modelo de referencia del controlador discreto, con la misma aritmética del MicroBlaze, corriendo en Python o en C con gcc contra un modelo de la planta. Con vectores de prueba, D comprueba que la ISR da la misma salida que el modelo. Si después falla en hardware, ya se descartó el código del PR como sospechoso.
-- Las primeras pruebas energizadas las hacen B y D juntos, en el mismo lugar y en orden. Primero lazo abierto con un duty sinusoidal fijo, para ver la planta sola, luego solo la parte proporcional, y recién entonces se enciende el resonante.
+- Las primeras pruebas energizadas las hacen D junto con A y C, en el mismo lugar y en orden. Primero lazo abierto con un duty sinusoidal fijo, para ver la planta sola, luego solo la parte proporcional, y recién entonces se enciende el resonante.
 
 ## Trabajo de todos
 
@@ -175,14 +178,14 @@ La sintonización con la planta real genera iteraciones entre B y D. Para que ca
 
 Sin fechas, porque el enunciado no las trae. Se puede mapear a las fases de la sección 5.1.
 
-- Primero los acuerdos con PEDP y el Block Design base de C (Fase 1). Mientras tanto A y B escriben en papel el mapa de registros y los diagramas del PWM, B arranca el modelo de la planta y la estructura del PR, y D prepara la estructura del software y el modelo de referencia en la PC.
-- Después el periférico PWM con su testbench (A y B), el XADC (C) y el diseño de la etapa de potencia, la carga y el sensor (A, B y C en sus partes de potencia). Esta es la Fase 2.
+- Primero los acuerdos con PEDP y el Block Design base de C (Fase 1). Mientras tanto A y B escriben en papel el mapa de registros y los diagramas del PWM, D arranca el modelo de la planta y la estructura del PR, A y C la carga y el puente, y D prepara la estructura del software y el modelo de referencia en la PC.
+- Después el periférico PWM con su testbench (A y B), el XADC (C) y el diseño de la etapa de potencia, la carga y el sensor (A y C en sus partes de potencia). Esta es la Fase 2.
 - Luego la integración al Block Design, los drivers y el lazo de control (Fase 3 y 4, con D al frente), probando antes cada pieza sola y recién al final con el inversor energizado.
 - Al final la validación, los ensayos de la sección 4.3, la medición de jitter y el informe (Fase 5).
 
 ## Decisiones abiertas
 
-- Confirmar nombres de las personas A a D, y quiénes en el equipo son de PEDP si es que el equipo de Taller y el de PEDP no son el mismo.
+- Quién entre A y C lleva la carga RL y quién el modelo en PLECS.
 - Fechas de planteamiento y de entrega, y si el planteamiento debe estar aprobado antes de la presentación funcional.
 - Caché de instrucciones, habilitarla o justificarla por escrito.
 - Controlador de interrupciones, si hace falta en el Block Design.
