@@ -46,7 +46,7 @@ Al recibir `exportar` congela el buffer, arma la cabecera en un arreglo de 20 by
 
 ## h) Diseño
 
-### Formato de la trama
+### h.1) Formato de la trama
 
 Todos los campos de varios bytes van en little-endian, el orden nativo del MicroBlaze V, así que se copian de memoria sin reordenar.
 
@@ -62,13 +62,13 @@ Todos los campos de varios bytes van en little-endian, el orden nativo del Micro
 | 20 a 19 + 6N | registros | 6 bytes cada uno | en el orden y el formato de `buffer_muestras`, del más viejo al más nuevo |
 | 20 + 6N a 21 + 6N | `suma` | `uint16` | suma módulo 2^16 de los bytes 1 a 19 + 6N |
 
-La trama mide `22 + 6N` bytes. Con los 1024 registros provisionales son 6166 bytes, que a 115200 baudios y 8N1 tardan 6166 · 10 / 115200 ≈ 0,54 s.
+La trama mide `22 + 6N` bytes. Con los 2048 registros provisionales son 12310 bytes, que a 115200 baudios y 8N1 tardan 12310 · 10 / 115200 ≈ 1,07 s.
 
 La suma deja afuera el `0xAA` porque ese byte solo marca el inicio. Una suma de bytes no detecta dos bytes intercambiados, pero el enlace es un USB directo a la PC y lo que hay que detectar es una trama cortada o un byte perdido, que una suma sí atrapa. Si hiciera falta algo más fuerte, cambiar a Fletcher-16 toca solo la línea que acumula y el cálculo en `receptor_pc`.
 
 Los cuatro campos de calibración y de escala van en la cabecera para que `receptor_pc` no tenga una copia propia que se pueda desincronizar del firmware. La escala de `duty_ref` depende del formato que se acuerde con Jefferson, y mientras no esté, `DUTY_ESCALA` y `DUTY_CON_SIGNO` quedan provisionales en `pr_discreto.h`.
 
-### Avance por posición
+### h.2) Avance por posición
 
 En vez de una máquina con un estado por sección de la trama, el módulo guarda solo la posición del siguiente byte y la suma acumulada. El byte de la posición `p` sale de
 
@@ -86,13 +86,13 @@ Así las tres secciones comparten el mismo lazo de envío y no hay transiciones 
 | ocupado | FIFO con espacio y `p < 22 + 6N` | manda el byte `p`, lo suma si corresponde, `p = p + 1` | ocupado |
 | ocupado | `p = 22 + 6N` | libera el buffer | libre |
 
-### Interfaz en C
+### h.3) Interfaz en C
 
 - `void exportador_uart_pedir(void)`, arranca una exportación si está libre y si no, no hace nada.
 - `void exportador_uart_avanzar(void)`, manda lo que quepa en la FIFO y retorna.
 - `bool exportador_uart_ocupado(void)`.
 
-### Prueba en la PC
+### h.4) Prueba en la PC
 
 La lógica de la trama se prueba con gcc cambiando la función de `drivers` que manda un byte por una que lo escribe en un arreglo y que simula la FIFO llena cada tantas llamadas. Esa misma trama sirve de entrada para probar `receptor_pc` sin la placa.
 

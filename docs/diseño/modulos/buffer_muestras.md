@@ -38,11 +38,11 @@ Con el buffer libre, cada `buffer_muestras_guardar` copia el registro en la posi
 
 Al congelar, `exportador_uart` sube `congelado`. Desde la siguiente interrupción `buffer_muestras_guardar` retorna sin escribir, pero el control sigue andando. Como el lazo principal no corre mientras corre la interrupción, cuando `exportador_uart` vuelve de congelar no hay ninguna escritura a medias. Desde ahí `indice` y `llenos` ya no cambian, y lo exportado es la ventana justo anterior al flanco de `BTN_EXPORTAR`.
 
-Al liberar, `congelado` baja y la interrupción sigue escribiendo donde quedó. El histórico tiene entonces un hueco del tamaño de la exportación, que no importa porque la exportación siguiente vuelve a tomar solo la ventana más reciente.
+Al liberar, `indice`, `llenos` y `congelado` vuelven a cero y el histórico queda vacío. Así una exportación posterior no mezcla registros viejos con nuevos sin marca, y hasta que se llene de nuevo la exportación solo entrega lo escrito después de liberar.
 
 ## h) Diseño
 
-### Registro de una iteración
+### h.1) Registro de una iteración
 
 Cada registro ocupa 6 bytes, tres palabras de 16 bits.
 
@@ -58,13 +58,13 @@ La corriente se guarda como cuenta cruda y no en amperes. Así la calibración s
 
 La referencia sí se guarda ya calculada. Reconstruirla en la PC a partir de la fase exigiría saber en qué iteración se habilitó el control y en cuáles cambió `SW[1:0]`, y guardarla directo cuesta solo 2 bytes por registro.
 
-### Tamaño del arreglo
+### h.2) Tamaño del arreglo
 
-`BUFFER_REGISTROS` es una potencia de dos, para que avanzar el índice sea `indice = (indice + 1) & (BUFFER_REGISTROS - 1)` y no haga falta una división ni una comparación. Queda provisional en 1024 registros, 6 KB de los 32 KB, marcado con `// TODO: Revisar` en `buffer_muestras.h`, hasta que se enlace el programa completo y se sepa cuánto sobra.
+`BUFFER_REGISTROS` es una potencia de dos, para que avanzar el índice sea `indice = (indice + 1) & (BUFFER_REGISTROS - 1)` y no haga falta una división ni una comparación. Queda provisional en 2048 registros, 12 KB de los 32 KB, marcado con `// TODO: Revisar` en `buffer_muestras.h`, hasta que se enlace el programa completo y se sepa cuánto sobra.
 
-El tamaño también tiene que cubrir la ventana que piden los ensayos, al menos cinco períodos de 50 Hz, o sea 100 ms. Con `fs` la frecuencia de muestreo hacen falta `0,1 · fs` registros. Con 1024 alcanza solo si `fs` no pasa de 10,24 kHz. Si la frecuencia que se acuerde con PEDP es más alta y la memoria no da, la salida es guardar uno de cada `D` registros, y eso se decide cuando se conozca `fs`.
+El tamaño también tiene que cubrir la ventana que piden los ensayos, al menos cinco períodos de 50 Hz, o sea 100 ms. Con `fs` la frecuencia de muestreo hacen falta `0,1 · fs` registros. Con 2048 alcanza si `fs` no pasa de 20,48 kHz, y los 20 kHz de ahora caben justos (2000 registros). Si la frecuencia que se acuerde con PEDP es más alta y la memoria no da, la salida es guardar uno de cada `D` registros, y eso se decide cuando se conozca `fs`.
 
-### Lectura del histórico congelado
+### h.3) Lectura del histórico congelado
 
 El registro más viejo está en `indice` si el arreglo ya dio la vuelta, y en la posición 0 si todavía no. El registro `n`, contado desde el más viejo, está en
 
@@ -74,11 +74,11 @@ con `inicio = (llenos < BUFFER_REGISTROS) ? 0 : indice`.
 
 `buffer_muestras_leer` solo es válido con el buffer congelado. Sin congelar, el registro que devuelve puede estar siendo pisado.
 
-### Variables compartidas
+### h.4) Variables compartidas
 
 `indice`, `llenos` y `congelado` son de 32 bits y `volatile`, igual que las del nivel 3. El arreglo no necesita `volatile`, porque el lazo principal solo lo lee con el buffer congelado, y para entonces la interrupción ya no lo toca.
 
-### Interfaz en C
+### h.5) Interfaz en C
 
 - `void buffer_muestras_iniciar(void)`, vacía el histórico y lo deja libre.
 - `void buffer_muestras_guardar(const registro_t *registro)`, desde la interrupción.
@@ -86,9 +86,9 @@ con `inicio = (llenos < BUFFER_REGISTROS) ? 0 : indice`.
 - `uint32_t buffer_muestras_cantidad(void)`, registros válidos del histórico congelado.
 - `const registro_t *buffer_muestras_leer(uint32_t n)`, el registro `n` desde el más viejo.
 
-### Prueba en la PC
+### h.6) Prueba en la PC
 
-`sw/pruebas/prueba_buffer_muestras.c` se compila con gcc y revisa el orden de lectura antes y después de dar la vuelta, que congelado no se escriba nada, que al liberar se siga desde donde quedó y el empaquetado de las banderas.
+`sw/pruebas/prueba_buffer_muestras.c` se compila con gcc y revisa el orden de lectura antes y después de dar la vuelta, que congelado no se escriba nada, que al liberar el histórico quede vacío y las muestras nuevas no se mezclen con las viejas, y el empaquetado de las banderas.
 
 ## i) Diagrama esquemático detallado del diseño
 
