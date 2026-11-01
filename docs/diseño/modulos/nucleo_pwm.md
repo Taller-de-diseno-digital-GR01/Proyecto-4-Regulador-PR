@@ -1,6 +1,20 @@
 # nucleo_pwm
 
-Módulo de hardware en SystemVerilog del periférico PWM, ver el bloque 6 del [nivel 2](../diagramas/nivel02.md).
+## a) Nombre del módulo
+
+`nucleo_pwm`, en `src/design/nucleo_pwm.sv`. Es el núcleo del periférico PWM del [nivel 3](../diagramas/nivel03.md), instanciado dentro de `periferico_pwm` junto a `interfaz_axi_pwm`.
+
+## b) Diagrama modular
+
+```mermaid
+flowchart LR
+    CR(["clk y rst_n"]) --> NUC
+    IF_IN(["interfaz_axi_pwm"]) -->|"enable, freq_sel, duty_ref"| NUC["nucleo_pwm<br/>portadora, comparadores,<br/>tiempo muerto y trigger"]
+    PAR(["DEAD_TIME_CICLOS, parameter"]) --> NUC
+    NUC -->|"running"| IF_OUT(["interfaz_axi_pwm"])
+    NUC -->|"pwm_trigger_o"| ADC(["envoltura_xadc"])
+    NUC -->|"compuerta_a_alta, compuerta_a_baja,<br/>compuerta_b_alta, compuerta_b_baja"| PH(["drivers del puente H"])
+```
 
 ## Objetivo
 
@@ -21,6 +35,12 @@ Convierte `duty_ref` en las cuatro señales de compuerta del puente H, con modul
 - `compuerta_b_alta` y `compuerta_b_baja`, igual para la pierna B, que compara contra `-duty_ref`.
 - `running`, solo lectura en el bit 3 del registro de control. Vale 1 mientras las compuertas conmutan y cambia en el borde del período, no cuando cambia `enable`.
 - `pwm_trigger_o`, pulso de un ciclo de `clk` en el valle de la portadora hacia la interfaz del XADC. En el valle las dos piernas están en el mismo estado y la corriente pasa por su valor promedio.
+
+## f) Explicación de la relación con otros módulos
+
+Lo instancia `periferico_pwm` junto a `interfaz_axi_pwm`, que le pasa `enable`, `freq_sel` y `duty_ref` tal como los escribe el software y le expone `running` en lectura. Los dos usan el reloj del bus, así que no hay sincronizadores entre ellos. Del lado del software, [`lazo_control`](lazo_control.md) escribe en cada interrupción el `duty_ref` que calcula [`pr_discreto`](pr_discreto.md), por medio de [`drivers`](drivers.md), y [`supervisor_falla`](supervisor_falla.md) apaga el puente bajando `enable`, que el núcleo toma recién en el valle siguiente.
+
+Hacia afuera, `pwm_trigger_o` llega a [`envoltura_xadc`](envoltura_xadc.md), que decide cuándo arranca la conversión. El instante de captura respecto al valle lo definen Jefferson y Nicolás. Las compuertas van a los drivers del puente H que diseña Nicolás. De ese mismo diseño salen `DEAD_TIME_CICLOS` y las frecuencias de la tabla de `MAX`. El núcleo no tiene relación directa con el AXI Timer. Como los dos cuentan el mismo reloj, la interrupción y el valle mantienen un desfase fijo solo si el período del Timer es exactamente 2·`MAX` ciclos.
 
 ## Explicación general
 
