@@ -67,6 +67,7 @@ El XADC de la Basys3 solo acepta de 0 a 1 V unipolar y la corriente es AC. Este 
 - Verificar la disipación. Con una referencia sinusoidal de 1,0 A pico circula una corriente eficaz de unos 0,71 A, o sea que la potencia en R es aproximadamente R por 0,5 W. Con resistencias de 5 W hay que dejar margen, el enunciado lo exige para el punto de 1,0 A. Hay que diseñar también para el ensayo de cambio de R de al menos 25 %, que debe ser realizable dentro de los límites térmicos.
 - Caracterizar la inductancia y la resistencia total (incluido el devanado) bajo condiciones representativas de operación, y comprobar que no sature. Si se usa un devanado de transformador, justificar la configuración y el estado del otro devanado.
 - Comparar lo que mide el XADC contra la sonda del osciloscopio.
+- Conjunto con C, acordar el rango y el offset que entrega el acondicionamiento, el canal del Pmod JXADC que se usa y el modo de entrada del XADC, para que el sensor y la envoltura calcen en la frontera de 0 a 1 V.
 
 ## Persona B
 
@@ -99,6 +100,7 @@ B lleva el seguimiento del repositorio y de los documentos. Eso incluye vigilar 
 - Constraints de la Basys3 (`basys3.xdc`), incluyendo el Pmod JXADC para la entrada analógica y los pines hacia las compuertas.
 - Reportes de recursos y de timing para el informe.
 - Conjunto con A, definir cuántos ciclos de reloj después del valle ocurre la captura, y verificar con el osciloscopio o con una señal de depuración que el muestreo cae en el centro del pulso.
+- Conjunto con A, acordar el rango y el offset que entrega el acondicionamiento, el canal del Pmod JXADC que se usa y el modo de entrada del XADC, para que el sensor y la envoltura calcen en la frontera de 0 a 1 V.
 
 ### Potencia, puente H, modelo y PLECS
 
