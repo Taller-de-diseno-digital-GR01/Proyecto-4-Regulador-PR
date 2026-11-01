@@ -65,7 +65,7 @@ Los botones y los pines concretos de cada entrada están por confirmar, y su nom
 ### Salidas
 
 - `tx`, línea serial hacia la aplicación de PC por el puente USB-UART, pin A18. Lleva las muestras de corriente guardadas, a 115200 baudios.
-- `compuerta_a_alta`, `compuerta_a_baja`, `compuerta_b_alta` y `compuerta_b_baja`, las cuatro señales hacia los drivers del puente H. Cada pierna tiene un par complementario con tiempo muerto. Los nombres son provisionales hasta que el diseño del periférico PWM los fije.
+- `compuerta_a_alta`, `compuerta_a_baja`, `compuerta_b_alta` y `compuerta_b_baja`, las cuatro señales hacia los drivers del puente H. Cada pierna tiene un par complementario con tiempo muerto.
 - `led[1:0]`, un LED para control habilitado y otro para falla.
 - Una salida de depuración que se levanta al entrar a la rutina de interrupción del lazo y se baja al salir, para medir el período y el jitter con el osciloscopio.
 

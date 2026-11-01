@@ -14,11 +14,11 @@ Calcula la ecuación en diferencias del regulador PR que entrega PEDP, ya discre
 
 ## Salidas
 
-- `duty_ref` en el formato y el rango que acepta el periférico PWM.
+- `duty_ref` en Q2.14 con signo (16 bits, 14 fraccionarios), de -1 a +1 como fracción de Vdc, el formato que acepta el periférico PWM. Ver [`nucleo_pwm`](nucleo_pwm.md).
 - `saturado`, en uno si la salida tuvo que recortarse.
 
 ## Explicación general
 
-Guarda entre llamadas los estados del término resonante. La salida se satura al rango admisible del `duty_ref`, y cuando eso pasa se aplica anti-windup sobre el resonante para que sus estados no sigan creciendo. El periférico también satura, pero el PR no debe depender de eso, porque necesita saber que se saturó.
+Guarda entre llamadas los estados del término resonante. La salida se satura a ±1, el rango admisible del `duty_ref`, y cuando eso pasa se aplica anti-windup sobre el resonante para que sus estados no sigan creciendo. El periférico también satura, pero el PR no debe depender de eso, porque necesita saber que se saturó.
 
-Los coeficientes los genera un script de Python a partir de Kp, Kr, la frecuencia de muestreo y el método de discretización, y quedan en `pr_params.h`. La decisión entre punto fijo y punto flotante, el método de discretización y el formato de `duty_ref` se cierran en el nivel 4, cuando estén el período de muestreo y la FPU del Block Design.
+Los coeficientes los genera un script de Python a partir de Kp, Kr, la frecuencia de muestreo y el método de discretización, y quedan en `pr_params.h`. La decisión entre punto fijo y punto flotante y el método de discretización se cierran en el nivel 4, cuando estén el período de muestreo y la FPU del Block Design. Sea cual sea la aritmética interna, el resultado se convierte a Q2.14 antes de escribirlo.
