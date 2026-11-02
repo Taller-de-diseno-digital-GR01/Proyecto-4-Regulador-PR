@@ -42,7 +42,7 @@ El cambio de amplitud entra en la muestra siguiente sin tocar la fase, que es lo
 
 ### h.1) Por qué un acumulador de fase
 
-En el nivel 3 quedaron dos caminos, una tabla de un período exacto si la frecuencia de muestreo es múltiplo de 50 Hz, o un acumulador si no. El acumulador sirve en los dos casos, así que se elige desde ya y el módulo no depende de una frecuencia que todavía no se acordó con PEDP.
+En el nivel 3 quedaron dos caminos, una tabla de un período exacto si la frecuencia de muestreo es múltiplo de 50 Hz, o un acumulador si no. El acumulador sirve en los dos casos, así que se elige. Los 20 kHz de partida son múltiplo de 50 Hz, con 400 muestras por período, y una tabla exacta serviría, pero el acumulador deja al módulo sin atarse a esa frecuencia si cambia.
 
 El incremento por iteración es
 
