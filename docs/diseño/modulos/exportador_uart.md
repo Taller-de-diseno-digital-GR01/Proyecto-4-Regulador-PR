@@ -66,7 +66,7 @@ La trama mide `22 + 6N` bytes. Con los 2048 registros provisionales son 12310 by
 
 La suma deja afuera el `0xAA` porque ese byte solo marca el inicio. Una suma de bytes no detecta dos bytes intercambiados, pero el enlace es un USB directo a la PC y lo que hay que detectar es una trama cortada o un byte perdido, que una suma sí atrapa. Si hiciera falta algo más fuerte, cambiar a Fletcher-16 toca solo la línea que acumula y el cálculo en `receptor_pc`.
 
-Los cuatro campos de calibración y de escala van en la cabecera para que `receptor_pc` no tenga una copia propia que se pueda desincronizar del firmware. La escala de `duty_ref` depende del formato que se acuerde con Jefferson, y mientras no esté, `DUTY_ESCALA` y `DUTY_CON_SIGNO` quedan provisionales en `pr_discreto.h`.
+Los cuatro campos de calibración y de escala van en la cabecera para que `receptor_pc` no tenga una copia propia que se pueda desincronizar del firmware. La escala de `duty_ref` sale del formato que fijó Jefferson, Q2.14 con signo, así que `DUTY_ESCALA` vale 1/16384 y `DUTY_CON_SIGNO` vale 1, los dos en `pr_discreto.h`.
 
 ### h.2) Avance por posición
 
