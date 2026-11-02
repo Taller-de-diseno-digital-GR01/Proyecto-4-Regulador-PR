@@ -65,7 +65,7 @@ flowchart TD
 
 ## Descripciones
 
-La plataforma es la Basys 3. El sistema recibe un único reloj externo de 100 MHz y mantiene al MicroBlaze V a esa frecuencia, con 32 KB de memoria local BRAM y una caché de instrucciones configurada de 8 KB. La memoria local contiene tanto el programa como los datos de trabajo; no se proponen una ROM y una RAM independientes como las del procesador uniciclo de los proyectos anteriores.
+La plataforma es la Basys 3. El sistema recibe un único reloj externo de 100 MHz y mantiene al MicroBlaze V a esa frecuencia, con 32 KB de memoria local BRAM y sin caché. La memoria local contiene tanto el programa como los datos de trabajo; no se proponen una ROM y una RAM independientes como las del procesador uniciclo de los proyectos anteriores.
 
 El reloj y los reinicios correspondientes llegan a los bloques internos, pero sus conexiones repetidas se omiten en el diagrama para que puedan distinguirse los caminos de información. El bloque de infraestructura representa esa distribución. Las interrupciones y el disparo de adquisición son eventos de control; no se utilizan como relojes de los módulos.
 
@@ -99,7 +99,7 @@ Almacena el programa C, las variables, la pila, los estados del regulador PR y e
 
 El procesador accede a esta memoria por la infraestructura local del subsistema MicroBlaze V. Por ello el diagrama separa su conexión de los accesos AXI a periféricos. Esta distinción evita interpretar que cada lectura de instrucciones o cada escritura al buffer tiene que pasar por el mismo camino de configuración del PWM.
 
-La caché de instrucciones de 8 KB forma parte de la configuración del subsistema del procesador. No es un periférico adicional ni se considera memoria libre que pueda sumarse al buffer de muestras.
+El MicroBlaze V se configura sin caché de instrucciones ni de datos. Una caché solo guarda copias de lo que el procesador lee por sus puertos AXI de memoria, y aquí el programa y los datos se leen por el bus local desde esta BRAM, que ya responde en un ciclo, así que no tendría nada que guardar. Para que aportara habría que mover el programa a una memoria más lenta por AXI, y los fallos de caché harían variar el tiempo de servicio de la rutina periódica, que es el jitter del lazo.
 
 - **Entradas:** solicitudes de lectura o escritura del procesador, direcciones y datos de escritura a través de la interfaz de memoria local.
 - **Salidas:** instrucciones y datos leídos hacia el procesador.
