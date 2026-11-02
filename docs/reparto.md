@@ -65,7 +65,7 @@ El XADC de la Basys3 solo acepta de 0 a 1 V unipolar y la corriente es AC. Este 
 - Conjunto con D, entregar la constante de conversión de cuentas a amperes y el offset en cuentas, para que el PR trabaje en unidades físicas.
 - Dimensionar R y L de la carga para alcanzar 0,2, 0,5 y 1,0 A pico a 50 Hz con la tensión disponible. La tensión pico necesaria es la corriente pico por el módulo de la impedancia R más jωL, y tiene que caber en Vdc con margen para que el control no sature.
 - Verificar la disipación. Con una referencia sinusoidal de 1,0 A pico circula una corriente eficaz de unos 0,71 A, o sea que la potencia en R es aproximadamente R por 0,5 W. Con resistencias de 5 W hay que dejar margen, el enunciado lo exige para el punto de 1,0 A. Hay que diseñar también para el ensayo de cambio de R de al menos 25 %, que debe ser realizable dentro de los límites térmicos.
-- Caracterizar la inductancia y la resistencia total (incluido el devanado) bajo condiciones representativas de operación, y comprobar que no sature. Si se usa un devanado de transformador, justificar la configuración y el estado del otro devanado.
+- Indicar la resistencia total (incluido el devanado) y la inductancia que se usan, a partir de datos técnicos o mediciones sencillas. El instructivo no exige curvas de saturación ni ensayos de caracterización magnética. Si se usa un devanado de transformador, documentar su conexión y el estado del otro devanado.
 - Comparar lo que mide el XADC contra la sonda del osciloscopio.
 - Conjunto con C, acordar el rango y el offset que entrega el acondicionamiento, el canal del Pmod JXADC que se usa y el modo de entrada del XADC, para que el sensor y la envoltura calcen en la frontera de 0 a 1 V.
 
@@ -163,7 +163,7 @@ La sintonización con la planta real genera iteraciones entre D y quienes arman 
   - Período de muestreo y de actualización del control.
   - Formato de `duty_ref`.
   - Acondicionamiento del sensor (rango, offset y filtro).
-- Diseño en `docs/diseño/`. Cada persona escribe el `.md` de su módulo en `docs/diseño/modulos/`, y los diagramas de nivel van en `docs/diseño/diagramas/`. La parte de potencia tiene que reflejarse también en el documento de diseño de PEDP, con dimensionamiento del puente H, caracterización de la inductancia, elección de componentes, modelo RL, frecuencia de conmutación, metodología del PR, análisis de estabilidad y plan de pruebas.
+- Diseño en `docs/diseño/`. Cada persona escribe el `.md` de su módulo en `docs/diseño/modulos/`, y los diagramas de nivel van en `docs/diseño/diagramas/`. La parte de potencia tiene que reflejarse también en el documento de diseño de PEDP, con dimensionamiento del puente H, selección de R y L con sus valores nominales o medidos, elección de componentes, modelo RL, frecuencia de conmutación, metodología del PR, análisis de estabilidad y plan de pruebas.
 - Una sola fuente de verdad por módulo, para no repetir el problema del Proyecto 1 donde dos documentos divergieron.
 - Issues por integrante y rama de feature para cada pieza, con PR revisado por otra persona antes de entrar a `main`. En el repositorio pesan igual commits, ramas, issues, PRs y README.
 - Ensayos finales, repartidos entre todos con una persona operando y otra tomando datos.
