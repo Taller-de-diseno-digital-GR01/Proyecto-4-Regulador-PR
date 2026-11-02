@@ -133,7 +133,7 @@ Recibe la orden de modulación que calcula el procesador y genera las cuatro se�
 
 Este es el periférico personalizado obligatorio del proyecto. Se desarrolla en SystemVerilog con interfaz AXI4-Lite y permite configurar la habilitación, seleccionar al menos tres frecuencias de conmutación y establecer la referencia de modulación. También permite consultar si el generador está funcionando. El tiempo muerto es configurable como parámetro de la IP, que se fija al armar el Block Design, y no ocupa un registro AXI. La orden de modulación se limita al rango admisible antes de aplicarla.
 
-El procesador entrega una referencia de modulación, no una corriente medida ni la señal física de compuerta. El PWM se encarga de convertir esa orden en conmutaciones con la temporización apropiada. La elección del formato numérico y la relación exacta entre el valor escrito y los ciclos de trabajo se definirán al diseñar el periférico.
+El procesador entrega una referencia de modulación, no una corriente medida ni la señal física de compuerta. El PWM se encarga de convertir esa orden en conmutaciones con la temporización apropiada. La referencia se escribe en Q2.14 con signo, de -1 a +1 como fracción de Vdc. La relación con los ciclos de trabajo se desarrolla en [`nucleo_pwm`](../modulos/nucleo_pwm.md).
 
 El bloque genera además `pwm_trigger_o`, conectado directamente a la interfaz de adquisición. Este evento permite muestrear en una fase definida del período de conmutación, sin que el instante de muestreo dependa de cuándo el procesador alcance una instrucción de inicio. La fase se debe elegir y verificar considerando los flancos del puente, el tiempo muerto y el acondicionamiento; la sincronización no implica por sí sola una medición libre de rizado.
 
