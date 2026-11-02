@@ -16,7 +16,6 @@ flowchart TD
         PWM["Periférico PWM unipolar personalizado"]
         ADC["Interfaz ADC/XADC"]
         TIMER["AXI Timer"]
-        INTC["AXI Interrupt Controller"]
         UART["AXI UART Lite"]
         GPIO["Interfaz de usuario y AXI GPIO"]
 
@@ -26,11 +25,9 @@ flowchart TD
         AXI <-->|"configuración y estado"| PWM
         AXI <-->|"inicio, estado y corriente medida"| ADC
         AXI <-->|"configuración y reconocimiento"| TIMER
-        AXI <-->|"configuración de interrupciones"| INTC
         AXI <-->|"datos y estado de transmisión"| UART
         AXI <-->|"lectura de botones y escritura de salidas"| GPIO
-        TIMER -->|"interrupción periódica"| INTC
-        INTC -->|"solicitud de atención"| CPU
+        TIMER -->|"interrupción periódica"| CPU
         PWM -->|"pwm_trigger_o"| ADC
     end
 
@@ -91,9 +88,9 @@ Ejecuta el programa en C que configura los periféricos y realiza el control de 
 
 El PR es una función del programa, no un módulo adicional de hardware. Del mismo modo, la gestión de la habilitación, la detección de fallas a partir de la corriente medida, el almacenamiento del histórico y la organización de la exportación pertenecen al software. El ADC entrega la medición y el PWM ejecuta la actuación solicitada; ninguno de esos periféricos sustituye el cálculo del controlador.
 
-El procesador atiende la interrupción periódica del Timer a través del controlador de interrupciones. La transmisión del histórico se realiza fuera de esa rutina para conservar el plazo del control. Esto exige que el programa no bloquee la atención de la interrupción mientras espera espacio en la UART.
+El procesador atiende la interrupción periódica del Timer, que llega directo a su entrada de interrupción. La transmisión del histórico se realiza fuera de esa rutina para conservar el plazo del control. Esto exige que el programa no bloquee la atención de la interrupción mientras espera espacio en la UART.
 
-- **Entradas:** reloj y reinicio, instrucciones y datos leídos de la memoria local, respuestas de los periféricos mediante AXI y solicitud de interrupción desde AXI INTC.
+- **Entradas:** reloj y reinicio, instrucciones y datos leídos de la memoria local, respuestas de los periféricos mediante AXI y solicitud de interrupción desde el AXI Timer.
 - **Salidas:** solicitudes de acceso a memoria local, lecturas y escrituras a los periféricos mediante AXI y comunicaciones con el módulo de depuración.
 
 ### Bloque 3: Memoria local BRAM
@@ -125,7 +122,7 @@ Los periféricos de control se exponen mediante AXI4-Lite. La conexión entre el
 Las direcciones base se asignarán con el Address Editor y se utilizarán desde los controladores C generados o desarrollados para la plataforma. En este nivel se define qué bloques son accesibles y para qué se utilizan; no se inventa un mapa de direcciones ya implementado.
 
 - **Entradas:** solicitudes de lectura y escritura del procesador y datos, estados y respuestas de los periféricos.
-- **Salidas:** accesos al PWM, ADC/XADC, Timer, INTC, UART y GPIO, y respuestas de esos accesos hacia el procesador.
+- **Salidas:** accesos al PWM, ADC/XADC, Timer, UART y GPIO, y respuestas de esos accesos hacia el procesador.
 
 ### Bloque 6: Periférico PWM unipolar personalizado
 
@@ -159,25 +156,18 @@ La coordinación del Timer y el muestreo debe asegurar que la rutina encuentre u
 
 ### Bloque 8: AXI Timer
 
-Establece la base de tiempo periódica con la que se ejecuta el regulador PR. El procesador configura el período y habilita su interrupción. Cada vencimiento solicita atención a través del AXI Interrupt Controller, evitando que la periodicidad del control dependa de un retardo implementado en el lazo principal del programa.
+Establece la base de tiempo periódica con la que se ejecuta el regulador PR. El procesador configura el período y habilita su interrupción. Cada vencimiento activa la entrada de interrupción del procesador, evitando que la periodicidad del control dependa de un retardo implementado en el lazo principal del programa.
 
 El período del control se selecciona junto con la frecuencia de conmutación y la estrategia de adquisición. No se presupone que dos periféricos queden alineados por el hecho de configurarlos uno después de otro: debe establecerse una coordinación temporal que relacione el disparo del PWM, la disponibilidad del ADC y la actualización de la actuación.
 
 El Timer determina cuándo se atiende el cálculo; el PWM determina el instante de muestreo mediante su disparo. La latencia entre la solicitud de interrupción y la ejecución de la rutina se deberá medir, incluyendo la operación simultánea de la exportación UART.
 
 - **Entradas:** reloj, reinicio y accesos AXI para configurar el período, habilitar el conteo y reconocer la interrupción.
-- **Salidas:** solicitud periódica de interrupción hacia AXI INTC y respuestas de lectura/estado hacia el procesador mediante AXI.
+- **Salidas:** solicitud periódica de interrupción hacia MicroBlaze V y respuestas de lectura/estado hacia el procesador mediante AXI.
 
-### Bloque 9: AXI Interrupt Controller
+La salida de interrupción del Timer se conecta directo a la entrada de interrupción del MicroBlaze V, que tiene una sola. El Timer es la única fuente de interrupción del sistema, porque la UART y el GPIO se atienden en el programa principal, así que no se usa un AXI Interrupt Controller. Con una sola fuente, el controlador solo agregaría latencia a la entrada de la rutina periódica, ya que su manejador lee sus registros para identificar la entrada que pidió atención antes de llamar a la rutina.
 
-Recibe la solicitud del Timer y la presenta a la entrada de interrupción del MicroBlaze V. El procesador configura su habilitación y la atención de la fuente mediante sus registros accesibles por AXI.
-
-La fuente necesaria para el lazo es la del Timer. El segundo nivel no exige que UART y GPIO también generen interrupciones; sus tareas pueden atenderse en el programa principal. La configuración de prioridades debe conservar la atención oportuna de la rutina periódica.
-
-- **Entradas:** solicitud de interrupción desde AXI Timer, reloj, reinicio y accesos de configuración por AXI.
-- **Salidas:** solicitud de interrupción hacia MicroBlaze V y datos de estado hacia el procesador mediante AXI.
-
-### Bloque 10: AXI UART Lite
+### Bloque 9: AXI UART Lite
 
 Transmite los bytes del histórico almacenado hacia la aplicación de PC. El procesador prepara los datos y los entrega al periférico; UART Lite realiza la temporización de la comunicación serie a 115200 baudios, con 8 bits de datos, sin paridad y un bit de parada.
 
@@ -190,7 +180,7 @@ La transmisión se atiende fuera de la interrupción del regulador. Debe permiti
 
 La comunicación de la aplicación es de la FPGA hacia la PC. No se incorpora una entrada `rx` de comandos a la interfaz del proyecto. Si la IP dispone de recepción, esa función queda sin utilizar en esta arquitectura.
 
-### Bloque 11: Interfaz de usuario y AXI GPIO
+### Bloque 10: Interfaz de usuario y AXI GPIO
 
 Recoge `BTN_HABILITAR`, `BTN_EXPORTAR` y los switches `SW[1:0]`, y permite al software actualizar los LEDs de habilitación y falla y la salida de depuración temporal. El bloque agrupa el AXI GPIO y el acondicionamiento digital necesario para obtener eventos de botón utilizables por el programa.
 
@@ -229,10 +219,10 @@ La PC no calcula el PR ni determina el instante de muestreo. Tampoco envía coma
 | MicroBlaze V ↔ interconexión AXI | Accesos mapeados en memoria | Configurar los periféricos y leer sus datos/estados. |
 | Interconexión AXI ↔ PWM | Habilitación, frecuencia, modulación y estado | Controlar la actuación del puente. |
 | Interconexión AXI ↔ ADC/XADC | Inicio por software, configuración, muestra y disponibilidad | Obtener la medición digital de corriente. |
-| Interconexión AXI ↔ Timer e INTC | Configuración y estado de temporización e interrupciones | Establecer y atender la rutina periódica. |
+| Interconexión AXI ↔ Timer | Configuración, estado y reconocimiento de la interrupción | Establecer la rutina periódica. |
 | Interconexión AXI ↔ UART | Bytes a transmitir y estado del transmisor | Exportar el histórico. |
 | Interconexión AXI ↔ GPIO | Botones, LEDs y salida de depuración | Atender la interfaz de usuario y la medición temporal. |
-| Timer → INTC → MicroBlaze V | Solicitud de interrupción periódica | Iniciar la rutina del regulador. |
+| Timer → MicroBlaze V | Solicitud de interrupción periódica | Iniciar la rutina del regulador. |
 | PWM → ADC/XADC | `pwm_trigger_o` | Sincronizar la adquisición con la conmutación. |
 | PWM → drivers del puente H | Cuatro señales de compuerta con tiempo muerto | Aplicar la orden de modulación a la etapa de potencia. |
 | Sensor y acondicionamiento → ADC/XADC | `corriente_i`, analógica de 0 a 1 V | Realimentar la corriente de carga. |
@@ -244,7 +234,7 @@ La interfaz AXI4-Lite de los periféricos utiliza accesos de lectura y escritura
 
 Al arrancar, la infraestructura de reset mantiene el sistema en una condición definida y el PWM deja las compuertas apagadas. MicroBlaze V inicia el programa, configura el Timer y su interrupción, prepara el ADC/XADC, establece la configuración del PWM y habilita UART y GPIO. También inicializa el controlador PR y el buffer circular antes de aceptar la habilitación del control.
 
-Durante la operación, el PWM genera el disparo de adquisición en una fase definida de la conmutación. El XADC realiza la conversión y la interfaz publica la nueva muestra. La interrupción del Timer, presentada a través del INTC, activa la rutina periódica. El programa comprueba que haya una medición válida, obtiene la corriente con signo y calcula el error respecto de la referencia sinusoidal de 50 Hz. Con ese error actualiza el PR y escribe la nueva orden de modulación al periférico PWM.
+Durante la operación, el PWM genera el disparo de adquisición en una fase definida de la conmutación. El XADC realiza la conversión y la interfaz publica la nueva muestra. La interrupción del Timer activa la rutina periódica. El programa comprueba que haya una medición válida, obtiene la corriente con signo y calcula el error respecto de la referencia sinusoidal de 50 Hz. Con ese error actualiza el PR y escribe la nueva orden de modulación al periférico PWM.
 
 El periférico transforma la orden en las cuatro compuertas y aplica el tiempo muerto entre las señales de cada pierna. La tensión del puente modifica la corriente de la carga RL; el sensor vuelve a medirla y completa el lazo. La selección del instante de muestreo y de actualización debe considerar la latencia del ADC y del cálculo, y el retardo resultante debe formar parte de la validación del controlador.
 

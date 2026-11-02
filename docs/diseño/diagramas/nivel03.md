@@ -7,7 +7,7 @@ El bloque 2 del nivel 2 ejecuta todo el programa en C. Acá se abre en nueve mó
 ```mermaid
 flowchart TD
     subgraph HW["Periféricos del nivel 2"]
-        TMR["AXI Timer y AXI INTC"]
+        TMR["AXI Timer"]
         ADC["Interfaz ADC/XADC"]
         PWM["Periférico PWM"]
         GPIO["AXI GPIO"]
