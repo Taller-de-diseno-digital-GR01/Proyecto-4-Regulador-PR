@@ -151,18 +151,63 @@ El mismo lazo discreto de la sección de `Kr` se probó con `L` entre 0,7 y 1,3 
 
 Eso no cubre el rizado de conmutación, la cuantización del ADC, el ruido del sensor, el tiempo muerto ni la saturación con anti-windup. Se modela la corriente promedio con retardo de un muestreo y nada más. Estos puntos se validan en el modelo de PLECS de Nicolás y en el banco.
 
+## Plan de pruebas
+
+El orden es el que se acordó en el reparto, primero sin energizar, después con la potencia por pasos y el PR completo al final, para que cada paso descarte una causa antes de sumar la siguiente. Las pruebas energizadas las hacen Mattio, Jefferson y Nicolás juntos en el mismo lugar, una persona opera y otra toma datos.
+
+### Sin hardware
+
+- Modelo de referencia. El mismo PR con la aritmética de la ISR corre en la PC con gcc contra un modelo de la planta, con vectores de prueba, y la salida de `pr_discreto` tiene que coincidir con la del modelo. Si después falla en el banco, ya se descartó el código del PR.
+- PLECS (#38). Lazo cerrado con el puente, el tiempo muerto, el ADC de 12 bits y el ruido del sensor, que son lo que la simulación de este documento no tiene. Tiene que quedar estable en las esquinas de `L` y `R`, con error menor a 10 % desde el segundo período de un escalón, sin saturar en régimen y con rizado menor a 0,20 A pico a pico.
+
+### Antes de energizar
+
+- Compuertas y tiempo muerto con la potencia apagada, con osciloscopio y con capturas (Nicolás y Jefferson).
+- Con 0 A en la carga, el ADC tiene que dar `ADC_OFFSET_CUENTAS`, y la corriente que mide el XADC se compara con la de la sonda (#32).
+- El umbral de `supervisor_falla` fijado y la falla probada con un valor bajo, para ver que baja `enable`, enciende el LED y no rearma sola.
+
+### Energizado, por pasos
+
+Se arranca con `Vdc = 12 V` y 0,2 A, y se sube a 18 V y a 1,0 A cuando el paso anterior sale bien.
+
+1. Lazo abierto, con un `duty_ref` senoidal fijo de 50 Hz y sin PR. El índice que pide una corriente `I` es `m = |Z|·I/Vdc`, que con 18 V y los valores provisionales da 0,0225, 0,0562 y 0,1125 para 0,2, 0,5 y 1,0 A. Se mide la amplitud y el desfase de la corriente, que tienen que salir cerca de `Vdc·m/|Z|` y de -8,9°. Con esto se verifican la ganancia del sensor, el signo y los valores medidos de `L` y `R`. Si la amplitud se aleja más de 10 % se detiene la prueba y se revisa antes de cerrar el lazo.
+2. Solo la parte proporcional, con `Kr = 0`. Con los valores provisionales el error de amplitud en régimen tiene que ser de unos 23 % (es el `1/|1 + Kp·e^(-jω0Td)/Z|` del modelo), con 2,4° de desfase. Si sale muy distinto, la planta o el retardo no son los del modelo.
+3. PR completo con 0,2, 0,5 y 1,0 A pico. Error de amplitud de la fundamental menor a 10 % en una ventana de al menos cinco períodos y en régimen, calculado con `receptor_pc` sobre el histórico exportado. El rizado menor a 0,20 A pico a pico se mide con el osciloscopio sobre la corriente de la carga, porque el histórico no lo ve.
+4. Cambios de amplitud de 0,2 a 0,5 A y de 0,5 a 1,0 A con los switches. En la simulación el error de amplitud es 8,3 % y 6,9 % en el primer período y menos de 3 % en el segundo. Eso sirve de referencia para detectar desvíos grandes, y el criterio de aceptación es el del enunciado.
+5. Cambio de `R` de al menos 25 % con 0,5 A pico. La forma de cambiarla la define Jefferson, que arma la carga. En la simulación el error sube a 3,4 % en el primer período y baja a 1,1 % y 0,4 % en los dos siguientes, sin disparar el umbral de falla.
+
+### Mediciones que acompañan a todo el ensayo
+
+- Período y jitter del lazo con el GPIO que sube al entrar a la ISR y baja al salir, visto en el osciloscopio. El período tiene que ser de 50 µs (5000 ciclos), y la duración de la ISR y su fase respecto a `pwm_trigger_o` tienen que quedar estables.
+- Retardo efectivo del lazo, desde la captura hasta el cambio en las compuertas, contra los 75 µs del modelo más `τF`. Con unos 96 µs extra el margen de fase baja a 45°, y si el retardo medido se pasa de ahí se rehace la sintonización con la sección de estabilidad.
+- Exportación durante un ensayo en régimen. Al apretar el botón, el período y el jitter no cambian, y la ventana exportada, de 2000 muestras para cinco períodos en un histórico de 2048, calza con lo medido.
+- Evidencia de cada ensayo con la referencia, la corriente medida, la tensión sobre la carga y las señales PWM, distinguiendo pico y RMS, y con el método de extracción de la fundamental descrito.
+
 ## Pendientes
 
-- Medir `L` y `R` reales y repetir la sintonización con ellos.
-- Confirmar `Vdc`, `fsw` y que el puente aguanta la frecuencia con el tiempo muerto elegido.
-- Ganancia y offset del sensor de corriente, para la conversión de cuentas del ADC a amperes en `lazo_control`.
-- Medir el retardo efectivo del lazo (GPIO en la ISR) y comparar con `1,5·Ts`.
-- Filtro analógico del sensor, tipo y corte, que sale de medir el ruido (Jefferson, #29). Con él se suma `τF` al `Td` y se recalculan los márgenes.
-- Con las tierras separadas por el aislamiento de las compuertas (#21), el sensor tiene que ser aislado o cruzar la barrera de otra forma, y su offset y su ruido pueden no ser los del supuesto de 0 A en 0,5 V. Se mide con el sensor montado.
-- Retardo del aislamiento de las compuertas (#21), subida y bajada por separado, para sumarlo al `Td` y para que el tiempo muerto lo cubra. Nicolás lo pasa cuando cierre #21, y hasta entonces queda pendiente.
-- Acordar entre Jefferson y Nicolás que la captura del XADC caiga en el valle o el pico, y cuántos ciclos adelantar el trigger por el tiempo que tarda en cerrarse el sample and hold.
+Del lado de Jefferson.
+
+- Medir `L` y `R` reales (#31), con lo que se repite la sintonización.
+- Ganancia y offset del sensor de corriente (#32), para la conversión de cuentas del ADC a amperes en `lazo_control`.
+- Filtro analógico del sensor, tipo y corte, que sale de medir el ruido (#29). Con él se suma `τF` al `Td` y se recalculan los márgenes.
+- Con las tierras separadas por el aislamiento de las compuertas (#21), el sensor tiene que ser aislado o cruzar la barrera de otra forma (#30), y su offset y su ruido pueden no ser los del supuesto de 0 A en 0,5 V. Se mide con el sensor montado.
+
+Del lado de Nicolás.
+
+- Retardo del aislamiento de las compuertas (#21), subida y bajada por separado, para sumarlo al `Td` y para que el tiempo muerto lo cubra. Queda pendiente hasta que cierre #21.
+- Confirmar `Vdc`, `fsw` y que el puente aguanta la frecuencia con el tiempo muerto elegido (#18).
+- Habilitar o no la FPU del MicroBlaze V.
+- Modelo en PLECS (#38), para completar la verificación con rizado, tiempo muerto, cuantización y ruido.
+
+Entre Jefferson y Nicolás.
+
+- Que la captura del XADC caiga en el valle o el pico, y cuántos ciclos adelantar el trigger por el tiempo que tarda en cerrarse el sample and hold (#34).
+
+Propios.
+
+- Medir el retardo efectivo del lazo con el GPIO de la ISR y comparar con `1,5·Ts`.
 - Que el Timer y la portadora cuenten exactamente lo mismo (5000 ciclos a 20 kHz), y medir con el GPIO de la ISR contra `pwm_trigger_o` que la fase no deriva.
-- Habilitar o no la FPU del MicroBlaze V, y fijar `U_MAX`, que tiene 1,0 como tope porque `duty_ref` va en Q2.14 de -1,0 a +1,0, y baja según el tiempo muerto.
+- Fijar `PR_U_MAX`, que tiene 1,0 como tope porque `duty_ref` va en Q2.14 de -1,0 a +1,0, y baja según el tiempo muerto.
 - Implementar `tustin_prewarp` en `generar_pr_params.py`.
 
 ## Referencias
