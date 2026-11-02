@@ -109,15 +109,37 @@ El criterio `fs > 2·BW` se cumple de sobra para la señal. La referencia es de 
 - El rizado de conmutación se sincroniza solo. Si la captura cae en el valle o en el pico de la portadora, el rizado es un múltiplo exacto de `fs` y se pliega a continua. En una simulación en lazo abierto del puente unipolar con los valores provisionales, el error de la fundamental por esa causa fue 0,01 %. En el cruce de portadora, que es donde está el flanco del pulso de tensión, la sensibilidad al instante de captura es unas 9 veces mayor y un error de 200 ns ya da 0,42 %. Por eso `pwm_trigger_o` tiene que caer en el valle o el pico.
 - El ruido de banda ancha del sensor y de la conmutación no se sincroniza con nada, y lo único que lo frena es un filtro analógico antes del ADC. Ese filtro todavía no existe. Su corte sale de medir el ruido real del sensor, y lo mide Jefferson, que también diseña el filtro (#29).
 
-El filtro cuesta fase en el cruce. Para un RC de primer orden con corte `fF`, el retardo de grupo a baja frecuencia es `τF = 1/(2π·fF)`. Con `Kp` y `Kr` fijos y el `Td = 1,5·Ts` ya contado, los márgenes quedan así.
-
-- `fF = 5 kHz`, `τF = 32 µs` (0,64 `Ts`), margen de fase 69° y de ganancia 8,9 dB, con el cruce en 980 Hz.
-- `fF = 3 kHz`, `τF = 53 µs` (1,06 `Ts`), 64° y 8,6 dB, cruce en 949 Hz.
-- `fF = 2 kHz`, `τF = 80 µs` (1,59 `Ts`), 59° y 8,6 dB, cruce en 902 Hz.
-
-El filtro también baja la ganancia en el cruce, y por eso el margen de fase cae menos de lo que sugiere sumar su retardo al `Td`. Un filtro de segundo orden tipo Butterworth a 5 kHz atenúa 12 dB en `fs/2` y 36 dB a 40 kHz, contra los 7 dB y 18 dB del RC a esa misma frecuencia, y deja 63° de margen de fase y 6,7 dB de margen de ganancia. Todavía no hay corte ni orden elegidos, así que el retardo total del lazo queda como `Td = 1,5·Ts + τF` con `τF` pendiente, y los márgenes se recalculan cuando Jefferson fije el filtro.
+El filtro cuesta fase en el cruce. Para un RC de primer orden con corte `fF`, el retardo de grupo a baja frecuencia es `τF = 1/(2π·fF)`, que vale 32 µs con 5 kHz, 53 µs con 3 kHz y 80 µs con 2 kHz, o sea 0,64, 1,06 y 1,59 `Ts`. Los márgenes que quedan con cada uno están en la sección siguiente. Todavía no hay corte ni orden elegidos, así que el retardo total del lazo es `Td = 1,5·Ts + τF` con `τF` pendiente, y los márgenes se recalculan cuando Jefferson fije el filtro.
 
 Con `freq_sel` la tabla de `nucleo_pwm.md` quedó en `00` a 10 kHz, `01` a 20 kHz y `10` a 40 kHz, y `11` satura a 20 kHz. El lazo cerrado corre solo a 20 kHz, con el Timer fijo en 5000 ciclos, así que el argumento del aliasing a 10 kHz ya no aplica. Las otras frecuencias son para mostrar el PWM y para el testbench, con el control deshabilitado, y `control_principal` solo deja habilitar el control con `freq_sel = 01`.
+
+## Análisis de estabilidad
+
+Se analiza `L(s) = Gc(s)·e^(-s·Td)/(Ls + R)` con `Td = 1,5·Ts = 75 µs`. Todos los márgenes de esta sección salen de ese lazo abierto, con `Kp = 6,59` y `Kr = 1000` salvo que se diga otra cosa, y se miden en el cruce de ganancia más alto.
+
+El diseño nominal, con `L = 1 mH` y `R = 2 Ω`, cruza en 1,0 kHz con 79,3° de margen de fase y 10,5 dB de margen de ganancia. El criterio que se pide es margen de fase de al menos 45° y de ganancia de al menos 6 dB con la `L` medida y el filtro del sensor puestos, y de al menos 30° y 3 dB en las esquinas de `L` y `R` de abajo con `Kp` sin retocar. Si la `L` medida difiere de 1 mH se recalcula `Kp` con la fórmula de arriba y el nominal se mantiene casi igual, por ejemplo con 0,7 mH sale `Kp = 4,83` y 85,5° y 10,3 dB.
+
+Si `L` y `R` varían después de sintonizar, por ejemplo por saturación del inductor o por calentamiento de la resistencia, `Kp` queda fijo y los márgenes se mueven. El mínimo está en la `L` más chica, porque sube el cruce.
+
+- `L = 0,7 mH`, `R = 1,5 Ω`, cruce en 1460 Hz, 62,8° y 7,5 dB.
+- `L = 0,7 mH`, `R = 2,5 Ω`, cruce en 1388 Hz, 73,8° y 7,8 dB.
+- `L = 1,3 mH`, `R = 1,5 Ω`, cruce en 786 Hz, 80,1° y 12,6 dB.
+- `L = 1,3 mH`, `R = 2,5 Ω`, cruce en 747 Hz, 90,2° y 12,8 dB.
+
+El retardo que se le agrega al `Td` es lo que más mueve los márgenes. En el cruce de 1 kHz cada microsegundo extra cuesta 0,36° de fase.
+
+- 25 µs extra, 70,3° y 8,2 dB.
+- 50 µs extra, 61,3° y 6,4 dB.
+- 75 µs extra, 52,2° y 5,0 dB.
+- Con 96 µs extra el margen de fase llega a 45°, y el de ganancia se agota con unos 220 µs, que es donde el lazo se vuelve inestable.
+
+El retardo del aislamiento de las compuertas (#21) se espera de pocos microsegundos como mucho, y con 2 µs el margen queda en 78,5° y 10,3 dB, así que se puede sumar al `Td` sin rehacer la sintonización. El del filtro del sensor pesa bastante más. Con `Kp` y `Kr` fijos, el RC de primer orden da lo siguiente en el diseño nominal. El filtro también baja la ganancia en el cruce, por eso el margen de fase cae menos de lo que saldría de sumar `τF` al retardo.
+
+- `fF = 5 kHz`, cruce en 980 Hz, 69,0° y 8,9 dB.
+- `fF = 3 kHz`, cruce en 949 Hz, 63,9° y 8,6 dB.
+- `fF = 2 kHz`, cruce en 902 Hz, 59,2° y 8,6 dB.
+
+Un Butterworth de segundo orden a 5 kHz atenúa 12 dB en `fs/2` y 36 dB a 40 kHz, contra los 7 dB y 18 dB del RC a 5 kHz, y a cambio deja el nominal en 62,9° y 6,7 dB. En las esquinas de `L` más baja, con `R = 1,5 Ω`, el RC de 5 kHz queda en 49,1° y 5,8 dB, el RC de 3 kHz en 43,6° y 5,6 dB y el Butterworth en 38,8° y 3,7 dB. Los tres cumplen el criterio de arriba, y cualquier filtro con `τF` de hasta unos 80 µs también, así que el corte lo puede fijar el ruido del sensor (#29) y no la estabilidad. Si el filtro elegido queda fuera de ese rango, o si el retardo medido en el banco pasa de unos 100 µs, se rehace la sintonización con `fc` más bajo.
 
 ## Verificación por simulación
 
