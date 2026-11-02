@@ -44,7 +44,7 @@ Revisión cruzada de pull requests, A con B y C con D, y los pares se rotan cuan
 
 Es el módulo con más peso del proyecto (20 % de la presentación funcional) y el único obligatorio en SystemVerilog. A se encarga de la lógica de generación, B de la interfaz AXI que lo envuelve. Se sugiere separarlo en dos archivos desde el inicio para que cada uno trabaje en su rama sin pisarse.
 
-- Portadora triangular (contador ascendente y descendente) cuyo valor máximo sale de `freq_sel`. Al menos tres frecuencias válidas, y hay que decidir qué hace el cuarto código (otra frecuencia, o reservado que satura a una de las tres).
+- Portadora triangular (contador ascendente y descendente) cuyo valor máximo sale de `freq_sel`. Al menos tres frecuencias válidas. La tabla es de 10, 20 y 40 kHz, con 20 kHz de operación, y el código `11` satura a 20 kHz (#23).
 - Dos comparadores contra la misma portadora, uno con `duty_ref` y otro con `-duty_ref`. Esa es la modulación unipolar, cada pierna del puente compara contra su referencia.
 - Cuatro señales de compuerta, dos por pierna, cada par complementario con tiempo muerto configurable. El tiempo muerto no puede dejar glitches ni solapamiento en ningún caso, ni siquiera al apagar `enable` a medio período.
 - Actualización de `duty_ref` solo en el valle de la portadora, para que un cambio a medio período no genere pulsos raros. Hace falta un registro sombra entre el valor que escribe el software y el que ve el comparador.
@@ -175,19 +175,17 @@ La sintonización con la planta real genera iteraciones entre D y quienes arman 
 
 ## Orden sugerido
 
-Sin fechas, porque el enunciado no las trae. Se puede mapear a las fases de la sección 5.1.
+Se puede mapear a las fases de la sección 5.1 del enunciado. Las fechas del grupo 1 son las del enunciado (sección 8.1). El documento de diseño se entrega el 05.11.2026 y el profesor lo tiene que validar antes de la demostración, que es en la semana del 16 al 20.11.2026. El informe y el repositorio se entregan el 19.11.2026.
 
-- Primero los acuerdos con PEDP y el Block Design base de C (Fase 1). Mientras tanto A y B escriben en papel el mapa de registros y los diagramas del PWM, D arranca el modelo de la planta y la estructura del PR, A y C la carga y el puente, y D prepara la estructura del software y el modelo de referencia en la PC.
+- Primero los acuerdos con PEDP y el Block Design base de C (Fase 1). Mientras tanto A y B escriben en papel el mapa de registros y los diagramas del PWM, D arranca la estructura del PR sobre un modelo promedio de la planta, C el modelo dinámico de la carga y el PLECS, A y C la carga y el puente, y D prepara la estructura del software y el modelo de referencia en la PC.
 - Después el periférico PWM con su testbench (A y B), el XADC (C) y el diseño de la etapa de potencia, la carga y el sensor (A y C en sus partes de potencia). Esta es la Fase 2.
 - Luego la integración al Block Design, los drivers y el lazo de control (Fase 3 y 4, con D al frente), probando antes cada pieza sola y recién al final con el inversor energizado.
 - Al final la validación, los ensayos de la sección 4.3, la medición de jitter y el informe (Fase 5).
 
 ## Decisiones abiertas
 
-- Fechas de planteamiento y de entrega, y si el planteamiento debe estar aprobado antes de la presentación funcional.
 - Caché de instrucciones, habilitarla o justificarla por escrito.
 - Controlador de interrupciones, si hace falta en el Block Design.
-- Cuarto código de `freq_sel`.
 - Punto fijo o punto flotante para el PR.
 - Dónde vive el script de PC, y qué queda en `make` (probablemente solo la simulación del PWM con iverilog) y qué se corre desde Vivado en batch.
 - Plataforma alternativa de control para el respaldo de PEDP, por si la parte digital se atrasa.
