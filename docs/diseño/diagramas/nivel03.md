@@ -247,7 +247,7 @@ Tiene un solo maestro, `M_AXI_DP`, el puerto de datos para periféricos del Micr
 
 Las instrucciones y los datos de la BRAM van por LMB y no pasan por acá.
 
-La rutina periódica hace entre seis y siete accesos AXI por iteración (depuración, reconocimiento del Timer, bandera y dato del ADC, `duty_ref` y depuración otra vez), así que la latencia de la interconexión cae dentro del plazo del control. Se usa la IP que coloca Connection Automation de Vivado, pendiente de confirmar si es AXI Interconnect o SmartConnect. Con seis esclavos AXI4-Lite las dos atienden una transacción a la vez [5], [6], y lo que agregan a la rutina se confirma midiendo la salida de depuración. Las direcciones base se asignan en el Address Editor (#15).
+La rutina periódica hace entre cinco y seis accesos AXI por iteración (depuración, reconocimiento del Timer, dato y contador del ADC en una sola lectura, `duty_ref` y depuración otra vez), así que la latencia de la interconexión cae dentro del plazo del control. Se usa la IP que coloca Connection Automation de Vivado, pendiente de confirmar si es AXI Interconnect o SmartConnect. Con seis esclavos AXI4-Lite las dos atienden una transacción a la vez [5], [6], y lo que agregan a la rutina se confirma midiendo la salida de depuración. Las direcciones base se asignan en el Address Editor (#15).
 
 - Entradas, accesos de `M_AXI_DP`, respuestas de los esclavos e `interconnect_aresetn`.
 - Salidas, accesos hacia los seis esclavos y respuestas hacia el procesador.
@@ -258,14 +258,14 @@ Se arma con dos instancias, un XADC Wizard y `envoltura_xadc`.
 
 El XADC Wizard va sin interfaz AXI, en modo por eventos y con canal único [7]. En modo por eventos cada conversión arranca con un flanco en `CONVST`. El modo continuo muestrea a su propio ritmo, sin relación con la portadora, y la muestra podría caer en cualquier punto del período, incluso en una conmutación. Con una sola señal analógica el secuenciador no hace falta, y el dato queda siempre en el mismo registro de estado.
 
-`envoltura_xadc` es esclava AXI4-Lite de la interconexión y maestra del puerto DRP del wizard. Junta `pwm_trigger_o` y el inicio por software en el pulso de `CONVST`, y al fin de cada conversión lee el registro de estado del canal por el DRP y publica el dato con su bandera de dato nuevo. El detalle está en [`envoltura_xadc`](../modulos/envoltura_xadc.md).
+`envoltura_xadc` es esclava AXI4-Lite de la interconexión y maestra del puerto DRP del wizard. Un bit de su registro de control elige si `CONVST` lo dispara `pwm_trigger_o` o el inicio por software, y la fuente que no está elegida se ignora. Al fin de cada conversión lee el registro de estado del canal por el DRP y publica el dato junto con un contador de conversiones, que el software compara con su lectura anterior para saber si hay dato nuevo. El detalle está en [`envoltura_xadc`](../modulos/envoltura_xadc.md).
 
 El wizard queda como instancia aparte, fuera de la envoltura, para que el testbench de la envoltura use un modelo simple de los puertos DRP y de conversión, sin simular la primitiva analógica.
 
 Quedan pendientes el canal del JXADC y el modo de entrada (#33), y el instante de captura respecto al valle (#34).
 
 - Entradas, `corriente_i` por el par Vaux del canal del JXADC, `pwm_trigger_o` de `periferico_pwm`, accesos AXI4-Lite y `peripheral_aresetn`.
-- Salidas, el dato y la bandera de dato nuevo hacia el procesador por AXI4-Lite.
+- Salidas, el dato y el contador de conversiones hacia el procesador por AXI4-Lite.
 
 ### Bloque 8, AXI Timer
 
