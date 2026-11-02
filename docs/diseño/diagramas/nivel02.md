@@ -209,7 +209,7 @@ La cantidad de instancias o canales GPIO se fijará al integrar el Block Design,
 
 Los drivers reciben las cuatro compuertas de la FPGA y accionan el puente H alimentado entre 12 y 24 V DC. El puente aplica la tensión a la carga RL. El sensor mide la corriente de esa carga y el acondicionamiento la lleva al rango de entrada del XADC, cerrando el camino de realimentación.
 
-El dimensionamiento de la carga, los MOSFET, los drivers, el tiempo muerto, el sensor y las protecciones se coordina con PEDP. La frontera funcional con la FPGA está formada por las cuatro señales de compuerta, la entrada analógica y la referencia de tierra correspondiente. Las salidas lógicas de la placa deben ser compatibles con las entradas del circuito de accionamiento seleccionado.
+El dimensionamiento de la carga, los MOSFET, los drivers, el tiempo muerto, el sensor y las protecciones se coordina con PEDP. La frontera funcional con la FPGA está formada por las cuatro señales de compuerta y la entrada analógica, con la etapa de potencia aislada de la Basys 3. Las salidas lógicas de la placa deben ser compatibles con las entradas del circuito de accionamiento seleccionado.
 
 La detección por software de sobrecorriente requiere una muestra válida y la atención del procesador; no se considera una protección instantánea frente a un cortocircuito. La protección física y el apagado de los drivers deben definirse con la etapa de potencia. Desactivar las compuertas tampoco significa que la corriente de la inductancia desaparezca de inmediato.
 
