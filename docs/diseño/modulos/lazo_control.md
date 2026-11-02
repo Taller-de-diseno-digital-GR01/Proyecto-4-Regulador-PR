@@ -93,11 +93,15 @@ La rutina no baja `control_habilitado`, porque esa variable la escribe solo `con
 
 ### h.6) Calibración
 
-`ADC_OFFSET_CUENTAS` y `ADC_AMPERES_POR_CUENTA` salen de medir el sensor montado, y los mide Jefferson. Mientras tanto quedan con el valor teórico del nivel 2, 0 A en 0,5 V, o sea la mitad de la escala de 12 bits, marcados con `// TODO: Revisar` en `lazo_control.h`. `ADC_AMPERES_POR_CUENTA` no tiene valor teórico acordado y queda también como pendiente.
+`ADC_OFFSET_CUENTAS` y `ADC_AMPERES_POR_CUENTA` salen de medir el sensor montado, y los mide Jefferson (#32). Mientras tanto quedan con valores teóricos, marcados con `// TODO: Revisar` en `lazo_control.h`.
+
+El offset es el del nivel 2, 0 A en 0,5 V, o sea 2048 cuentas, la mitad de la escala de 12 bits. Para la ganancia se parte de una sensibilidad del sensor de 0,3 V/A, que lleva ±1,0 A a 0,2 V y 0,8 V y deja 0,2 V de margen en cada extremo de los 0 a 1 V del XADC para los transitorios. Con ella `ADC_AMPERES_POR_CUENTA = 1 V / (4096 · 0,3 V/A) = 8,138e-4 A`, 0,81 mA por cuenta, que es 0,4 % de la corriente del ensayo más chico (0,2 A). La escala completa queda en ±1,67 A, y eso pesa porque el umbral de sobrecorriente de `supervisor_falla` (1,3 A) tiene que caer dentro de lo que el ADC puede ver. Con 0,4 V/A también habría margen de tensión, pero la escala llegaría solo a ±1,25 A y el umbral no se alcanzaría nunca. La sensibilidad real la fija Jefferson en #28, y si cambia se actualizan las dos constantes y los límites de `supervisor_falla`.
 
 ### h.7) Presupuesto de tiempo
 
-El período del Timer sale de `PR_FRECUENCIA_MUESTREO_HZ`, que todavía no está acordado. La rutina hace un puñado de accesos AXI, siete multiplicaciones del PR y una de la referencia y otra de la conversión, así que a 100 MHz debería caber en pocos microsegundos con FPU. Sin FPU, cada multiplicación en `float` por software cuesta decenas de ciclos, y eso es justo lo que se mide con la salida de depuración antes de decidir si se pasa a punto fijo.
+El período del Timer sale de `PR_FRECUENCIA_MUESTREO_HZ`, que con los valores de partida es 20 kHz, o sea 5000 ciclos de 100 MHz por iteración. La rutina hace un puñado de accesos AXI, seis multiplicaciones del PR, una de la referencia y una de la conversión, así que con FPU debería quedar en cientos de ciclos. Sin FPU, cada operación en `float` por software cuesta del orden de 50 a 100 ciclos, y las unas veinte operaciones de la rutina suman entre 1500 y 2500 ciclos, de 15 a 25 µs. Es una estimación gruesa y lo que vale es lo que mida la salida de depuración, antes de decidir si se pasa a punto fijo.
+
+El requisito duro es que la rutina termine antes del siguiente valle de la portadora, porque el `Td = 1,5 · Ts` de `potencia/diseno_pr.md` supone que el `duty_ref` escrito en esta iteración rige desde ese valle. Mientras se cumpla, la duración de la rutina no entra en el retardo. Si dura más, el modelo del retardo cambia y los márgenes se rehacen.
 
 ### h.8) Interfaz en C
 
