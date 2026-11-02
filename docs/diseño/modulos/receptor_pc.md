@@ -27,7 +27,7 @@ Recibe la trama del histórico por el puerto serie, la valida, la pasa a unidade
 
 - Un CSV con una fila por registro y las columnas `t_s`, `corriente_a`, `i_ref_a`, `duty`, `saturado`, `dato_ausente`, `habilitado` y `falla`.
 - Una figura con la corriente medida y la referencia contra el tiempo, y otra con `duty` contra el tiempo, con las iteraciones saturadas o en falla marcadas.
-- El error de la fundamental en consola, con la amplitud y la fase de la corriente y de la referencia por separado.
+- El error de amplitud de la fundamental y el desfase en consola, con la amplitud y la fase de la corriente y de la referencia por separado, y el error del fasor como dato extra.
 
 ## f) Explicación de la relación con otros módulos
 
@@ -55,11 +55,11 @@ La trama se desempaca con `struct` y el formato little-endian `<`, que calza con
 
 Se ajusta por mínimos cuadrados `a · cos(2π · 50 · t) + b · sin(2π · 50 · t) + c` a la corriente medida y, aparte, a la referencia, sobre una ventana de un número entero de períodos de 50 Hz, de al menos cinco. El ajuste sirve aunque la frecuencia de muestreo no sea múltiplo de 50 Hz, cosa que una DFT directa no permite sin fuga espectral.
 
-De cada ajuste salen el fasor de la fundamental, con amplitud `sqrt(a² + b²)` y su fase. El error que se informa es
+De cada ajuste salen el fasor de la fundamental, con amplitud `sqrt(a² + b²)` y su fase. El instructivo (4.3.5) pone el 10 % sobre la amplitud de la fundamental, y el desfase se mide y se reporta aparte, sin límite. El criterio que se informa es
 
-`error = |I1 - R1| / |R1| · 100 %`
+`error_amplitud = (|I1| - |R1|) / |R1| · 100 %`
 
-con `I1` y `R1` los fasores de la corriente y de la referencia. Ese error incluye amplitud y fase a la vez, y por eso también se informan las dos por separado. Si la ventana contiene iteraciones con `habilitado` en cero o con `falla`, el script lo avisa, porque el resultado ya no representa un ensayo en régimen.
+y al lado el desfase `∠I1 - ∠R1`, con `I1` y `R1` los fasores de la corriente y de la referencia. El error del fasor, `|I1 - R1| / |R1|`, queda como dato extra, pero no es el criterio porque mezcla las dos cosas, con amplitudes iguales y 6° de desfase ya da 10,5 % (`2 · sen(φ/2)`). Si la ventana contiene iteraciones con `habilitado` en cero o con `falla`, el script lo avisa, porque el resultado ya no representa un ensayo en régimen.
 
 ### h.3) Rizado de conmutación
 

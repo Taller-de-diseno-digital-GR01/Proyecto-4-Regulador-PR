@@ -8,7 +8,7 @@
 
 ```mermaid
 flowchart LR
-    TMR(["AXI Timer por AXI INTC"]) -->|"interrupción periódica"| LC["lazo_control<br/>una iteración del control<br/>en orden fijo"]
+    TMR(["AXI Timer"]) -->|"interrupción periódica"| LC["lazo_control<br/>una iteración del control<br/>en orden fijo"]
     DRV_IN(["drivers"]) -->|"dato nuevo y cuenta del ADC"| LC
     CP_IN(["control_principal"]) -->|"control_habilitado, amplitud_ref"| LC
     REF(["ref_senoidal"]) -->|"i_ref"| LC
@@ -26,7 +26,7 @@ Ejecuta una iteración del control en cada interrupción del Timer, siempre en e
 
 ## d) Entradas
 
-- La interrupción del AXI Timer, que llega por el AXI INTC.
+- La interrupción del AXI Timer, que llega directo a la entrada de interrupción del procesador, sin pasar por un controlador.
 - La bandera de dato nuevo y la cuenta del ADC, por [`drivers`](drivers.md).
 - `control_habilitado` y `amplitud_ref`, escritas por [`control_principal`](control_principal.md).
 - `i_ref` de [`ref_senoidal`](ref_senoidal.md), `duty_ref` y `saturado` de [`pr_discreto`](pr_discreto.md), y `falla` de [`supervisor_falla`](supervisor_falla.md).
@@ -43,7 +43,7 @@ Ejecuta una iteración del control en cada interrupción del Timer, siempre en e
 
 ## f) Explicación de la relación con otros módulos
 
-Es el único módulo con plazo fijo y el centro del contexto de interrupción. Llama a `ref_senoidal`, `pr_discreto`, `supervisor_falla` y `buffer_muestras`, y por `drivers` toca el ADC, el PWM, el Timer y la salida de depuración. Con `control_principal` se comunica solo por las tres variables compartidas del nivel 3. `control_principal` lo registra en el AXI INTC durante el arranque.
+Es el único módulo con plazo fijo y el centro del contexto de interrupción. Llama a `ref_senoidal`, `pr_discreto`, `supervisor_falla` y `buffer_muestras`, y por `drivers` toca el ADC, el PWM, el Timer y la salida de depuración. Con `control_principal` se comunica solo por las tres variables compartidas del nivel 3. `control_principal` lo registra como manejador de la interrupción del procesador durante el arranque.
 
 ## g) Explicación de funcionamiento
 
@@ -101,7 +101,7 @@ El período del Timer sale de `PR_FRECUENCIA_MUESTREO_HZ`, que todavía no está
 
 ### h.8) Interfaz en C
 
-- `void lazo_control_isr(void *ref)`, la rutina que `control_principal` registra en el AXI INTC.
+- `void lazo_control_isr(void *ref)`, la rutina que `control_principal` registra como manejador de la interrupción del procesador.
 - Las variables compartidas `volatile uint32_t control_habilitado`, `volatile valor_t amplitud_ref` y `volatile uint32_t falla`, declaradas en `lazo_control.h`.
 
 ## i) Diagrama esquemático detallado del diseño

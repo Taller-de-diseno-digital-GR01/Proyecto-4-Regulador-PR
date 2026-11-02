@@ -16,7 +16,7 @@ flowchart LR
     DRV <-->|"AXI4-Lite"| ADC(["interfaz ADC/XADC"])
     DRV <-->|"AXI4-Lite"| GPIO(["AXI GPIO"])
     DRV <-->|"AXI4-Lite"| UART(["AXI UART Lite"])
-    DRV <-->|"AXI4-Lite"| TMR(["AXI Timer y AXI INTC"])
+    DRV <-->|"AXI4-Lite"| TMR(["AXI Timer"])
 ```
 
 ## c) Objetivo del módulo
@@ -31,7 +31,7 @@ Concentra todos los accesos a registros de periféricos, de modo que ningún otr
 
 ## e) Salidas
 
-- Las escrituras por AXI4-Lite al PWM, al ADC, al GPIO, a la UART, al Timer y al INTC.
+- Las escrituras por AXI4-Lite al PWM, al ADC, al GPIO, a la UART y al Timer.
 - Los datos y estados leídos, hacia el módulo que llamó.
 
 ## f) Explicación de la relación con otros módulos
@@ -40,7 +40,7 @@ Lo usan los dos contextos de ejecución. `control_principal` lo usa para arranca
 
 ## g) Explicación de funcionamiento
 
-Para el Timer, el INTC, el GPIO y la UART Lite se apoya en los drivers de Xilinx que genera Vitis (`XTmrCtr`, `XIntc`, `XGpio`, `XUartLite`) para la inicialización, y en sus macros de acceso a registros para lo que corre en la interrupción. Para el PWM y la interfaz del ADC, que son propios, son funciones cortas sobre `Xil_In32` y `Xil_Out32` con los offsets de cada mapa de registros.
+Para el Timer, el GPIO y la UART Lite se apoya en los drivers de Xilinx que genera Vitis (`XTmrCtr`, `XGpio`, `XUartLite`) para la inicialización, y en sus macros de acceso a registros para lo que corre en la interrupción. Para el PWM y la interfaz del ADC, que son propios, son funciones cortas sobre `Xil_In32` y `Xil_Out32` con los offsets de cada mapa de registros.
 
 En el flujo de Vitis 2025.1 los drivers de Xilinx se inicializan con la dirección base del periférico y no con un número de dispositivo. Los nombres exactos de las macros de `xparameters.h` se toman del archivo generado cuando esté el `.xsa`.
 
@@ -98,11 +98,11 @@ La propuesta es una instancia de AXI GPIO de dos canales, el canal 1 como entrad
 
 La recepción no se usa, igual que en el nivel 2.
 
-### h.5) AXI Timer y AXI INTC
+### h.5) AXI Timer e interrupción del procesador
 
 - `void drivers_timer_iniciar(uint32_t tlr)`, deja el contador 0 en modo de generación, contando hacia abajo, con recarga automática y con la interrupción habilitada, y lo arranca. El período queda en `tlr + 2` ciclos de 100 MHz.
 - `void drivers_timer_reconocer(void)`, escribe uno en el bit de interrupción del registro de control y estado del contador 0, que es como el AXI Timer limpia la interrupción, sin tocar los demás bits.
-- `void drivers_interrupciones_iniciar(void (*rutina)(void *))`, inicia el INTC, conecta la rutina a la entrada del Timer, arranca el INTC en modo real y habilita las excepciones del procesador.
+- `void drivers_interrupciones_iniciar(void (*rutina)(void *))`, registra la rutina con las funciones de excepciones del BSP (`xil_exception.h`) y habilita las interrupciones del procesador. No hay AXI INTC, la salida del Timer va directo a la única entrada de interrupción del MicroBlaze V. Los nombres exactos de las funciones se toman del BSP cuando esté el `.xsa`.
 - `void drivers_interrupciones_deshabilitar(void)` y `void drivers_interrupciones_habilitar(void)`, para las secciones protegidas del lazo principal.
 
 ### h.6) Prueba en la PC
