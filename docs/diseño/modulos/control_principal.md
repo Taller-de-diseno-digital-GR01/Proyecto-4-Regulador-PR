@@ -22,7 +22,7 @@ Arranca el sistema y atiende todo lo que no tiene plazo, los botones, los LEDs y
 
 ## Explicación general
 
-Al arrancar configura los periféricos en un orden fijo. Primero deja el PWM deshabilitado, después configura el ADC, la UART y el GPIO, inicializa [`pr_discreto`](pr_discreto.md), [`ref_senoidal`](ref_senoidal.md) y [`buffer_muestras`](buffer_muestras.md), y por último programa el Timer y habilita la interrupción. Así la primera interrupción ya encuentra todo listo.
+Al arrancar configura los periféricos en un orden fijo. Primero deja el PWM deshabilitado, después configura el ADC, la UART y el GPIO, inicializa [`pr_discreto`](pr_discreto.md), [`ref_senoidal`](ref_senoidal.md) y [`buffer_muestras`](buffer_muestras.md), y por último registra `lazo_control` como manejador de la interrupción del procesador, programa el Timer y habilita la interrupción. Así la primera interrupción ya encuentra todo listo.
 
 En cada vuelta del lazo principal lee los botones, saca los flancos y los atiende. Un flanco de `BTN_HABILITAR` alterna el control entre habilitado y deshabilitado, salvo que haya falla, en cuyo caso se ignora. Un flanco de `BTN_EXPORTAR` pide la exportación si no hay una en curso. Después llama a `exportador_uart` para que avance y actualiza los LEDs. Los botones llegan filtrados del bloque 11 del nivel 2, este módulo solo detecta el flanco.
 

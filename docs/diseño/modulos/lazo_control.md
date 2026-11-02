@@ -8,7 +8,7 @@ Ejecuta una iteración del control en el orden que fija el enunciado, siempre ig
 
 ## Entradas
 
-- Interrupción periódica del AXI Timer, por el AXI INTC.
+- Interrupción periódica del AXI Timer, directa a la entrada de interrupción del procesador.
 - Bandera de dato nuevo y muestra del ADC, por [`drivers`](drivers.md).
 - `control_habilitado` y `amplitud_ref`, desde [`control_principal`](control_principal.md).
 - `i_ref` desde [`ref_senoidal`](ref_senoidal.md), `duty_ref` y `saturado` desde [`pr_discreto`](pr_discreto.md), y `falla` desde [`supervisor_falla`](supervisor_falla.md).
