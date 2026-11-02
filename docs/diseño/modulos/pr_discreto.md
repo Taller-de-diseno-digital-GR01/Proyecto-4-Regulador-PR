@@ -48,14 +48,14 @@ El resonante, ideal o amortiguado y discretizado con cualquiera de los métodos 
 - `r[k] = B0 · e[k] + B1 · e[k-1] + B2 · e[k-2] - A1 · r[k-1] - A2 · r[k-2]`
 - `u[k] = u_p[k] + r[k]`
 
-Los estados son `e[k-1]`, `e[k-2]`, `r[k-1]` y `r[k-2]`. Cada iteración cuesta siete multiplicaciones y seis sumas o restas, más la conversión final.
+Los estados son `e[k-1]`, `e[k-2]`, `r[k-1]` y `r[k-2]`. Cada iteración cuesta seis multiplicaciones y seis sumas o restas, más la conversión final. `B1` es cero con Tustin precorregido, pero la forma general lo multiplica igual y así el módulo sirve para los otros métodos.
 
 Si más adelante se agrega compensación del retardo de cómputo o un segundo resonante para algún armónico, la ecuación crece en estados y coeficientes, pero la forma de la interfaz no cambia.
 
 ### h.2) Estructura y método elegidos
 
 - Estructura ideal, `Gc(s) = Kp + Kr · s / (s² + ω0²)` con `ω0 = 2π · 50`. La referencia la genera el propio MicroBlaze a 50 Hz exactos, así que no hay desvío de frecuencia que justifique el amortiguamiento. La pregunta 5 de `potencia/preguntas_profesor_pr.tex` le consulta esto al profesor.
-- Discretización por Tustin con precorrección en 50 Hz, `s = (ω0 / tan(ω0·Ts/2)) · (z-1)/(z+1)`. Con Tustin simple el polo se corre por debajo de 50 Hz y la ganancia infinita deja de caer en la frecuencia de la referencia. Con la precorrección el polo cae exacto en `ω0`.
+- Discretización por Tustin con precorrección en 50 Hz, `s = (ω0 / tan(ω0·Ts/2)) · (z-1)/(z+1)`. Con Tustin simple el polo se corre por debajo de 50 Hz, apenas 1 mHz a 20 kHz, y la ganancia infinita deja de caer exacta en la frecuencia de la referencia. Con la precorrección el polo cae exacto en `ω0` y no cuesta nada más, así que no depende de la frecuencia de muestreo que se elija.
 - Con `θ = ω0 · Ts` los coeficientes salen en forma cerrada. `B0 = Kr · sin(θ) / (2 · ω0)`, `B1 = 0`, `B2 = -B0`, `A1 = -2 · cos(θ)` y `A2 = 1`. Se verificó que reproducen los valores de la tabla de abajo.
 
 ### h.3) Coeficientes de partida
@@ -80,6 +80,8 @@ Son provisionales hasta medir `L` y `R` reales y confirmar `Vdc` y la frecuencia
 
 es decir, el valor que el resonante tendría que haber dado para que la suma cayera justo en el límite. Con eso el resonante no acumula energía durante la saturación y, al salir de ella, arranca desde un estado coherente con lo que el puente aplicó de verdad. Es la variante más simple de anti-windup por realimentación de la salida saturada, y se valida contra el modelo de la planta antes de llevarla al banco.
 
+Se probó el mecanismo en el lazo discreto de `potencia/diseno_pr.md`, con una referencia de 10 A pico durante dos períodos, que con 18 V no se puede alcanzar, y luego de vuelta a 1,0 A. Con el anti-windup la salida estuvo saturada 35 iteraciones y sin él 181. En la recuperación el error de amplitud baja a 2,7 % a los cuatro períodos contra 3,8 % sin anti-windup, y el pico de corriente después de la saturación es 2,58 A contra 2,71 A. La mejora es moderada porque la recuperación la manda el polo del resonante en lazo cerrado, de 17 ms. Falta el caso con tiempo muerto y cuantización, que es del PLECS.
+
 El periférico también satura `duty_ref`, pero el PR no debe depender de eso. Si recortara solo el periférico, el resonante seguiría integrando un error que la planta nunca va a poder seguir, y el software no sabría que se saturó. `PR_U_MAX` tiene que quedar dentro del rango admisible del periférico, que según Jefferson es de -1,0 a +1,0 igual en todas las frecuencias de `freq_sel`, así que 1,0 es el tope. Por debajo de eso lo fija el tiempo muerto, porque con el índice cerca de 1,0 un pulso queda más corto que `DEAD_TIME_CICLOS` y el puente deja de seguir. El máximo real a 20 kHz es `1 - (1 + DEAD_TIME_CICLOS) / 5000`, que con el valor provisional de 100 ciclos da cerca de 98 %.
 
 ### h.6) Conversión a duty_ref
@@ -90,7 +92,7 @@ El LSB de 1/16384 es más fino que lo que el núcleo PWM resuelve de verdad, que
 
 ### h.7) Formato numérico
 
-Coeficientes, estados y entradas son `valor_t`, de `sw/numerico.h`. Las multiplicaciones pasan por `valor_mul` para que el cambio a punto fijo quede en un solo lugar. En punto fijo los estados del resonante son los que más crecen, y el formato se elige mirando el valor máximo que alcanza `r[k]` en el modelo con la amplitud de 1,0 A. `A1` es el coeficiente que manda. Está a 2,5e-4 de -2 y esa diferencia fija la frecuencia del polo, para mantenerlo a 0,1 Hz de 50 Hz hace falta resolverla a 1e-6, o sea unos 20 bits fraccionarios. En punto fijo eso obliga a un formato con dos bits enteros y multiplicaciones con intermedio de 64 bits. En flotante de 32 bits sobra resolución, así que el diseño apunta a habilitar la FPU y dejar `valor_t` en `float`. La decisión final es de Nicolás en el Block Design, y si no hay FPU se pasa a punto fijo cambiando solo `numerico.h`.
+Coeficientes, estados y entradas son `valor_t`, de `sw/numerico.h`. Las multiplicaciones pasan por `valor_mul` para que el cambio a punto fijo quede en un solo lugar. En punto fijo los estados del resonante son los que más crecen, y el formato se elige mirando el valor máximo que alcanza `r[k]` en el modelo con la amplitud de 1,0 A. `A1` es el coeficiente que manda. Está a 2,5e-4 de -2 y esa diferencia fija la frecuencia del polo, para mantenerlo a 0,1 Hz de 50 Hz hace falta resolverla a 1e-6, o sea unos 20 bits fraccionarios. En punto fijo eso obliga a un formato con dos bits enteros y multiplicaciones con intermedio de 64 bits. En flotante de 32 bits sobra resolución, el paso de `A1` ahí es de 1,2e-7, unos 0,012 Hz del polo, con un error de seguimiento menor a 0,03 %, así que el diseño apunta a habilitar la FPU y dejar `valor_t` en `float`. La decisión final es de Nicolás en el Block Design, y si no hay FPU se pasa a punto fijo cambiando solo `numerico.h`.
 
 ### h.8) Generador de coeficientes
 
@@ -106,9 +108,9 @@ Coeficientes, estados y entradas son `valor_t`, de `sw/numerico.h`. Las multipli
 - `L` y `R` reales de la carga, que caracteriza Jefferson, y `Vdc` y la frecuencia de muestreo definitiva, que salen de la `f_sw` que elige Nicolás. Con ellos se repite la sintonización.
 - `PR_U_MAX`, que queda con 1,0 como tope por el rango del periférico y se fija en `1 - (1 + DEAD_TIME_CICLOS) / 5000`, con el tiempo muerto que fija Nicolás para el puente (#18) y que Jefferson implementa como `DEAD_TIME_CICLOS`. El 98 % de los 100 ciclos es provisional hasta que Nicolás cierre #18.
 - FPU del MicroBlaze V, con Nicolás.
-- Sumar el retardo del filtro antialias y el del aislamiento de las compuertas (#21) al `Td = 1,5 · Ts` de `potencia/diseno_pr.md` y recalcular los márgenes, cuando se fijen el filtro, que diseña Jefferson, y el aislamiento de las compuertas (#21), que elige Nicolás y del que pasa los retardos de subida y bajada con la hoja de datos. Hasta que salga el componente el retardo queda pendiente, y se suma al `Td` junto con su asimetría, que cubre el tiempo muerto.
+- Sumar el retardo del filtro antialias (Jefferson, #29) y el del aislamiento de las compuertas (Nicolás, #21, con los retardos de subida y bajada de la hoja de datos) al `Td = 1,5 · Ts` de `potencia/diseno_pr.md` y recalcular los márgenes. Hay presupuesto de sobra. El margen de fase nominal es 79° y baja a 45° con 96 µs extra, un RC de 2 a 5 kHz deja entre 59° y 69°, y 2 µs de aislamiento dejan 78,5°. La asimetría del aislamiento no entra al `Td`, la cubre el tiempo muerto.
 - Respuesta del profesor sobre la estructura ideal.
-- Validar saturación y anti-windup contra el modelo de la planta, el PLECS que arma Nicolás, que la simulación de `potencia/diseno_pr.md` no cubre.
+- Completar la validación de saturación y anti-windup en el PLECS que arma Nicolás (#38), con tiempo muerto y cuantización del ADC, que el lazo discreto de `potencia/diseno_pr.md` no tiene.
 
 ## i) Diagrama esquemático detallado del diseño
 
