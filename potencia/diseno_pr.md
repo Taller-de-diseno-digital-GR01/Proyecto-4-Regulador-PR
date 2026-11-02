@@ -20,7 +20,7 @@ La versión amortiguada cambia exactitud en 50 Hz por tolerancia a que la frecue
 
 El puente H con modulación unipolar entrega `v = Vdc·u`, con `u` el índice de modulación entre -1 y 1. La carga cumple `I(s)/V(s) = 1/(Ls + R)`. La modulación unipolar sale del enunciado y de ella se toma que la frecuencia efectiva del rizado es el doble de la de conmutación (Mohan, sección 8-3-2-2, y Hart, capítulo 8).
 
-Además hay un retardo. La muestra se toma en el centro del pulso con `pwm_trigger_o`, la interrupción calcula con ella y escribe `duty_ref`, y el periférico lo aplica en el siguiente pico o valle de la portadora. Eso es un período de muestreo de cómputo más medio de actualización, y se modela como `Td = 1,5·Ts`, con `Ts = 1/fs`. Es el modelo habitual de los lazos digitales de corriente y es una suposición mía hasta medir el lazo real con el GPIO de la ISR. `nucleo_pwm.md` lo respalda en lo que toca al periférico, porque `pwm_trigger_o` sale en el valle y lo que el software escribe a mitad de período rige desde el valle siguiente. A ese `Td` todavía hay que sumarle el retardo del filtro analógico del sensor, que se calcula en la sección siguiente. También el de los optoacopladores que separan la tierra de la Basys 3 de la del puente, que quedan en la ruta de las cuatro compuertas y todavía no tienen componente elegido. Se espera del orden de cientos de nanosegundos a pocos microsegundos contra `Ts = 50 µs`, así que mueve poco el `Td`, y pesa más en el tiempo muerto, porque el retardo no es igual al subir que al bajar.
+Además hay un retardo. La muestra se toma en el centro del pulso con `pwm_trigger_o`, la interrupción calcula con ella y escribe `duty_ref`, y el periférico lo aplica en el siguiente pico o valle de la portadora. Eso es un período de muestreo de cómputo más medio de actualización, y se modela como `Td = 1,5·Ts`, con `Ts = 1/fs`. Es el modelo habitual de los lazos digitales de corriente y es una suposición mía hasta medir el lazo real con el GPIO de la ISR. `nucleo_pwm.md` lo respalda en lo que toca al periférico, porque `pwm_trigger_o` sale en el valle y lo que el software escribe a mitad de período rige desde el valle siguiente. A ese `Td` todavía hay que sumarle el retardo del filtro analógico del sensor, que se calcula en la sección siguiente. También el del aislamiento de las compuertas (#21) que separa la tierra de la Basys 3 de la del puente, que queda en la ruta de las cuatro compuertas y todavía no tiene componente elegido. Se espera del orden de cientos de nanosegundos a pocos microsegundos contra `Ts = 50 µs`, así que mueve poco el `Td`, y pesa más en el tiempo muerto, porque el retardo no es igual al subir que al bajar.
 
 ## Aliasing y filtro del sensor
 
@@ -37,7 +37,7 @@ El filtro cuesta fase en el cruce. Para un RC de primer orden con corte `fF`, el
 
 Contra los 79° de margen de fase de `Kr = 1000` quedan unos 68°, 61° y 52°. Son cuentas aproximadas que no mueven el cruce de ganancia, y eso se cumple bien a 5 kHz (la ganancia en 1 kHz baja 2 %) y menos a 2 kHz (baja 11 %). Un filtro de segundo orden tipo Butterworth a 5 kHz atenúa 12 dB en `fs/2` y 36 dB a 40 kHz, contra los 7 dB y 18 dB del RC a esa misma frecuencia, y pierde 16° en 1 kHz, o sea deja el margen cerca de 63°. Todavía no hay corte ni orden elegidos, así que el retardo total del lazo queda como `Td = 1,5·Ts + τF` con `τF` pendiente, y los márgenes de la sección de `Kp` se recalculan cuando Nicolás fije el filtro.
 
-Con `freq_sel` pasa algo parecido. La tabla provisional de `nucleo_pwm.md` de Jefferson pone `00` en 10 kHz, `01` en 20 kHz y `10` en 40 kHz, con el `11` pendiente. A 10 kHz el lazo muestrea a 10 kHz, el Nyquist baja a 5 kHz y un filtro pensado para 20 kHz casi no atenuaría nada ahí. Conviene que los códigos sean frecuencias de 20 kHz o más, por ejemplo 20, 30 y 40 kHz, pero la tabla depende de lo que cierre PEDP, y falta confirmar con Nicolás que su puente aguanta 40 kHz.
+Con `freq_sel` la tabla de `nucleo_pwm.md` quedó en `00` a 10 kHz, `01` a 20 kHz y `10` a 40 kHz, y `11` satura a 20 kHz. El lazo cerrado corre solo a 20 kHz, con el Timer fijo en 5000 ciclos, así que el argumento del aliasing a 10 kHz ya no aplica. Las otras frecuencias son para mostrar el PWM y para el testbench, con el control deshabilitado, y `control_principal` solo deja habilitar el control con `freq_sel = 01`.
 
 ## Valores provisionales de partida
 
@@ -116,12 +116,11 @@ Eso no cubre el rizado de conmutación, la cuantización del ADC, el ruido del s
 - Ganancia y offset del sensor de corriente, para la conversión de cuentas del ADC a amperes en `lazo_control`.
 - Medir el retardo efectivo del lazo (GPIO en la ISR) y comparar con `1,5·Ts`.
 - Filtro analógico del sensor, tipo y corte, que sale de medir el ruido (Jefferson, #29). Con él se suma `τF` al `Td` y se recalculan los márgenes.
-- Con las tierras separadas por optoacopladores, el sensor tiene que ser aislado o cruzar la barrera de otra forma, y su offset y su ruido pueden no ser los del supuesto de 0 A en 0,5 V. Se mide con el sensor montado.
-- Retardo de los optoacopladores de las compuertas, subida y bajada por separado, para sumarlo al `Td` y para que el tiempo muerto lo cubra.
+- Con las tierras separadas por el aislamiento de las compuertas (#21), el sensor tiene que ser aislado o cruzar la barrera de otra forma, y su offset y su ruido pueden no ser los del supuesto de 0 A en 0,5 V. Se mide con el sensor montado.
+- Retardo del aislamiento de las compuertas (#21), subida y bajada por separado, para sumarlo al `Td` y para que el tiempo muerto lo cubra. Nicolás lo pasa cuando cierre #21, y hasta entonces queda pendiente.
 - Acordar entre Jefferson y Nicolás que la captura del XADC caiga en el valle o el pico, y cuántos ciclos adelantar el trigger por el tiempo que tarda en cerrarse el sample and hold.
 - Que el Timer y la portadora cuenten exactamente lo mismo (5000 ciclos a 20 kHz), y medir con el GPIO de la ISR contra `pwm_trigger_o` que la fase no deriva.
 - Habilitar o no la FPU del MicroBlaze V, y fijar `U_MAX`, que tiene 1,0 como tope porque `duty_ref` va en Q2.14 de -1,0 a +1,0, y baja según el tiempo muerto.
-- Decidir con Jefferson y PEDP las frecuencias de `freq_sel`, por el 10 kHz de la tabla provisional.
 - Implementar `tustin_prewarp` en `generar_pr_params.py`.
 
 ## Referencias
