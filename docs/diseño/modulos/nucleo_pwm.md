@@ -16,25 +16,28 @@ flowchart LR
     NUC -->|"compuerta_a_alta, compuerta_a_baja,<br/>compuerta_b_alta, compuerta_b_baja"| PH(["drivers del puente H"])
 ```
 
-## Objetivo
+## c) Objetivo del módulo
 
 Convierte `duty_ref` en las cuatro señales de compuerta del puente H, con modulación unipolar y tiempo muerto, y marca con `pwm_trigger_o` el instante de muestreo del ADC.
 
-## Entradas
+## d) Entradas
 
-- `clk`, reloj del sistema, el mismo del bus AXI.
-- `rst_n`, reinicio activo en bajo como el `ARESETn` del bus. Deja las cuatro compuertas apagadas.
-- `enable`, bit 0 del registro de control en `0x00`, desde la interfaz AXI4-Lite.
-- `freq_sel`, bits [2:1] del registro de control, fija el máximo de la portadora. Se copia al registro sombra en el valle.
-- `duty_ref`, bits [15:0] del registro en `0x04`, en Q2.14 con signo. Es la tensión promedio pedida sobre la carga como fracción de Vdc, de -1 a +1 sin importar la frecuencia. Se copia al registro sombra en el valle.
-- `DEAD_TIME_CICLOS`, tiempo muerto en ciclos de `clk`, como `parameter` que se fija al sintetizar.
+- `clk`, `logic`, reloj del sistema, el mismo del bus AXI.
+- `rst_n`, `logic`, reinicio activo en bajo como el `ARESETn` del bus. Deja las cuatro compuertas apagadas.
+- `enable`, `logic`, desde `interfaz_axi_pwm` (bit 0 de `0x00`).
+- `freq_sel`, `logic [1:0]`, desde `interfaz_axi_pwm` (bits [2:1] de `0x00`). Elige el `MAX` de la portadora y se copia a su registro sombra en el valle.
+- `duty_ref`, `logic signed [15:0]` en Q2.14, desde `interfaz_axi_pwm` (bits [15:0] de `0x04`). Es la tensión promedio pedida sobre la carga como fracción de Vdc, de -1 a +1 sin importar la frecuencia. Se copia a su registro sombra en el valle.
+- `DEAD_TIME_CICLOS`, `parameter`, tiempo muerto en ciclos de `clk`.
+- `MAX_FREQ_00`, `MAX_FREQ_01`, `MAX_FREQ_10` y `MAX_FREQ_11`, `parameter`, el máximo de la portadora para cada código de `freq_sel`. En simulación se reemplazan por valores chicos.
 
-## Salidas
+## e) Salidas
 
-- `compuerta_a_alta` y `compuerta_a_baja`, par complementario con tiempo muerto de la pierna A hacia los drivers del puente H. Compara la portadora contra `duty_ref`.
-- `compuerta_b_alta` y `compuerta_b_baja`, igual para la pierna B, que compara contra `-duty_ref`.
-- `running`, solo lectura en el bit 3 del registro de control. Vale 1 mientras las compuertas conmutan y cambia en el borde del período, no cuando cambia `enable`.
-- `pwm_trigger_o`, pulso de un ciclo de `clk` en el valle de la portadora hacia la interfaz del XADC. En el valle las dos piernas están en el mismo estado y la corriente pasa por su valor promedio.
+- `compuerta_a_alta` y `compuerta_a_baja`, `logic`, par complementario con tiempo muerto de la pierna A hacia los drivers del puente H. Compara la portadora contra `duty_ref`.
+- `compuerta_b_alta` y `compuerta_b_baja`, `logic`, igual para la pierna B, que compara contra `-duty_ref`.
+- `running`, `logic`, hacia `interfaz_axi_pwm`, que lo expone en el bit 3 de `0x00`. Vale 1 mientras las compuertas conmutan y cambia en el borde del período, no cuando cambia `enable`.
+- `pwm_trigger_o`, `logic`, pulso de un ciclo de `clk` en el valle hacia `envoltura_xadc`. En el valle las dos piernas están en el mismo estado y la corriente pasa por su valor promedio.
+
+Todas las salidas salen directo de flip-flops, sin lógica combinacional después, para que no lleven glitches. Las compuertas son activas en alto, con 1 para el transistor encendido. Esa polaridad se confirma con Nicolás cuando elija el driver y el aislamiento.
 
 ## f) Explicación de la relación con otros módulos
 
@@ -42,9 +45,9 @@ Lo instancia `periferico_pwm` junto a `interfaz_axi_pwm`, que le pasa `enable`, 
 
 Hacia afuera, `pwm_trigger_o` llega a [`envoltura_xadc`](envoltura_xadc.md), que decide cuándo arranca la conversión. El instante de captura respecto al valle lo definen Jefferson y Nicolás. Las compuertas van a los drivers del puente H que diseña Nicolás. De ese mismo diseño salen `DEAD_TIME_CICLOS` y las frecuencias de la tabla de `MAX`. El núcleo no tiene relación directa con el AXI Timer. Como los dos cuentan el mismo reloj, la interrupción y el valle mantienen un desfase fijo solo si el período del Timer es exactamente 2·`MAX` ciclos.
 
-## Explicación general
+## g) Explicación de funcionamiento
 
-La portadora es un contador que sube de 0 a `MAX` y baja de vuelta a 0, así que un período dura 2·`MAX` ciclos de `clk` y `f_sw = f_clk / (2·MAX)`. Cada código de `freq_sel` elige un `MAX` de una tabla fija. Las tres frecuencias y qué hace el cuarto código se cierran con PEDP en el nivel 4. El contador corre siempre después del reinicio, aunque `enable` esté en cero, para que `pwm_trigger_o` siga llegando al ADC y [`lazo_control`](lazo_control.md) pueda medir el offset del sensor con el puente apagado.
+La portadora es un contador que sube de 0 a `MAX` y baja de vuelta a 0, así que un período dura 2·`MAX` ciclos de `clk` y `f_sw = f_clk / (2·MAX)`. `MAX` es uno de los cuatro `parameter` `MAX_FREQ_00` a `MAX_FREQ_11`, según `freq_sel`. El contador corre siempre después del reinicio, aunque `enable` esté en cero, para que `pwm_trigger_o` siga llegando al ADC y [`lazo_control`](lazo_control.md) pueda medir el offset del sensor con el puente apagado.
 
 El valle, cuando el contador vale 0, es el punto de sincronización de todo el núcleo. Dura un solo ciclo por período, y en ese ciclo pasan cuatro cosas.
 
@@ -55,38 +58,51 @@ El valle, cuando el contador vale 0, es el punto de sincronización de todo el n
 
 Lo que el software escriba a mitad de período espera al valle siguiente, así que ningún período sale con un `MAX` o un `duty_ref` mezclado.
 
-`duty_ref` viene en Q2.14, que representa de -2 a +2, pero el rango admisible es de -1 a +1. Lo que pase de ahí se satura al límite. El formato con margen es a propósito, para que una salida del PR que se pase de 1 quede recortada en vez de dar la vuelta por desborde. Después del recorte, un solo multiplicador saca las dos referencias de comparación.
-
-- `ref_a = MAX/2 · (1 + duty_ref)`
-- `ref_b = MAX/2 · (1 - duty_ref)`
-
-La pierna A pide su compuerta alta mientras el contador está por debajo de `ref_a`, y la pierna B mientras está por debajo de `ref_b`. Así, con `duty_ref = 0` las dos piernas quedan al 50 % y la carga ve 0 V en promedio, y con `duty_ref = 0,5` quedan al 75 % y al 25 % y la carga ve 0,5·Vdc. Como `MAX` sale de `freq_sel` dentro del núcleo, el software escribe el mismo valor a cualquier frecuencia.
+Durante el período cada pierna compara el contador contra su referencia. La pierna A pide su compuerta alta mientras el contador está por debajo de `ref_a`, que sale de `duty_ref`, y la pierna B mientras está por debajo de `ref_b`, que sale de `-duty_ref`. Con `duty_ref = 0` las dos piernas quedan al 50 % y la carga ve 0 V en promedio, y con `duty_ref = 0,5` quedan al 75 % y al 25 % y la carga ve 0,5·Vdc.
 
 El tiempo muerto va aparte en cada pierna. Cuando la comparación cambia de estado, las dos compuertas de la pierna se apagan de inmediato y la que corresponde se enciende recién cuando la comparación lleva `DEAD_TIME_CICLOS` ciclos estable. Si la comparación vuelve a cambiar antes, la cuenta se reinicia y las dos siguen apagadas, así que un pulso más corto que el tiempo muerto no deja solapamiento ni glitch. Apagar nunca se retrasa, solo encender.
 
-Con `running` en cero las cuatro compuertas quedan en bajo, que es también el estado después del reinicio. Como `running` solo cambia en el valle, al subir `enable` el núcleo arranca en el siguiente período completo, y al bajarlo termina el período en curso antes de apagar. En una falla el puente sigue conmutando como mucho un período después de que el software baja `enable`. La desconexión rápida le toca a la protección por hardware de la etapa de potencia.
+Con `running` en cero las cuatro compuertas quedan en bajo, que es también el estado después del reinicio. Como `running` solo cambia en el valle, al subir `enable` el núcleo arranca en el siguiente período completo, y al bajarlo termina el período en curso antes de apagar.
 
-## Diagramas de estado
+## h) Diseño
 
-El núcleo tiene dos máquinas. Una sola de control decide si el puente conmuta, y cada pierna tiene su propia máquina de tiempo muerto. El sentido del contador de la portadora es un bit que se invierte en 0 y en `MAX`, así que no lleva diagrama.
+El núcleo tiene dos máquinas. Una sola de control decide si el puente conmuta, y cada pierna tiene su propia máquina de tiempo muerto. El sentido del contador de la portadora es un bit que se invierte en 0 y en `MAX`, así que no lleva diagrama. Toda la lógica corre en el flanco de subida de `clk` con reinicio síncrono, porque en las FPGA de Xilinx un reinicio síncrono aprovecha mejor los flip-flops y los DSP [1].
 
-### Control
+### h.1) Portadora y tabla de MAX
 
-```mermaid
-stateDiagram-v2
-    [*] --> DETENIDO : rst_n = 0
-    DETENIDO --> CORRIENDO : valle y enable = 1
-    CORRIENDO --> DETENIDO : valle y enable = 0
-```
+`portadora` es un contador de `ANCHO_PORTADORA = $clog2(MAX_FREQ_00 + 1)` bits, 13 con los valores por defecto, y `contando_arriba` guarda su sentido. `MAX_FREQ_00` tiene que ser el mayor de los cuatro máximos, porque fija ese ancho. La señal interna `valle` es `portadora == 0`, en 1 durante un ciclo por período.
 
-- `DETENIDO`, `running` en 0 y las dos piernas apagadas. El contador y `pwm_trigger_o` siguen corriendo.
-- `CORRIENDO`, `running` en 1 y las piernas siguen a sus comparaciones.
+Los valores por defecto son provisionales.
 
-Fuera del valle la máquina no cambia de estado, aunque cambie `enable`. Por eso `running` siempre arranca y termina en un borde de período.
+- `MAX_FREQ_00 = 5000`, 10 kHz.
+- `MAX_FREQ_01 = 2500`, 20 kHz.
+- `MAX_FREQ_10 = 1250`, 40 kHz.
+- `MAX_FREQ_11 = 2500`, igual que `01`.
 
-### Tiempo muerto de cada pierna
+El cuarto código queda como reservado y repite 20 kHz. Si se define una cuarta frecuencia, basta con cambiar `MAX_FREQ_11`, sin tocar la lógica. El `MAX` que rige el período es `max_sombra`, que se carga en el valle, y el contador cambia de sentido al llegar a `max_sombra` y a 0.
 
-La entrada es la comparación de la pierna, `portadora < ref_a` en A y `portadora < ref_b` en B. `objetivo` guarda el valor de la comparación que se está esperando y `cuenta` los ciclos que lleva estable.
+### h.2) Saturación y referencias
+
+`duty_ref` viene en Q2.14, que representa de -2 a +2, pero el rango admisible es de -1 a +1. Lo que pase de ahí se satura al límite. El formato con margen es a propósito, para que una salida del PR que se pase de 1 quede recortada en vez de dar la vuelta por desborde. En Q2.14 el 1,0 vale 16384, así que `duty_sat` queda entre -16384 (`0xC000`) y 16384 (`0x4000`).
+
+Después del recorte, un solo multiplicador saca las dos referencias de comparación.
+
+- `ref_a = (MAX · (16384 + duty_sat)) >> 15`
+- `ref_b = MAX - ref_a`
+
+Es lo mismo que `MAX/2 · (1 ± duty_ref)`, pero sin dividir `MAX` antes, para no perder medio ciclo cuando `MAX` es impar. `ref_b` sale de una resta, así que `ref_a + ref_b = MAX` exacto y las dos piernas no tienen errores de redondeo distintos. `16384 + duty_sat` va de 0 a 32768 y el producto más grande es 5000 · 32768, menos de 2^28, que cabe en un DSP48E1, de 25 × 18 bits [2]. Con `duty_ref = 0,5` y `MAX = 2500`, `ref_a = 2500 · 24576 >> 15 = 1875` y `ref_b = 625`.
+
+El cálculo corre en todos los ciclos en dos etapas registradas. La primera guarda `duty_sat` y el `MAX` que elige el `freq_sel` de entrada, y la segunda guarda `ref_a`, `ref_b` y ese mismo `MAX`. En el valle, `max_sombra`, `ref_a_sombra` y `ref_b_sombra` copian la salida de la segunda etapa, así que nunca se mezcla la referencia de una frecuencia con el `MAX` de otra. Lo que el software escriba uno o dos ciclos antes del valle entra en el período siguiente.
+
+Como `MAX` sale de `freq_sel` dentro del núcleo, el software escribe el mismo valor a cualquier frecuencia.
+
+### h.3) Comparadores y extremos
+
+Las comparaciones son `portadora < ref_a_sombra` para A y `portadora < ref_b_sombra` para B. En los extremos aparecen pulsos más cortos que el tiempo muerto. Con `duty_ref = +1`, `ref_a = MAX` y la comparación de A cae a 0 solo en el ciclo del pico. La máquina de la pierna apaga la compuerta alta en ese ciclo y la vuelve a encender `DEAD_TIME_CICLOS` ciclos después, así que el ciclo de trabajo máximo real es `1 - (1 + DEAD_TIME_CICLOS) / (2·MAX)`, cerca de 98 % a 20 kHz con el tiempo muerto por defecto. Cualquier pulso más corto que el tiempo muerto desaparece, que es el efecto del tiempo de bloqueo en inversores PWM [3]. Ese máximo es el que fija `PR_U_MAX` en [`pr_discreto`](pr_discreto.md).
+
+### h.4) Tiempo muerto
+
+La entrada es la comparación de la pierna, `portadora < ref_a_sombra` en A y `portadora < ref_b_sombra` en B. `objetivo` guarda el valor de la comparación que se está esperando y `cuenta` los ciclos que lleva estable.
 
 ```mermaid
 stateDiagram-v2
@@ -109,24 +125,44 @@ stateDiagram-v2
 
 De `ALTA` a `BAJA`, o al revés, siempre se pasa por `MUERTO`, y no hay ningún estado con las dos compuertas en 1. Eso es lo que garantiza que no haya solapamiento. La salida a `APAGADA` es inmediata desde cualquier estado porque apagar las dos compuertas nunca causa un cortocircuito.
 
-## Tabla de temporización
+`cuenta` tiene `$clog2(DEAD_TIME_CICLOS + 1)` bits. `DEAD_TIME_CICLOS = 100`, 1 µs, es un valor provisional con margen, sin fuente, hasta que salga el tiempo muerto mínimo del puente con el retardo del aislamiento. Dura `DEAD_TIME_CICLOS · 10 ns` a cualquier frecuencia, porque se cuenta en ciclos de `clk`.
 
-Las frecuencias son provisionales hasta que PEDP cierre la frecuencia de conmutación. Se calcularon con `clk` de 100 MHz y `MAX = f_clk / (2·f_sw)`.
+### h.5) Control y running
 
-### Por código de freq_sel
+```mermaid
+stateDiagram-v2
+    [*] --> DETENIDO : rst_n = 0
+    DETENIDO --> CORRIENDO : valle y enable = 1
+    CORRIENDO --> DETENIDO : valle y enable = 0
+```
+
+- `DETENIDO`, `running` en 0 y las dos piernas apagadas. El contador y `pwm_trigger_o` siguen corriendo.
+- `CORRIENDO`, `running` en 1 y las piernas siguen a sus comparaciones.
+
+Fuera del valle la máquina no cambia de estado, aunque cambie `enable`. Por eso `running` siempre arranca y termina en un borde de período.
+
+Con `running` en cero las piernas van a `APAGADA`, y `rst_n` en cero deja las dos máquinas en su estado inicial, con las cuatro compuertas en bajo. En una falla el puente sigue conmutando como mucho un período después de que el software baja `enable`. La desconexión rápida le toca a la protección por hardware de la etapa de potencia.
+
+### h.6) pwm_trigger_o
+
+`pwm_trigger_o` es un flip-flop que copia `valle`, así que sube un ciclo después del valle y dura un ciclo. Sale registrado para que no lleve glitches hacia `envoltura_xadc`. No depende de `running`, y sigue saliendo con el puente apagado.
+
+### h.7) Temporización
+
+Las frecuencias son provisionales hasta que Nicolás cierre la frecuencia de conmutación. Se calcularon con `clk` de 100 MHz y `MAX = f_clk / (2·f_sw)`.
 
 | `freq_sel` | f_sw | `MAX` | período | ciclos por período | rizado en la carga | resolución de `duty_ref` |
 |---|---|---|---|---|---|---|
 | `00` | 10 kHz | 5000 | 100 µs | 10 000 | 20 kHz | 2/5000 = 0,0004 |
 | `01` | 20 kHz | 2500 | 50 µs | 5000 | 40 kHz | 2/2500 = 0,0008 |
 | `10` | 40 kHz | 1250 | 25 µs | 2500 | 80 kHz | 2/1250 = 0,0016 |
-| `11` | pendiente | | | | | |
+| `11` | 20 kHz | 2500 | 50 µs | 5000 | 40 kHz | 2/2500 = 0,0008 |
 
 El rizado en la carga está al doble de f_sw porque en unipolar la tensión diferencial tiene dos pulsos por período. La resolución es el cambio de `duty_ref` que mueve `ref_a` una cuenta. En tiempo, una cuenta siempre ensancha el pulso 20 ns, 10 ns en cada flanco, sin importar la frecuencia.
 
 El tiempo muerto dura `DEAD_TIME_CICLOS · 10 ns` a cualquier frecuencia, porque se cuenta en ciclos de `clk`. Su valor sale de los tiempos de conmutación del MOSFET y del driver.
 
-### Eventos de un período
+El rizado en la carga está al doble de f_sw porque en unipolar la tensión diferencial tiene dos pulsos por período. La resolución es el cambio de `duty_ref` que mueve `ref_a` una cuenta. En tiempo, una cuenta siempre ensancha el pulso 20 ns, 10 ns en cada flanco, sin importar la frecuencia.
 
 Los ciclos se cuentan desde el valle, el ciclo en que el contador vale 0. El ejemplo usa `freq_sel = 01` y `duty_ref = 0,5`, así que `ref_a = 1875` y `ref_b = 625`. Las latencias de un ciclo por los registros se confirman en el testbench.
 
@@ -148,3 +184,47 @@ Los ciclos se cuentan desde el valle, el ciclo en que el contador vale 0. El eje
 La pierna A queda en alto 3750 de 5000 ciclos, el 75 %, y la B 1250, el 25 %, sin contar el tiempo muerto. Desde el ciclo 4375 + `DEAD_TIME_CICLOS` hasta el 625 del período siguiente las dos compuertas altas están encendidas, y ese es el estado cero en que se muestrea la corriente.
 
 Al subir `enable`, `running` pasa a 1 en el ciclo 1 del valle siguiente, y las compuertas altas se encienden en el ciclo `1 + DEAD_TIME_CICLOS`, porque las piernas salen de `APAGADA` por `MUERTO`. Al bajar `enable`, el período en curso termina normal y las cuatro compuertas se apagan después del ciclo 1 del valle siguiente.
+
+### h.8) Interfaz en SystemVerilog
+
+```systemverilog
+module nucleo_pwm #(
+    // Tiempo muerto en ciclos de clk
+    parameter int unsigned DEAD_TIME_CICLOS = 100,
+    // Máximo de la portadora por código de freq_sel, MAX_FREQ_00 tiene que ser el mayor
+    parameter int unsigned MAX_FREQ_00 = 5000,
+    parameter int unsigned MAX_FREQ_01 = 2500,
+    parameter int unsigned MAX_FREQ_10 = 1250,
+    parameter int unsigned MAX_FREQ_11 = 2500
+) (
+    input logic clk,
+    input logic rst_n,
+    input logic enable,
+    input logic [1:0] freq_sel,
+    // Q2.14 con signo, de -1 a +1
+    input logic signed [15:0] duty_ref,
+    output logic running,
+    output logic compuerta_a_alta,
+    output logic compuerta_a_baja,
+    output logic compuerta_b_alta,
+    output logic compuerta_b_baja,
+    output logic pwm_trigger_o
+);
+```
+
+### h.9) Pendientes
+
+- Frecuencias definitivas y cuarto código, que elige Nicolás con Mattio por el período del Timer.
+- `DEAD_TIME_CICLOS`, que sale del puente y del aislamiento de Nicolás. Con ese valor se le pasa a Mattio el ciclo de trabajo máximo para `PR_U_MAX`.
+- Polaridad de las compuertas, con Nicolás.
+- Confirmar con el profesor que el tiempo muerto como `parameter` cumple con "tiempo muerto configurable".
+- Instante de captura respecto al valle, con Nicolás.
+- Latencias de un ciclo por los registros, que se confirman en el testbench.
+
+### Referencias
+
+[1] K. Chapman, "Get Smart About Reset: Think Local, Not Global," Xilinx White Paper WP272.
+
+[2] AMD Xilinx, *7 Series DSP48E1 Slice User Guide*, UG479.
+
+[3] N. Mohan, T. M. Undeland y W. P. Robbins, *Power Electronics: Converters, Applications, and Design*, 3.ª ed. Wiley, 2003, cap. 8.
