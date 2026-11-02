@@ -2,6 +2,8 @@
 
 Este documento junta las decisiones de diseño del regulador proporcional-resonante (PR) del lazo de corriente, con la razón de cada una. Los valores de `Vdc`, `fsw`, `L` y `R` son provisionales y están marcados como tales, porque la carga y el puente todavía no se miden. Todo lo que depende de ellos se rehace cambiando esos números, el procedimiento no cambia.
 
+Los márgenes y las curvas de error de este documento se calcularon en Python con el lazo discreto descrito en las secciones de sintonización, y cada cifra lleva sus condiciones. Los coeficientes finales los escribe `sw/generar_pr_params.py` en `pr_params.h`, y para que salgan estos falta implementar `tustin_prewarp`.
+
 ## Objetivo del lazo
 
 Que la corriente en la carga RL siga una referencia senoidal de 50 Hz con 0,2, 0,5 y 1,0 A pico, con error de la fundamental menor a 10 % en una ventana de al menos cinco períodos y rizado de conmutación menor a 0,20 A pico a pico. También tiene que sobrevivir a un cambio de amplitud y a un cambio de `R` de al menos 25 %. Los criterios salen de la sección 4.3 del enunciado.
@@ -20,30 +22,21 @@ La versión amortiguada cambia exactitud en 50 Hz por tolerancia a que la frecue
 
 El puente H con modulación unipolar entrega `v = Vdc·u`, con `u` el índice de modulación entre -1 y 1. La carga cumple `I(s)/V(s) = 1/(Ls + R)`. La modulación unipolar sale del enunciado y de ella se toma que la frecuencia efectiva del rizado es el doble de la de conmutación (Mohan, sección 8-3-2-2, y Hart, capítulo 8).
 
-Además hay un retardo. La muestra se toma en el centro del pulso con `pwm_trigger_o`, la interrupción calcula con ella y escribe `duty_ref`, y el periférico lo aplica en el siguiente pico o valle de la portadora. Eso es un período de muestreo de cómputo más medio de actualización, y se modela como `Td = 1,5·Ts`, con `Ts = 1/fs`. Es el modelo habitual de los lazos digitales de corriente y es una suposición mía hasta medir el lazo real con el GPIO de la ISR. `nucleo_pwm.md` lo respalda en lo que toca al periférico, porque `pwm_trigger_o` sale en el valle y lo que el software escribe a mitad de período rige desde el valle siguiente. A ese `Td` todavía hay que sumarle el retardo del filtro analógico del sensor, que se calcula en la sección siguiente. También el del aislamiento de las compuertas (#21) que separa la tierra de la Basys 3 de la del puente, que queda en la ruta de las cuatro compuertas y todavía no tiene componente elegido. Se espera del orden de cientos de nanosegundos a pocos microsegundos contra `Ts = 50 µs`, así que mueve poco el `Td`, y pesa más en el tiempo muerto, porque el retardo no es igual al subir que al bajar.
+Además hay un retardo. La muestra se toma en el centro del pulso con `pwm_trigger_o`, la interrupción calcula con ella y escribe `duty_ref`, y el periférico lo aplica en el siguiente pico o valle de la portadora. Eso es un período de muestreo de cómputo más medio de actualización, y se modela como `Td = 1,5·Ts`, con `Ts = 1/fs`. Es el modelo habitual de los lazos digitales de corriente y queda como suposición hasta medir el lazo real con el GPIO de la ISR. `nucleo_pwm.md` lo respalda en lo que toca al periférico, porque `pwm_trigger_o` sale en el valle y lo que el software escribe a mitad de período rige desde el valle siguiente.
 
-## Aliasing y filtro del sensor
+El lazo abierto que se analiza es entonces
 
-El criterio `fs > 2·BW` se cumple de sobra para la señal. La referencia es de 50 Hz y el lazo cruza en 1 kHz, contra una `fs` de 20 kHz. Lo que el criterio no mira es todo lo demás que entra al ADC, porque al muestrear cualquier contenido por encima de `fs/2` se pliega hacia la banda del lazo y se confunde con corriente.
+$$L(s) = G_c(s)\, e^{-sT_d}\, \frac{1}{Ls + R}$$
 
-- El rizado de conmutación se sincroniza solo. Si la captura cae en el valle o en el pico de la portadora, el rizado es un múltiplo exacto de `fs` y se pliega a continua. En una simulación en lazo abierto del puente unipolar con los valores provisionales, el error de la fundamental por esa causa fue 0,01 %. En el cruce de portadora, que es donde está el flanco del pulso de tensión, la sensibilidad al instante de captura es unas 9 veces mayor y un error de 200 ns ya da 0,42 %. Por eso `pwm_trigger_o` tiene que caer en el valle o el pico.
-- El ruido de banda ancha del sensor y de la conmutación no se sincroniza con nada, y lo único que lo frena es un filtro analógico antes del ADC. Ese filtro todavía no existe. Su corte sale de medir el ruido real del sensor, y lo mide Jefferson, que también diseña el filtro.
-
-El filtro cuesta fase en el cruce. Para un RC de primer orden con corte `fF`, el retardo de grupo a baja frecuencia es `τF = 1/(2π·fF)` y la fase que se pierde en `fc = 1 kHz` es `arctan(fc/fF)`.
-
-- `fF = 5 kHz`, `τF = 32 µs` (0,64 `Ts`), pierde 11,3°.
-- `fF = 3 kHz`, `τF = 53 µs` (1,06 `Ts`), pierde 18,4°.
-- `fF = 2 kHz`, `τF = 80 µs` (1,59 `Ts`), pierde 26,6°.
-
-Contra los 79° de margen de fase de `Kr = 1000` quedan unos 68°, 61° y 52°. Son cuentas aproximadas que no mueven el cruce de ganancia, y eso se cumple bien a 5 kHz (la ganancia en 1 kHz baja 2 %) y menos a 2 kHz (baja 11 %). Un filtro de segundo orden tipo Butterworth a 5 kHz atenúa 12 dB en `fs/2` y 36 dB a 40 kHz, contra los 7 dB y 18 dB del RC a esa misma frecuencia, y pierde 16° en 1 kHz, o sea deja el margen cerca de 63°. Todavía no hay corte ni orden elegidos, así que el retardo total del lazo queda como `Td = 1,5·Ts + τF` con `τF` pendiente, y los márgenes de la sección de `Kp` se recalculan cuando Nicolás fije el filtro.
-
-Con `freq_sel` la tabla de `nucleo_pwm.md` quedó en `00` a 10 kHz, `01` a 20 kHz y `10` a 40 kHz, y `11` satura a 20 kHz. El lazo cerrado corre solo a 20 kHz, con el Timer fijo en 5000 ciclos, así que el argumento del aliasing a 10 kHz ya no aplica. Las otras frecuencias son para mostrar el PWM y para el testbench, con el control deshabilitado, y `control_principal` solo deja habilitar el control con `freq_sel = 01`.
+A ese `Td` todavía hay que sumarle el retardo del filtro analógico del sensor y el del aislamiento de las compuertas (#21), que separa la tierra de la Basys 3 de la del puente y queda en la ruta de las cuatro compuertas sin componente elegido. El del filtro se calcula en la sección de aliasing. El del aislamiento se espera del orden de cientos de nanosegundos a pocos microsegundos contra `Ts = 50 µs`, así que mueve poco el `Td`, y pesa más en el tiempo muerto, porque el retardo no es igual al subir que al bajar.
 
 ## Valores provisionales de partida
 
-- `Vdc = 18 V`, punto medio del rango de 12 a 24 V del enunciado. Con 24 V el rizado sube un tercio, con 12 V la carga se ve más.
-- `fsw = fs = 20 kHz`, muestreando una vez por período. A 100 MHz son 5000 ciclos de reloj por iteración, de sobra para las siete multiplicaciones del PR incluso en flotante por software. Es una frecuencia habitual para MOSFET de baja tensión, pero Nicolás tiene que confirmar que su puente y su tiempo muerto la aguantan. La tabla provisional de `nucleo_pwm.md` trae 10 y 40 kHz en las otras dos, con un cuarto código pendiente (ver la sección de aliasing), y cada frecuencia pide regenerar los coeficientes.
+- `Vdc = 18 V`, punto medio del rango de 12 a 24 V del enunciado. El rizado máximo es lineal en `Vdc`, así que con 24 V sube un tercio y con 12 V baja a dos tercios. A 1,0 A pico el control pide unos 2 V, de modo que cualquier extremo del rango deja margen de tensión.
+- `fsw = fs = 20 kHz`, muestreando una vez por período. A 100 MHz son 5000 ciclos de reloj por iteración, de sobra para las seis multiplicaciones del PR incluso en flotante por software. Es una frecuencia habitual para MOSFET de baja tensión, pero Nicolás tiene que confirmar que su puente y su tiempo muerto la aguantan. La tabla de `nucleo_pwm.md` trae 10 y 40 kHz en las otras dos frecuencias y el código `11` satura a 20 kHz. Cada frecuencia pide regenerar los coeficientes.
 - `L = 1 mH` y `R = 2 Ω`. La `L` sale del criterio de rizado de abajo, con un inductor que no sature a 1,5 A. La `R` es del orden en que 1 A pico cae 2 V, muy por debajo de `Vdc`, y una resistencia de 5 W lo disipa sin problema (1 W rms). Jefferson mide los valores reales.
+
+A 50 Hz la impedancia es `|Z| = |R + jω0L| = 2,02 Ω`, y de ahí sale el índice de modulación que pide cada amplitud, 0,0225 para 0,2 A, 0,0562 para 0,5 A y 0,1125 para 1,0 A.
 
 ## Rizado y la `L` mínima
 
@@ -60,7 +53,7 @@ Con `L = 1 mH` y 18 V el máximo teórico es 0,11 A. En la práctica es menor, p
 
 ## Ganancia proporcional
 
-Se fija el ancho de banda del lazo `fc` en `fs/20 = 1 kHz`. Más alto el retardo de 1,5 `Ts` come margen de fase y de ganancia, y más bajo la parte proporcional se vuelve lenta aunque el resonante domina el seguimiento de todas formas. Con `fc` en 2 kHz el margen de fase cae a 45° y el de ganancia a 4,8 dB, y con 500 Hz sobra margen pero no se gana nada medible.
+Se fija el ancho de banda del lazo `fc` en `fs/20 = 1 kHz`. Más alto el retardo de 1,5 `Ts` come margen de fase y de ganancia, y más bajo la parte proporcional se vuelve lenta aunque el resonante domina el seguimiento de todas formas. Con `fc` en 2 kHz el margen de fase cae a 45° y el de ganancia a 4,8 dB, y con 500 Hz sobra margen (104° y 15,5 dB) pero no se gana nada medible.
 
 En el cruce el resonante aporta apenas `Kr/ωc ≈ 0,16` contra `Kp ≈ 6,6`, así que `Kp` se calcula como si el resonante no estuviera. Imponiendo ganancia unitaria de lazo en `ωc`.
 
@@ -68,19 +61,19 @@ $$K_p = \sqrt{R^2 + (\omega_c L)^2} = 6{,}59\ \mathrm{V/A}$$
 
 ## Ganancia resonante
 
-`Kr` fija qué tan rápido converge el error en 50 Hz. Con `Kp = 6,59` se probó en un lazo discreto completo (planta por ZOH exacto, un muestreo de retardo, regulador con Tustin precorregido) y un escalón de 0,2 a 1,0 A, midiendo el error de la fundamental en ventanas de un período.
+`Kr` fija qué tan rápido converge el error en 50 Hz. Con `Kp = 6,59` se probó en un lazo discreto completo (planta por ZOH exacto, un muestreo de retardo, regulador con Tustin precorregido) y un escalón de 0,2 a 1,0 A pico aplicado en un cruce por cero de la referencia, midiendo el error de la fundamental en ventanas de un período. El error es `|I - Iref| / |Iref|` sobre las componentes de 50 Hz de la corriente y la referencia, extraídas proyectando cada una sobre seno y coseno en el período completo.
 
-- `Kr = 500`, error de 14,6 %, 8,1 %, 4,5 %, 2,5 %, 1,4 % en los cinco primeros períodos.
-- `Kr = 1000`, error de 11,3 %, 3,4 %, 1,0 %, 0,3 %, 0,1 %.
-- `Kr = 2000`, error de 7,5 %, 0,6 % y de ahí en adelante nulo.
+- `Kr = 500`, error de 16,4 %, 9,1 %, 5,1 %, 2,8 %, 1,6 % en los cinco primeros períodos.
+- `Kr = 1000`, error de 12,1 %, 3,7 %, 1,1 %, 0,3 %, 0,1 %.
+- `Kr = 2000`, error de 7,7 %, 0,6 % y de ahí en adelante menos de 0,05 %.
 
-Se elige `Kr = 1000`. Cumple los 10 % desde el segundo período y deja el margen de fase prácticamente igual al de `Kr` chico (unos 79° contra 80°), con un margen de ganancia de 10,5 dB. `Kr = 2000` converge más rápido pero amplifica más el ruido del sensor sin ganar nada que el enunciado pida.
+Se elige `Kr = 1000`. Cumple los 10 % desde el segundo período y deja el margen de fase prácticamente igual al de los otros dos (79,3° contra 80,0° con 500 y 77,8° con 2000), con un margen de ganancia de 10,5 dB en los tres. Los polos de lazo cerrado del resonante quedan en `|z| = 0,9970`, una constante de tiempo de 17 ms, o sea unos 0,85 períodos de 50 Hz, y eso explica que el error caiga a un tercio por período. `Kr = 2000` converge un período antes, pero el enunciado mide el error en régimen y no durante el transitorio, y con 1000 ya se cumple desde el segundo período.
 
 ## Discretización
 
-El resonante discretizado queda como filtro de segundo orden, `r[k] = b0·e[k] + b1·e[k-1] + b2·e[k-2] - a1·r[k-1] - a2·r[k-2]`. Con Tustin simple, `s = (2/T)(z-1)/(z+1)`, el polo se corre por debajo de 50 Hz y la ganancia infinita deja de caer en la frecuencia de la referencia, que es justo lo que se quería evitar. Yepes et al. (2010) estudian este efecto y concluyen que el método de discretización pesa mucho en el desempeño de los controladores resonantes.
+El resonante discretizado queda como filtro de segundo orden, `r[k] = b0·e[k] + b1·e[k-1] + b2·e[k-2] - a1·r[k-1] - a2·r[k-2]`. Con Tustin simple, `s = (2/T)(z-1)/(z+1)`, el polo se corre por debajo de 50 Hz hasta `(2/T)·arctan(ω0T/2)`. A 20 kHz, con 400 muestras por período, ese corrimiento es de apenas 1 mHz, y a 10 kHz son 4 mHz, así que en este lazo la diferencia práctica es muy chica. Yepes et al. (2010) estudian el efecto y concluyen que el método de discretización pesa mucho en el desempeño de los controladores resonantes, y el peso crece cuando la frecuencia de muestreo baja respecto a la resonante.
 
-Se usa Tustin con precorrección en 50 Hz, `s = (ω0/tan(ω0T/2))(z-1)/(z+1)`. Con esa sustitución el polo cae exactamente en `ω0` y los coeficientes quedan en forma cerrada, con `θ = ω0·Ts`.
+Se usa Tustin con precorrección en 50 Hz, `s = (ω0/tan(ω0T/2))(z-1)/(z+1)`. Cuesta lo mismo que el simple, deja el polo exactamente en `ω0` a cualquier `fs`, y los coeficientes quedan en forma cerrada, con `θ = ω0·Ts`.
 
 - `b0 = Kr·sin(θ)/(2ω0)`
 - `b1 = 0`
@@ -101,11 +94,38 @@ Con los valores provisionales y dividiendo entre `Vdc` para que la salida sea í
 - `A1 = -1,99975`
 - `A2 = 1`
 
-`A1` queda muy cerca de -2, y lo que importa es que la diferencia con -2 se represente bien porque ella fija la frecuencia del polo. En flotante de 32 bits sobra resolución. En punto fijo hace falta un formato con al menos dos bits enteros y muchos fraccionarios para `A1`, y esto es un argumento a favor de habilitar la FPU.
+`A1` queda muy cerca de -2, y lo que importa es que la diferencia con -2 se represente bien porque ella fija la frecuencia del polo. Un paso de 1e-6 en `A1` corre el polo unos 0,1 Hz. En flotante de 32 bits el paso en ese valor es de 1,2e-7, o sea 0,012 Hz, y con ese corrimiento la ganancia del resonante en 50 Hz sigue siendo de miles, con un error de seguimiento menor a 0,03 %. En punto fijo hace falta un formato con al menos dos bits enteros y unos 20 fraccionarios para `A1`, y esto es un argumento a favor de habilitar la FPU.
+
+## Saturación y anti-windup
+
+El PR calcula un índice de modulación `u[k]` que se recorta a `±PR_U_MAX` antes de convertirlo a `duty_ref` en Q2.14. El tope absoluto es 1,0, el rango del periférico, y lo que lo baja es el tiempo muerto. A 20 kHz el máximo real es `1 - (1 + DEAD_TIME_CICLOS)/5000`, que con 100 ciclos da cerca de 0,98. Si hubo recorte, el estado que se guarda del resonante es el que habría hecho caer la suma justo en el límite, y así no acumula energía mientras el puente está saturado. La fórmula y las razones están en `pr_discreto.md`, sección h.5, que es la fuente de verdad de esa parte.
+
+Con los valores provisionales no hay saturación en régimen, porque 1,0 A pico pide un índice de 0,11 contra un tope de 0,98. Solo podría pasar con un escalón grande o con una `R` mucho mayor a la prevista.
+
+## Aliasing y filtro del sensor
+
+El criterio `fs > 2·BW` se cumple de sobra para la señal. La referencia es de 50 Hz y el lazo cruza en 1 kHz, contra una `fs` de 20 kHz. Lo que el criterio no mira es todo lo demás que entra al ADC, porque al muestrear cualquier contenido por encima de `fs/2` se pliega hacia la banda del lazo y se confunde con corriente.
+
+- El rizado de conmutación se sincroniza solo. Si la captura cae en el valle o en el pico de la portadora, el rizado es un múltiplo exacto de `fs` y se pliega a continua. En una simulación en lazo abierto del puente unipolar con los valores provisionales, el error de la fundamental por esa causa fue 0,01 %. En el cruce de portadora, que es donde está el flanco del pulso de tensión, la sensibilidad al instante de captura es unas 9 veces mayor y un error de 200 ns ya da 0,42 %. Por eso `pwm_trigger_o` tiene que caer en el valle o el pico.
+- El ruido de banda ancha del sensor y de la conmutación no se sincroniza con nada, y lo único que lo frena es un filtro analógico antes del ADC. Ese filtro todavía no existe. Su corte sale de medir el ruido real del sensor, y lo mide Jefferson, que también diseña el filtro (#29).
+
+El filtro cuesta fase en el cruce. Para un RC de primer orden con corte `fF`, el retardo de grupo a baja frecuencia es `τF = 1/(2π·fF)`. Con `Kp` y `Kr` fijos y el `Td = 1,5·Ts` ya contado, los márgenes quedan así.
+
+- `fF = 5 kHz`, `τF = 32 µs` (0,64 `Ts`), margen de fase 69° y de ganancia 8,9 dB, con el cruce en 980 Hz.
+- `fF = 3 kHz`, `τF = 53 µs` (1,06 `Ts`), 64° y 8,6 dB, cruce en 949 Hz.
+- `fF = 2 kHz`, `τF = 80 µs` (1,59 `Ts`), 59° y 8,6 dB, cruce en 902 Hz.
+
+El filtro también baja la ganancia en el cruce, y por eso el margen de fase cae menos de lo que sugiere sumar su retardo al `Td`. Un filtro de segundo orden tipo Butterworth a 5 kHz atenúa 12 dB en `fs/2` y 36 dB a 40 kHz, contra los 7 dB y 18 dB del RC a esa misma frecuencia, y deja 63° de margen de fase y 6,7 dB de margen de ganancia. Todavía no hay corte ni orden elegidos, así que el retardo total del lazo queda como `Td = 1,5·Ts + τF` con `τF` pendiente, y los márgenes se recalculan cuando Jefferson fije el filtro.
+
+Con `freq_sel` la tabla de `nucleo_pwm.md` quedó en `00` a 10 kHz, `01` a 20 kHz y `10` a 40 kHz, y `11` satura a 20 kHz. El lazo cerrado corre solo a 20 kHz, con el Timer fijo en 5000 ciclos, así que el argumento del aliasing a 10 kHz ya no aplica. Las otras frecuencias son para mostrar el PWM y para el testbench, con el control deshabilitado, y `control_principal` solo deja habilitar el control con `freq_sel = 01`.
 
 ## Verificación por simulación
 
-El mismo lazo discreto se probó con `L` entre 0,7 y 1,3 mH y `R` entre 1,5 y 2,5 Ω, y con un cambio de `R` de 2,0 a 2,5 Ω (25 %) a 1 A pico. En todos los casos el lazo es estable y el error de la fundamental baja de 10 % antes del tercer período, el peor caso es 13,6 % en el primero. En el cambio de `R` el error sube a 3,4 % en el primer período y vuelve a menos de 1 % en el tercero.
+El mismo lazo discreto de la sección de `Kr` se probó con `L` entre 0,7 y 1,3 mH y `R` entre 1,5 y 2,5 Ω, con `Kp` y `Kr` fijos, y con un cambio de `R` de 2,0 a 2,5 Ω (25 %) a 1,0 A pico.
+
+- En todas las combinaciones de `L` y `R` el lazo es estable y el error de la fundamental baja de 10 % desde el segundo período. El peor caso es 14,8 % en el primer período (con `L = 1,3 mH` y `R = 2,5 Ω`) y 4,8 % en el segundo.
+- Con el escalón de 0,2 a 0,5 A el error es 8,5 %, 2,6 % y 0,8 % en los tres primeros períodos, y de 0,5 a 1,0 A es 7,1 %, 2,1 % y 0,7 %. Los dos cumplen los 10 % desde el primer período.
+- En el cambio de `R`, con el lazo ya en régimen, el error sube a 3,4 % en el primer período y baja a 1,1 % y 0,4 % en los dos siguientes.
 
 Eso no cubre el rizado de conmutación, la cuantización del ADC, el ruido del sensor, el tiempo muerto ni la saturación con anti-windup. Se modela la corriente promedio con retardo de un muestreo y nada más. Estos puntos se validan en el modelo de PLECS de Nicolás y en el banco.
 
