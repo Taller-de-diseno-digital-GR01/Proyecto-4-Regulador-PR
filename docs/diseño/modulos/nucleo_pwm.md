@@ -220,11 +220,93 @@ module nucleo_pwm #(
 - Confirmar con el profesor que el tiempo muerto como `parameter` cumple con "tiempo muerto configurable".
 - Instante de captura respecto al valle, con Nicolás.
 - Latencias de un ciclo por los registros, que se confirman en el testbench.
+- Pines de las cuatro compuertas en `basys3.xdc` y resistencia de pull-down a la entrada del aislamiento, con Nicolás.
 
-### Referencias
+## i) Diagrama esquemático detallado del diseño
+
+Los registros van con `[[ ]]`, la lógica combinacional con `[ ]` y las máquinas de estado con `{{ }}`. Todos los registros usan `clk` y `rst_n`, que no se dibujan. Los anchos son los de los valores por defecto y salen de los `parameter`, 13 bits para la portadora y las referencias y 7 para `cuenta`. `16384 + duty_sat` llega hasta 32768, así que entra al multiplicador con 16 bits sin signo.
+
+### i.1) Referencias y portadora
+
+```mermaid
+flowchart LR
+    DUTY(["duty_ref [15:0]"]) --> SAT["saturación a ±16384"]
+    FSEL(["freq_sel [1:0]"]) --> MUX["mux de MAX_FREQ_00 a MAX_FREQ_11"]
+
+    SAT -->|"[15:0]"| R1D[["duty_sat"]]
+    MUX -->|"[12:0]"| R1M[["max_e1"]]
+
+    R1D --> MUL["(max · (16384 + duty_sat)) >> 15"]
+    R1M --> MUL
+    MUL -->|"ref_a [12:0]"| SUB["max - ref_a"]
+    R1M --> SUB
+    MUL --> R2A[["ref_a_e2"]]
+    SUB -->|"ref_b [12:0]"| R2B[["ref_b_e2"]]
+    R1M --> R2M[["max_e2"]]
+
+    R2A -->|"carga en valle"| SA[["ref_a_sombra"]]
+    R2B -->|"carga en valle"| SB[["ref_b_sombra"]]
+    R2M -->|"carga en valle"| SM[["max_sombra"]]
+
+    CNT[["portadora [12:0]"]] --> SUMA["± 1"]
+    DIR[["contando_arriba"]] --> SUMA
+    SUMA --> CNT
+    CNT --> FIN["== max_sombra - 1 o == 1"]
+    SM --> FIN
+    FIN -->|"invierte"| DIR
+    CNT --> VAL["== 0"]
+    VAL -->|"valle"| TRG[["pwm_trigger_o"]]
+```
+
+### i.2) Control y piernas
+
+```mermaid
+flowchart LR
+    VALLE(["valle"]) --> CTRL{{"máquina de control"}}
+    EN(["enable"]) --> CTRL
+    CTRL -->|"running"| RUN(["running"])
+
+    PORT(["portadora [12:0]"]) --> CMPA["portadora < ref_a_sombra"]
+    RA(["ref_a_sombra [12:0]"]) --> CMPA
+    PORT --> CMPB["portadora < ref_b_sombra"]
+    RB(["ref_b_sombra [12:0]"]) --> CMPB
+
+    CMPA --> FSMA{{"tiempo muerto A<br/>con cuenta [6:0]"}}
+    CTRL -->|"running"| FSMA
+    CMPB --> FSMB{{"tiempo muerto B<br/>con cuenta [6:0]"}}
+    CTRL -->|"running"| FSMB
+
+    FSMA --> GA[["compuerta_a_alta<br/>compuerta_a_baja"]]
+    FSMB --> GB[["compuerta_b_alta<br/>compuerta_b_baja"]]
+```
+
+Las compuertas son registros a la salida de cada máquina, así que salen de flip-flops como dice e). El esquemático que genera Vivado al elaborar el diseño se compara contra estos dos diagramas cuando esté el código.
+
+## j) Diagrama completo de conexiones eléctricas del diseño
+
+El núcleo no tiene pines propios. Sus cuatro compuertas salen por los puertos de `periferico_pwm`, pasan a puertos externos del Block Design y llegan a un conector Pmod de la Basys 3 según `basys3.xdc`, que escribe Nicolás. `pwm_trigger_o`, `running` y las entradas no salen de la FPGA.
+
+```mermaid
+flowchart LR
+    NUC["nucleo_pwm"] -->|"4 compuertas"| PER["periferico_pwm"]
+    PER -->|"puertos externos"| BD["Block Design"]
+    BD -->|"basys3.xdc, LVCMOS33"| PMOD["conector Pmod"]
+    PMOD -->|"compuertas y GND"| AIS["aislamiento"]
+    AIS --> DRV["drivers del puente H"]
+```
+
+Las cuatro compuertas van en un mismo conector Pmod, junto a uno de sus pines de GND como retorno hacia el aislamiento. Los bancos de la Basys 3 que llegan a los Pmod trabajan a 3,3 V, así que el estándar es `LVCMOS33` [4]. Los pines exactos los fija Nicolás en `basys3.xdc`.
+
+Mientras la FPGA no está configurada, `rst_n` no puede mantener las compuertas en bajo. Durante la configuración, los pines pueden quedar con pull-up según `PUDC_B` [5], y un 1 en una compuerta activa en alto enciende el transistor. Por eso conviene que la entrada del aislamiento o del driver tenga una resistencia de pull-down, para que las compuertas queden apagadas también con la FPGA sin configurar o con el cable suelto. Se acuerda con Nicolás junto con la polaridad.
+
+## Referencias
 
 [1] K. Chapman, "Get Smart About Reset: Think Local, Not Global," Xilinx White Paper WP272.
 
 [2] AMD Xilinx, *7 Series DSP48E1 Slice User Guide*, UG479.
 
 [3] N. Mohan, T. M. Undeland y W. P. Robbins, *Power Electronics: Converters, Applications, and Design*, 3.ª ed. Wiley, 2003, cap. 8.
+
+[4] Digilent, *Basys 3 FPGA Board Reference Manual*.
+
+[5] AMD Xilinx, *7 Series FPGAs Configuration User Guide*, UG470.
