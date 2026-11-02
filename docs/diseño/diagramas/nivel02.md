@@ -131,13 +131,13 @@ Las direcciones base se asignarán con el Address Editor y se utilizarán desde 
 
 Recibe la orden de modulación que calcula el procesador y genera las cuatro señales de compuerta del puente H. Cada pierna tiene una salida alta y una baja, complementarias con el tiempo muerto necesario para evitar que ambos transistores de esa pierna conduzcan simultáneamente.
 
-Este es el periférico personalizado obligatorio del proyecto. Se desarrolla en SystemVerilog con interfaz AXI4-Lite y permite configurar la habilitación, seleccionar al menos tres frecuencias de conmutación y establecer la referencia de modulación. También debe permitir configurar el tiempo muerto y consultar si el generador está funcionando. La orden de modulación se limita al rango admisible antes de aplicarla.
+Este es el periférico personalizado obligatorio del proyecto. Se desarrolla en SystemVerilog con interfaz AXI4-Lite y permite configurar la habilitación, seleccionar al menos tres frecuencias de conmutación y establecer la referencia de modulación. También permite consultar si el generador está funcionando. El tiempo muerto es configurable como parámetro de la IP, que se fija al armar el Block Design, y no ocupa un registro AXI. La orden de modulación se limita al rango admisible antes de aplicarla.
 
 El procesador entrega una referencia de modulación, no una corriente medida ni la señal física de compuerta. El PWM se encarga de convertir esa orden en conmutaciones con la temporización apropiada. La elección del formato numérico y la relación exacta entre el valor escrito y los ciclos de trabajo se definirán al diseñar el periférico.
 
 El bloque genera además `pwm_trigger_o`, conectado directamente a la interfaz de adquisición. Este evento permite muestrear en una fase definida del período de conmutación, sin que el instante de muestreo dependa de cuándo el procesador alcance una instrucción de inicio. La fase se debe elegir y verificar considerando los flancos del puente, el tiempo muerto y el acondicionamiento; la sincronización no implica por sí sola una medición libre de rizado.
 
-- **Entradas:** reloj, reinicio y accesos AXI4-Lite con habilitación, frecuencia, referencia de modulación y configuración de tiempo muerto.
+- **Entradas:** reloj, reinicio y accesos AXI4-Lite con habilitación, frecuencia y referencia de modulación.
 - **Salidas:** respuestas de lectura y estado hacia AXI, `pwm_trigger_o` hacia ADC/XADC, y `compuerta_a_alta`, `compuerta_a_baja`, `compuerta_b_alta` y `compuerta_b_baja` hacia los drivers.
 
 Las compuertas deben permanecer apagadas durante el reinicio, antes de habilitar el control y cuando el sistema ordene la deshabilitación por falla. El diseño interno de los comparadores y del tiempo muerto se desarrolla en niveles posteriores.
@@ -227,7 +227,7 @@ La PC no calcula el PR ni determina el instante de muestreo. Tampoco envía coma
 | MicroBlaze V ↔ memoria local | Direcciones, instrucciones y datos | Ejecutar el programa y conservar estados, pila e histórico. |
 | Módulo de depuración ↔ MicroBlaze V | Solicitudes y respuestas de desarrollo | Cargar y depurar la aplicación. |
 | MicroBlaze V ↔ interconexión AXI | Accesos mapeados en memoria | Configurar los periféricos y leer sus datos/estados. |
-| Interconexión AXI ↔ PWM | Habilitación, frecuencia, modulación, tiempo muerto y estado | Controlar la actuación del puente. |
+| Interconexión AXI ↔ PWM | Habilitación, frecuencia, modulación y estado | Controlar la actuación del puente. |
 | Interconexión AXI ↔ ADC/XADC | Inicio por software, configuración, muestra y disponibilidad | Obtener la medición digital de corriente. |
 | Interconexión AXI ↔ Timer e INTC | Configuración y estado de temporización e interrupciones | Establecer y atender la rutina periódica. |
 | Interconexión AXI ↔ UART | Bytes a transmitir y estado del transmisor | Exportar el histórico. |
