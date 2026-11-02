@@ -61,11 +61,11 @@ $$K_p = \sqrt{R^2 + (\omega_c L)^2} = 6{,}59\ \mathrm{V/A}$$
 
 ## Ganancia resonante
 
-`Kr` fija qué tan rápido converge el error en 50 Hz. Con `Kp = 6,59` se probó en un lazo discreto completo (planta por ZOH exacto, un muestreo de retardo, regulador con Tustin precorregido) y un escalón de 0,2 a 1,0 A pico aplicado en un cruce por cero de la referencia, midiendo el error de la fundamental en ventanas de un período. El error es `|I - Iref| / |Iref|` sobre las componentes de 50 Hz de la corriente y la referencia, extraídas proyectando cada una sobre seno y coseno en el período completo.
+`Kr` fija qué tan rápido converge el error en 50 Hz. Con `Kp = 6,59` se probó en un lazo discreto completo (planta por ZOH exacto, un muestreo de retardo, regulador con Tustin precorregido) y un escalón de 0,2 a 1,0 A pico aplicado en un cruce por cero de la referencia, midiendo el error de la fundamental en ventanas de un período. El error es el de amplitud de la fundamental, `(|I1| - |R1|)/|R1|` con `I1` y `R1` los fasores de 50 Hz de la corriente y de la referencia, que es el criterio de 4.3.5 y el que calcula `receptor_pc.md` en su sección h.2, y se informa en valor absoluto. Los fasores se extraen proyectando sobre seno y coseno en el período completo. El desfase sale aparte y en estas pruebas no pasó de 2,0°, por lo que el error del fasor completo da casi lo mismo.
 
-- `Kr = 500`, error de 16,4 %, 9,1 %, 5,1 %, 2,8 %, 1,6 % en los cinco primeros períodos.
-- `Kr = 1000`, error de 12,1 %, 3,7 %, 1,1 %, 0,3 %, 0,1 %.
-- `Kr = 2000`, error de 7,7 %, 0,6 % y de ahí en adelante menos de 0,05 %.
+- `Kr = 500`, error de 16,0 %, 8,9 %, 5,0 %, 2,8 %, 1,5 % en los cinco primeros períodos.
+- `Kr = 1000`, error de 11,9 %, 3,6 %, 1,1 %, 0,3 %, 0,1 %.
+- `Kr = 2000`, error de 7,5 %, 0,6 % y de ahí en adelante menos de 0,05 %.
 
 Se elige `Kr = 1000`. Cumple los 10 % desde el segundo período y deja el margen de fase prácticamente igual al de los otros dos (79,3° contra 80,0° con 500 y 77,8° con 2000), con un margen de ganancia de 10,5 dB en los tres. Los polos de lazo cerrado del resonante quedan en `|z| = 0,9970`, una constante de tiempo de 17 ms, o sea unos 0,85 períodos de 50 Hz, y eso explica que el error caiga a un tercio por período. `Kr = 2000` converge un período antes, pero el enunciado mide el error en régimen y no durante el transitorio, y con 1000 ya se cumple desde el segundo período.
 
@@ -139,14 +139,14 @@ El retardo del aislamiento de las compuertas (#21) se espera de pocos microsegun
 - `fF = 3 kHz`, cruce en 949 Hz, 63,9° y 8,6 dB.
 - `fF = 2 kHz`, cruce en 902 Hz, 59,2° y 8,6 dB.
 
-Un Butterworth de segundo orden a 5 kHz atenúa 12 dB en `fs/2` y 36 dB a 40 kHz, contra los 7 dB y 18 dB del RC a 5 kHz, y a cambio deja el nominal en 62,9° y 6,7 dB. En las esquinas de `L` más baja, con `R = 1,5 Ω`, el RC de 5 kHz queda en 49,1° y 5,8 dB, el RC de 3 kHz en 43,6° y 5,6 dB y el Butterworth en 38,8° y 3,7 dB. Los tres cumplen el criterio de arriba, y cualquier filtro con `τF` de hasta unos 80 µs también, así que el corte lo puede fijar el ruido del sensor (#29) y no la estabilidad. Si el filtro elegido queda fuera de ese rango, o si el retardo medido en el banco pasa de unos 100 µs, se rehace la sintonización con `fc` más bajo.
+Un Butterworth de segundo orden a 5 kHz atenúa 12 dB en `fs/2` y 36 dB a 40 kHz, contra los 7 dB y 18 dB del RC a 5 kHz, y a cambio deja el nominal en 62,9° y 6,7 dB. En las esquinas de `L` más baja, con `R = 1,5 Ω`, el RC de 5 kHz queda en 49,1° y 5,8 dB, el RC de 3 kHz en 43,6° y 5,6 dB y el Butterworth en 38,8° y 3,7 dB. Los tres cumplen el criterio de arriba. El RC de 2 kHz, el más lento de la lista, queda en esa misma esquina en 39,5° y 5,6 dB y también cumple, así que el corte lo puede fijar el ruido del sensor (#29) y no la estabilidad. Si el filtro elegido queda más lento que eso, o si el retardo medido en el banco pasa de unos 100 µs, se rehace la sintonización con `fc` más bajo.
 
 ## Verificación por simulación
 
 El mismo lazo discreto de la sección de `Kr` se probó con `L` entre 0,7 y 1,3 mH y `R` entre 1,5 y 2,5 Ω, con `Kp` y `Kr` fijos, y con un cambio de `R` de 2,0 a 2,5 Ω (25 %) a 1,0 A pico.
 
-- En todas las combinaciones de `L` y `R` el lazo es estable y el error de la fundamental baja de 10 % desde el segundo período. El peor caso es 14,8 % en el primer período (con `L = 1,3 mH` y `R = 2,5 Ω`) y 4,8 % en el segundo.
-- Con el escalón de 0,2 a 0,5 A el error es 8,5 %, 2,6 % y 0,8 % en los tres primeros períodos, y de 0,5 a 1,0 A es 7,1 %, 2,1 % y 0,7 %. Los dos cumplen los 10 % desde el primer período.
+- En todas las combinaciones de `L` y `R` el lazo es estable y el error de la fundamental baja de 10 % desde el segundo período. El peor caso es 14,5 % en el primer período (con `R = 2,5 Ω`, con cualquiera de las dos `L`) y 4,8 % en el segundo.
+- Con el escalón de 0,2 a 0,5 A el error es 8,3 %, 2,5 % y 0,8 % en los tres primeros períodos, y de 0,5 a 1,0 A es 6,9 %, 2,1 % y 0,6 %. Los dos cumplen los 10 % desde el primer período.
 - En el cambio de `R`, con el lazo ya en régimen, el error sube a 3,4 % en el primer período y baja a 1,1 % y 0,4 % en los dos siguientes.
 
 Eso no cubre el rizado de conmutación, la cuantización del ADC, el ruido del sensor, el tiempo muerto ni la saturación con anti-windup. Se modela la corriente promedio con retardo de un muestreo y nada más. Estos puntos se validan en el modelo de PLECS de Nicolás y en el banco.
