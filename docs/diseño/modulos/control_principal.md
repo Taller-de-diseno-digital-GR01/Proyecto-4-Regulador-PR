@@ -38,7 +38,7 @@ Arranca el sistema en un orden seguro y después atiende todo lo que no tiene pl
 
 ## f) Explicación de la relación con otros módulos
 
-Es el dueño del arranque. Inicia todos los demás módulos y registra `lazo_control` en el AXI INTC. Después corre para siempre en el lazo principal junto con `exportador_uart`, al que llama en cada vuelta. Con la interrupción se comunica solo por las tres variables compartidas del nivel 3, y es el único escritor de `control_habilitado` y `amplitud_ref`.
+Es el dueño del arranque. Inicia todos los demás módulos y registra `lazo_control` como manejador de la interrupción del procesador, que viene directo del AXI Timer. Después corre para siempre en el lazo principal junto con `exportador_uart`, al que llama en cada vuelta. Con la interrupción se comunica solo por las tres variables compartidas del nivel 3, y es el único escritor de `control_habilitado` y `amplitud_ref`.
 
 ## g) Explicación de funcionamiento
 
@@ -48,7 +48,7 @@ Es el dueño del arranque. Inicia todos los demás módulos y registra `lazo_con
 2. Configura el ADC, la UART y el GPIO, con los LEDs y la salida de depuración en cero.
 3. Inicia `pr_discreto`, `ref_senoidal` con `PR_FRECUENCIA_MUESTREO_HZ`, `supervisor_falla` y `buffer_muestras`.
 4. Deja `control_habilitado` en cero, `amplitud_ref` según `SW[1:0]` y `falla` en cero.
-5. Registra `lazo_control` en el AXI INTC, programa el Timer con el período de muestreo y habilita la interrupción.
+5. Registra `lazo_control` como manejador de la interrupción del procesador con las funciones de excepciones del BSP, programa el Timer con el período de muestreo y habilita la interrupción.
 
 El Timer va al final para que la primera interrupción ya encuentre todo listo.
 
@@ -78,7 +78,8 @@ Ningún paso espera a un periférico, así que una vuelta dura pocos microsegund
 
 | Estado | Evento | Acción | Siguiente |
 | --- | --- | --- | --- |
-| deshabilitado | flanco de `BTN_HABILITAR` | reinicia PR y fase, `control_habilitado = 1`, `enable = 1` | habilitado |
+| deshabilitado | flanco de `BTN_HABILITAR` con `freq_sel = 01` | reinicia PR y fase, `control_habilitado = 1`, `enable = 1` | habilitado |
+| deshabilitado | flanco de `BTN_HABILITAR` con `freq_sel` distinto de `01` | nada | deshabilitado |
 | habilitado | flanco de `BTN_HABILITAR` | `enable = 0`, `control_habilitado = 0` | deshabilitado |
 | deshabilitado o habilitado | `falla = 1` | `control_habilitado = 0` | falla |
 | falla | flanco de `BTN_HABILITAR` | nada | falla |
@@ -113,10 +114,17 @@ Los switches son `SW0` y `SW1` de la Basys 3.
 
 Se guarda la lectura de los botones de la vuelta anterior, y el flanco de subida es `actual & ~anterior`. El antirrebote ya viene resuelto por el bloque 11, así que una pulsación da un solo flanco. Como el lazo principal da miles de vueltas por segundo, no hay forma de perder una pulsación humana.
 
-### h.5) Valores provisionales
+### h.5) Cambio de `freq_sel`
 
-- `FREQ_SEL_INICIAL` vale `01`, que en la tabla provisional de `nucleo_pwm.md` es 20 kHz y coincide con los 20 kHz de `PR_FRECUENCIA_MUESTREO_HZ`. Si Jefferson y Nicolás cambian las frecuencias de la tabla, este código se cambia con ellas.
-- El período del Timer en ciclos sale de `PR_FRECUENCIA_MUESTREO_HZ`. Con el AXI Timer contando hacia abajo y recarga automática, el período es `TLR + 2` ciclos, así que `TLR = 100 MHz / PR_FRECUENCIA_MUESTREO_HZ - 2`. Con los 20 kHz de partida da `100 MHz / 20 kHz - 2 = 4998`, división exacta. La portadora del PWM a 20 kHz dura `2 · MAX = 5000` ciclos según `nucleo_pwm.md`, los mismos del Timer, así que no deberían derivar entre sí. Falta medirlo con el GPIO de la interrupción contra `pwm_trigger_o`, y repetir la cuenta si cambia la frecuencia.
+El lazo cerrado corre solo a 20 kHz, que es `freq_sel = 01`, y el Timer no cambia con `freq_sel`. Las otras frecuencias de la tabla de `nucleo_pwm.md` (10 kHz en `00`, 40 kHz en `10`, y `11` que satura a 20 kHz) sirven para mostrar el PWM y para el testbench, con el control deshabilitado. Por eso dos reglas.
+
+- `freq_sel` solo se escribe con `control_habilitado` en cero. Con el Timer fijo, a 10 kHz llega un disparo del ADC cada dos interrupciones, y `supervisor_falla` podría declarar falla por `ITERACIONES_SIN_DATO_MAX` sin que haya nada roto.
+- El flanco de `BTN_HABILITAR` solo habilita si `freq_sel` vale `01`. El código `11` también termina en 20 kHz, pero se exige `01` exacto para que lo que se lee en el registro sea lo que corre.
+
+### h.6) Valores provisionales
+
+- `FREQ_SEL_INICIAL` vale `01`, que en la tabla de `nucleo_pwm.md` es 20 kHz y coincide con los 20 kHz de `PR_FRECUENCIA_MUESTREO_HZ`. Si Jefferson y Nicolás cambian las frecuencias de la tabla, este código se cambia con ellas.
+- El período del Timer en ciclos sale de `PR_FRECUENCIA_MUESTREO_HZ`. Con el AXI Timer contando hacia abajo y recarga automática, el período es `TLR + 2` ciclos, así que `TLR = 100 MHz / PR_FRECUENCIA_MUESTREO_HZ - 2`. Con los 20 kHz de partida da `100 MHz / 20 kHz - 2 = 4998`, división exacta. La portadora del PWM a 20 kHz dura `2 · MAX = 5000` ciclos según `nucleo_pwm.md`, y el Timer tiene que quedar en exactamente esos 5000. Los dos cuentan el mismo reloj pero no están amarrados, así que si el período difiere aunque sea un ciclo el desfase entre la interrupción y el valle se corre, y cada tanto la interrupción lee dos veces la misma muestra o se salta una. El valor del desfase depende del orden de arranque, por eso conviene medirlo para el retardo del análisis de estabilidad. Falta medirlo con el GPIO de la interrupción contra `pwm_trigger_o`, y repetir la cuenta si cambia la frecuencia.
 
 ## i) Diagrama esquemático detallado del diseño
 
