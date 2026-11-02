@@ -69,7 +69,13 @@ Ninguna de las dos apaga las compuertas al instante. Bajar `enable` surte efecto
 
 ### h.2) Interfaz ADC/XADC
 
-Su mapa de registros lo define Nicolás y todavía no está. Las funciones que necesita el resto del programa sí se pueden fijar.
+El mapa de registros lo define Nicolás en `envoltura_xadc.md`, que todavía está en blanco. Lo que `drivers` le pide a ese mapa para poder fijar las funciones de abajo es lo siguiente.
+
+- Un registro de control con un bit que dispara la conversión por software y otro que elige entre ese disparo y `pwm_trigger_o`.
+- Un registro de estado con el bit de dato nuevo.
+- Un registro de datos con la cuenta de 12 bits, y que leerlo baje la bandera de dato nuevo, para que `lazo_control` haga una sola lectura por iteración. Si no, `drivers_adc_leer` tiene que reconocer aparte con una escritura.
+
+Con eso las funciones que necesita el resto del programa se fijan desde ya.
 
 - `bool drivers_adc_dato_nuevo(void)`, la bandera de dato nuevo.
 - `uint16_t drivers_adc_leer(void)`, la cuenta de 12 bits, de 0 a 4095, y que la lectura baje la bandera o que la baje una escritura aparte depende de cómo quede la interfaz.
