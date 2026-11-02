@@ -72,14 +72,14 @@ El núcleo tiene dos máquinas. Una sola de control decide si el puente conmuta,
 
 `portadora` es un contador de `ANCHO_PORTADORA = $clog2(MAX_FREQ_00 + 1)` bits, 13 con los valores por defecto, y `contando_arriba` guarda su sentido. `MAX_FREQ_00` tiene que ser el mayor de los cuatro máximos, porque fija ese ancho. La señal interna `valle` es `portadora == 0`, en 1 durante un ciclo por período.
 
-Los valores por defecto son provisionales.
+Los valores por defecto son la tabla que confirmó Nicolás. 40 kHz queda sujeto a las pérdidas del puente a esa frecuencia.
 
 - `MAX_FREQ_00 = 5000`, 10 kHz.
 - `MAX_FREQ_01 = 2500`, 20 kHz.
 - `MAX_FREQ_10 = 1250`, 40 kHz.
 - `MAX_FREQ_11 = 2500`, igual que `01`.
 
-El cuarto código queda como reservado y repite 20 kHz. Si se define una cuarta frecuencia, basta con cambiar `MAX_FREQ_11`, sin tocar la lógica. El `MAX` que rige el período es `max_sombra`, que se carga en el valle, y el contador cambia de sentido al llegar a `max_sombra` y a 0.
+El cuarto código no se usa y satura a 20 kHz. Si algún día se define una cuarta frecuencia, basta con cambiar `MAX_FREQ_11`, sin tocar la lógica. La frecuencia de operación es 20 kHz, y el lazo cerrado corre solo con `freq_sel = 01`. 10 y 40 kHz son para mostrar el PWM y para el testbench, con el control deshabilitado. El `MAX` que rige el período es `max_sombra`, que se carga en el valle, y el contador cambia de sentido al llegar a `max_sombra` y a 0.
 
 ### h.2) Saturación y referencias
 
@@ -125,7 +125,7 @@ stateDiagram-v2
 
 De `ALTA` a `BAJA`, o al revés, siempre se pasa por `MUERTO`, y no hay ningún estado con las dos compuertas en 1. Eso es lo que garantiza que no haya solapamiento. La salida a `APAGADA` es inmediata desde cualquier estado porque apagar las dos compuertas nunca causa un cortocircuito.
 
-`cuenta` tiene `$clog2(DEAD_TIME_CICLOS + 1)` bits. `DEAD_TIME_CICLOS = 100`, 1 µs, es un valor provisional con margen, sin fuente, hasta que salga el tiempo muerto mínimo del puente con el retardo del aislamiento. Dura `DEAD_TIME_CICLOS · 10 ns` a cualquier frecuencia, porque se cuenta en ciclos de `clk`.
+`cuenta` tiene `$clog2(DEAD_TIME_CICLOS + 1)` bits. `DEAD_TIME_CICLOS = 100`, 1 µs, es un valor provisional con margen, sin fuente. El valor final lo fija Nicolás como parámetro de la IP en el Block Design, a partir del tiempo muerto mínimo del puente con el retardo del aislamiento. El enunciado pide tiempo muerto configurable en 4.2.2, pero el mapa de registros sugerido en 4.2.3 no tiene un registro para eso, así que se deja configurable al sintetizar. Dura `DEAD_TIME_CICLOS · 10 ns` a cualquier frecuencia, porque se cuenta en ciclos de `clk`.
 
 ### h.5) Control y running
 
@@ -149,7 +149,7 @@ Con `running` en cero las piernas van a `APAGADA`, y `rst_n` en cero deja las do
 
 ### h.7) Temporización
 
-Las frecuencias son provisionales hasta que Nicolás cierre la frecuencia de conmutación. Se calcularon con `clk` de 100 MHz y `MAX = f_clk / (2·f_sw)`.
+Es la tabla que confirmó Nicolás, con 40 kHz sujeto a las pérdidas del puente. Se calculó con `clk` de 100 MHz y `MAX = f_clk / (2·f_sw)`.
 
 | `freq_sel` | f_sw | `MAX` | período | ciclos por período | rizado en la carga | resolución de `duty_ref` |
 |---|---|---|---|---|---|---|
@@ -214,10 +214,9 @@ module nucleo_pwm #(
 
 ### h.9) Pendientes
 
-- Frecuencias definitivas y cuarto código, que elige Nicolás con Mattio por el período del Timer.
+- Pérdidas del puente a 40 kHz, que confirma Nicolás. Si el puente no aguanta, cambia `MAX_FREQ_10`.
 - `DEAD_TIME_CICLOS`, que sale del puente y del aislamiento de Nicolás. Con ese valor se le pasa a Mattio el ciclo de trabajo máximo para `PR_U_MAX`.
 - Polaridad de las compuertas, con Nicolás.
-- Confirmar con el profesor que el tiempo muerto como `parameter` cumple con "tiempo muerto configurable".
 - Instante de captura respecto al valle, con Nicolás.
 - Latencias de un ciclo por los registros, que se confirman en el testbench.
 - Pines de las cuatro compuertas en `basys3.xdc` y resistencia de pull-down a la entrada del aislamiento, con Nicolás.
