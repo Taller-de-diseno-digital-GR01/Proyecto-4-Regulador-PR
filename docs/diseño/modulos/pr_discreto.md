@@ -80,7 +80,7 @@ Son provisionales hasta medir `L` y `R` reales y confirmar `Vdc` y la frecuencia
 
 es decir, el valor que el resonante tendría que haber dado para que la suma cayera justo en el límite. Con eso el resonante no acumula energía durante la saturación y, al salir de ella, arranca desde un estado coherente con lo que el puente aplicó de verdad. Es la variante más simple de anti-windup por realimentación de la salida saturada, y se valida contra el modelo de la planta antes de llevarla al banco.
 
-El periférico también satura `duty_ref`, pero el PR no debe depender de eso. Si recortara solo el periférico, el resonante seguiría integrando un error que la planta nunca va a poder seguir, y el software no sabría que se saturó. `PR_U_MAX` tiene que quedar dentro del rango admisible del periférico, que según Jefferson es de -1,0 a +1,0 igual en todas las frecuencias de `freq_sel`, así que 1,0 es el tope. Por debajo de eso lo fija el tiempo muerto, porque con el índice cerca de 1,0 un pulso queda más corto que `DEAD_TIME_CICLOS` y el puente deja de seguir.
+El periférico también satura `duty_ref`, pero el PR no debe depender de eso. Si recortara solo el periférico, el resonante seguiría integrando un error que la planta nunca va a poder seguir, y el software no sabría que se saturó. `PR_U_MAX` tiene que quedar dentro del rango admisible del periférico, que según Jefferson es de -1,0 a +1,0 igual en todas las frecuencias de `freq_sel`, así que 1,0 es el tope. Por debajo de eso lo fija el tiempo muerto, porque con el índice cerca de 1,0 un pulso queda más corto que `DEAD_TIME_CICLOS` y el puente deja de seguir. El máximo real a 20 kHz es `1 - (1 + DEAD_TIME_CICLOS) / 5000`, que con el valor provisional de 100 ciclos da cerca de 98 %.
 
 ### h.6) Conversión a duty_ref
 
@@ -104,9 +104,9 @@ Coeficientes, estados y entradas son `valor_t`, de `sw/numerico.h`. Las multipli
 ### h.10) Pendientes
 
 - `L` y `R` reales de la carga, que caracteriza Jefferson, y `Vdc` y la frecuencia de muestreo definitiva, que salen de la `f_sw` que elige Nicolás. Con ellos se repite la sintonización.
-- `PR_U_MAX`, que queda con 1,0 como tope por el rango del periférico y se fija por debajo según el tiempo muerto que fija Nicolás para el puente y que Jefferson implementa como `DEAD_TIME_CICLOS`.
+- `PR_U_MAX`, que queda con 1,0 como tope por el rango del periférico y se fija en `1 - (1 + DEAD_TIME_CICLOS) / 5000`, con el tiempo muerto que fija Nicolás para el puente (#18) y que Jefferson implementa como `DEAD_TIME_CICLOS`. El 98 % de los 100 ciclos es provisional hasta que Nicolás cierre #18.
 - FPU del MicroBlaze V, con Nicolás.
-- Sumar el retardo del filtro antialias y el de los optoacopladores de las compuertas al `Td = 1,5 · Ts` de `potencia/diseno_pr.md` y recalcular los márgenes, cuando se fijen el filtro, que diseña Jefferson, y el aislamiento de las compuertas, que elige Nicolás.
+- Sumar el retardo del filtro antialias y el del aislamiento de las compuertas (#21) al `Td = 1,5 · Ts` de `potencia/diseno_pr.md` y recalcular los márgenes, cuando se fijen el filtro, que diseña Jefferson, y el aislamiento de las compuertas (#21), que elige Nicolás y del que pasa los retardos de subida y bajada con la hoja de datos. Hasta que salga el componente el retardo queda pendiente, y se suma al `Td` junto con su asimetría, que cubre el tiempo muerto.
 - Respuesta del profesor sobre la estructura ideal.
 - Validar saturación y anti-windup contra el modelo de la planta, el PLECS que arma Nicolás, que la simulación de `potencia/diseno_pr.md` no cubre.
 
