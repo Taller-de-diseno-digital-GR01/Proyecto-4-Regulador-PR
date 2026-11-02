@@ -62,7 +62,9 @@ La referencia sí se guarda ya calculada. Reconstruirla en la PC a partir de la 
 
 `BUFFER_REGISTROS` es una potencia de dos, para que avanzar el índice sea `indice = (indice + 1) & (BUFFER_REGISTROS - 1)` y no haga falta una división ni una comparación. Queda provisional en 2048 registros, 12 KB de los 32 KB, marcado con `// TODO: Revisar` en `buffer_muestras.h`, hasta que se enlace el programa completo y se sepa cuánto sobra.
 
-El tamaño también tiene que cubrir la ventana que piden los ensayos, al menos cinco períodos de 50 Hz, o sea 100 ms. Con `fs` la frecuencia de muestreo hacen falta `0,1 · fs` registros. Con 2048 alcanza si `fs` no pasa de 20,48 kHz, y los 20 kHz de ahora caben justos (2000 registros). Si la frecuencia que se acuerde con PEDP es más alta y la memoria no da, la salida es guardar uno de cada `D` registros, y eso se decide cuando se conozca `fs`.
+El tamaño también tiene que cubrir la ventana que piden los ensayos, al menos cinco períodos de 50 Hz, o sea 100 ms. Con `fs` la frecuencia de muestreo hacen falta `0,1 · fs` registros. Con 2048 alcanza si `fs` no pasa de 20,48 kHz, y los 20 kHz de ahora caben justos (2000 registros). Si `fs` subiera de 20,48 kHz y la memoria no diera, la salida es guardar uno de cada `D` registros.
+
+El presupuesto de la BRAM de 32 KB, con lo que ya está definido, es el histórico de 2048 registros de 6 bytes, 12 288 bytes, más la tabla de `ref_senoidal` de 257 entradas `float`, 1028 bytes. Son 13 316 bytes, el 41 % de la memoria, y quedan unos 19 KB (19 452 bytes) para el código, la pila y las variables. Cuando se enlace el programa completo con el BSP de Vitis se revisa el tamaño con `size` y se confirma si 2048 se mantiene.
 
 ### h.3) Lectura del histórico congelado
 
