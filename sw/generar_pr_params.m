@@ -33,7 +33,14 @@ function generar_pr_params(varargin)
 end
 
 function coef = coeficientes_resonante(estructura, kr, fs, metodo, amortiguamiento)
-  % TODO: Revisar con PEDP la estructura y el método, hasta entonces no hay fórmula que implementar
+  w0 = 2 * pi * 50;
+  theta = w0 / fs;
+  if strcmp(estructura, 'ideal') && strcmp(metodo, 'tustin_prewarp')
+    b0 = kr * sin(theta) / (2 * w0); % forma cerrada de potencia/diseno_pr.md
+    coef = [b0, 0, -b0, -2 * cos(theta), 1];
+    return;
+  end
+  % TODO: Revisar con PEDP si hace falta otra combinación, solo la ideal con tustin_prewarp está acordada
   error('generar_pr_params:sin_definir', 'resonante %s con %s sin definir', estructura, metodo);
 end
 
