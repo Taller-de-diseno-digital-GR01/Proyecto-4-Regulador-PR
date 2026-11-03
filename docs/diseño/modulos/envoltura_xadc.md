@@ -132,7 +132,7 @@ En la máquina no hay espera fija ni contador de tiempo. Cada paso avanza con un
 
 ### h.6) Temporización
 
-El reloj del ADC sale de dividir `DCLK` por el valor del registro de configuración 2, con un mínimo de 2 [1, Control Registers, Tabla 3-12]. Una conversión y su asentamiento llevan 26 ciclos del reloj del ADC, lo que fija su máximo en 26 MHz [1, Analog Inputs]. Con `DCLK` de 100 MHz el divisor tiene que ser 4 o más, y se usa 4, que da un reloj del ADC de 25 MHz. Es el menor divisor válido, así que deja la conversión más corta posible y acerca el dato al valle. Un divisor mayor no mejora el muestreo, porque en modo por eventos la entrada se adquiere desde que arranca la conversión anterior hasta el siguiente `CONVST` [1, Event-Driven Sampling], y eso son decenas de microsegundos con cualquier frecuencia de la tabla. El divisor es un parámetro del wizard en el Block Design.
+El reloj del ADC sale de dividir `DCLK` por el valor del registro de configuración 2, con un mínimo de 2 [1, Control Registers, Tabla 3-12]. Una conversión y su asentamiento llevan 26 ciclos del reloj del ADC, lo que fija su máximo en 26 MHz [1, Analog Inputs], dentro del rango de 1 a 26 MHz de la familia [7, Tabla 65, p. 57]. Con `DCLK` de 100 MHz el divisor tiene que ser 4 o más, y se usa 4, que da un reloj del ADC de 25 MHz. Es el menor divisor válido, así que deja la conversión más corta posible y acerca el dato al valle. Un divisor mayor no mejora el muestreo, porque en modo por eventos la entrada se adquiere desde que arranca la conversión anterior hasta el siguiente `CONVST` [1, Event-Driven Sampling], y eso son decenas de microsegundos con cualquier frecuencia de la tabla. El divisor es un parámetro del wizard en el Block Design.
 
 Con divisor `D`, desde el valle hasta que el dato está en el registro pasa lo siguiente, en ciclos de `clk` de 10 ns.
 
@@ -232,7 +232,7 @@ flowchart LR
     PER["periferico_pwm"] -->|"pwm_trigger_o"| ENV
 ```
 
-El JXADC lleva cuatro pares, XA1 a XA4, en los pines J3 y K3, L3 y M3, M2 y M1, y N2 y N1 (positivo y negativo de cada par) [4]. El par que se usa y su entrada auxiliar se fijan en `basys3.xdc`. La entrada es unipolar de 0 a 1 V, como fija el bloque 7 del [nivel 2](../diagramas/nivel02.md) [1, Analog Inputs].
+El JXADC lleva cuatro pares, XA1 a XA4, en los pines J3 y K3, L3 y M3, M2 y M1, y N2 y N1 (positivo y negativo de cada par) [4]. El par que se usa y su entrada auxiliar se fijan en `basys3.xdc`. La entrada es unipolar de 0 a 1 V, con `VN` entre 0 y 0,5 V, como fija el bloque 7 del [nivel 2](../diagramas/nivel02.md) [1, Analog Inputs], [7, Tabla 65, p. 57].
 
 El negativo del par es la referencia de la medición y está del lado de la Basys 3. Con el puente aislado, el cruce de la señal del sensor por esa barrera se trata en el diseño del sensor (#30).
 
@@ -249,3 +249,5 @@ El negativo del par es la referencia de la medición y está del lado de la Basy
 [5] Arm, "AMBA AXI and ACE Protocol Specification," IHI 0022, sección de dependencias entre handshakes.
 
 [6] K. Chapman, "Get Smart About Reset: Think Local, Not Global," Xilinx White Paper WP272.
+
+[7] AMD, "Artix 7 FPGAs Data Sheet: DC and AC Switching Characteristics," DS181, v1.27.1, jul. 2024.
