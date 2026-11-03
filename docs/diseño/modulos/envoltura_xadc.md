@@ -51,7 +51,7 @@ De [`nucleo_pwm`](nucleo_pwm.md) recibe `pwm_trigger_o`, que pulsa en cada valle
 
 Del lado del software, [`drivers`](drivers.md) es el único que toca los dos registros. [`control_principal`](control_principal.md) pone la fuente en `pwm_trigger_o` durante el arranque, antes de habilitar el control. En cada interrupción, [`lazo_control`](lazo_control.md) lee el registro de dato una vez y saca de esa lectura la muestra y el contador. [`supervisor_falla`](supervisor_falla.md) cuenta las iteraciones en que el contador no cambió, contra `ITERACIONES_SIN_DATO_MAX`.
 
-La señal analógica viene del acondicionamiento del sensor que diseña Jefferson, de 0 a 1 V con el offset acordado en #33.
+La señal analógica viene del acondicionamiento del sensor que diseña Jefferson, de 0 a 1 V, como fija el bloque 7 del [nivel 2](../diagramas/nivel02.md).
 
 ## g) Explicación de funcionamiento
 
@@ -106,7 +106,7 @@ El contador no se borra. `drivers` guarda el valor de la lectura anterior y hay 
 
 El disparo de cada ciclo es `fuente ? pwm_trigger_o : pulso_inicio`, donde `pulso_inicio` es el 1 que dejó una escritura de `inicio` en el ciclo anterior. Solo se atiende con la máquina en `LIBRE` (h.5).
 
-`pwm_trigger_o` pasa por un flip-flop antes de la máquina, así que el flanco de `xadc_convst` sale dos ciclos después del valle, 20 ns. Contra la tolerancia de unos cientos de nanosegundos que calcula Mattio para el instante de captura (`potencia/diseno_pr.md`, sección de aliasing, en `feature/pr-discreto`), ese retardo no pesa. Si #34 decide adelantar o atrasar la captura, el ajuste se hace en `nucleo_pwm` o con un retardo fijo aquí, y se anota en este punto.
+`pwm_trigger_o` pasa por un flip-flop antes de la máquina, así que el flanco de `xadc_convst` sale dos ciclos después del valle, 20 ns. Contra la tolerancia de unos cientos de nanosegundos que calcula Mattio para el instante de captura (`potencia/diseno_pr.md`, sección de aliasing, en `feature/pr-discreto`), ese retardo no pesa.
 
 ### h.5) Máquina de conversión
 
@@ -124,7 +124,7 @@ stateDiagram-v2
 - `CONVIRTIENDO`, `xadc_convst` en 0. Espera el pulso de `xadc_eoc`. En ese ciclo `xadc_den` sube durante un ciclo con `xadc_daddr = {2'b00, xadc_channel}` y `xadc_dwe` en 0, que es una lectura [1, DRP Timing].
 - `LEYENDO`, espera `xadc_drdy`. En ese ciclo guarda `muestra <= xadc_do[15:4]` y `contador <= contador + 1`, y vuelve a `LIBRE`.
 
-La dirección del DRP sale de `xadc_channel` porque el resultado de cada canal queda en el registro de estado con la misma dirección que su número de canal [1, Status Registers]. Para la entrada auxiliar n son el canal 16 + n y la dirección `10h + n` [1, Tabla 3-1 y Tabla 3-7]. Así la envoltura no lleva el canal del JXADC como parámetro, y elegir el canal en #33 solo toca la configuración del wizard.
+La dirección del DRP sale de `xadc_channel` porque el resultado de cada canal queda en el registro de estado con la misma dirección que su número de canal [1, Status Registers]. Para la entrada auxiliar n son el canal 16 + n y la dirección `10h + n` [1, Tabla 3-1 y Tabla 3-7]. Así la envoltura no lleva el canal del JXADC como parámetro, y el canal se elige solo en la configuración del wizard.
 
 El desplazamiento de 4 bits es porque el resultado de 12 bits ocupa los 12 bits altos del registro de estado de 16 bits [1, Status Registers] [2, p. 18]. Los 4 bits bajos se descartan.
 
@@ -142,7 +142,7 @@ Con divisor `D`, desde el valle hasta que el dato está en el registro pasa lo s
 - 16 ciclos desde que `xadc_busy` baja hasta el pulso de `xadc_eoc` [1, Event-Driven Sampling].
 - Los ciclos que tarde `xadc_drdy` en la lectura DRP, más uno para guardar.
 
-Con `D = 4` son unos 110 ciclos, cerca de 1,1 µs, que es el orden que supone `control_principal.md` para ubicar la interrupción después de la conversión. Los 22 ciclos salen del capítulo de muestreo continuo de UG480, que no dice si valen igual por eventos, y los ciclos de `xadc_drdy` no están en el texto de la guía. Los dos se confirman en la simulación con el modelo del wizard y en la placa.
+Con `D = 4` son unos 110 ciclos, cerca de 1,1 µs, que es el orden que supone `control_principal.md` para ubicar la interrupción después de la conversión.
 
 ### h.7) Interfaz en SystemVerilog
 
@@ -183,16 +183,6 @@ module envoltura_xadc (
     input  logic [4:0]  xadc_channel
 );
 ```
-
-### h.8) Pendientes
-
-- Canal del JXADC y modo de entrada, con Jefferson (#33). Se configuran en el wizard, la envoltura no cambia.
-- Instante de captura respecto al valle, con Jefferson (#34), y si hace falta un retardo en h.4.
-- Rango del reloj del ADC en la hoja de datos de la familia, que UG480 remite a ese documento [1, Control Registers, Tabla 3-12], para confirmar los 25 MHz.
-- Ciclos de `xadc_drdy` en la lectura y duración de la conversión por eventos, que se confirman en simulación.
-- Comportamiento si llega un disparo mientras el wizard calibra al salir del reinicio, cuando `xadc_busy` sube por un tiempo largo [2, p. 13]. Con `fuente` en 0 después del reinicio no debería pasar, y se revisa en el testbench.
-- Rango unipolar de las entradas auxiliares en UG480, que el texto revisado solo da para el par dedicado VP/VN.
-- Testbench autoverificable con un modelo simple de los puertos del wizard.
 
 ## i) Diagrama esquemático detallado del diseño
 
@@ -236,15 +226,15 @@ La envoltura no tiene pines propios. La señal analógica entra por el Pmod JXAD
 ```mermaid
 flowchart LR
     SEN["acondicionamiento del sensor<br/>0 a 1 V"] -->|"señal y referencia"| JX["Pmod JXADC"]
-    JX -->|"par vauxp/vauxn del canal de #33"| XW["XADC Wizard"]
+    JX -->|"par vauxp/vauxn"| XW["XADC Wizard"]
     XW <-->|"DRP, convst, busy, eoc, channel"| ENV["envoltura_xadc"]
     ENV <-->|"AXI4-Lite"| IC["interconexión AXI"]
     PER["periferico_pwm"] -->|"pwm_trigger_o"| ENV
 ```
 
-El JXADC lleva cuatro pares, XA1 a XA4, en los pines J3 y K3, L3 y M3, M2 y M1, y N2 y N1 (positivo y negativo de cada par) [4]. Qué entrada auxiliar del XADC corresponde a cada par y cuál se usa sale de #33, y queda en `basys3.xdc` (#15). La entrada es unipolar de 0 a 1 V, como fija el bloque 7 del [nivel 2](../diagramas/nivel02.md) [1, Analog Inputs].
+El JXADC lleva cuatro pares, XA1 a XA4, en los pines J3 y K3, L3 y M3, M2 y M1, y N2 y N1 (positivo y negativo de cada par) [4]. El par que se usa y su entrada auxiliar se fijan en `basys3.xdc`. La entrada es unipolar de 0 a 1 V, como fija el bloque 7 del [nivel 2](../diagramas/nivel02.md) [1, Analog Inputs].
 
-El negativo del par es la referencia de la medición y está del lado de la Basys 3. Con el puente aislado, cómo cruza la señal del sensor esa barrera lo resuelve Jefferson en #30.
+El negativo del par es la referencia de la medición y está del lado de la Basys 3. Con el puente aislado, el cruce de la señal del sensor por esa barrera se trata en el diseño del sensor (#30).
 
 ## Referencias
 
