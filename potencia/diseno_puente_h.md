@@ -119,7 +119,7 @@ flowchart LR
         q --> led
     end
     subgraph potencia["Lado del puente"]
-        opto["Salida del 6N137<br/>pull-up a 5 V"] --> inv["74HCT14"]
+        opto["Salida del 6N137<br/>pull-up de 470 Ω a 5 V"] --> inv["74HC14"]
         inv --> drv["IR2110<br/>VDD = 5 V, bootstrap"]
         drv --> mos["IRF520N<br/>10 Ω de compuerta"]
         v12["Fuente de 12 V<br/>canal aparte"] --> drv
@@ -131,11 +131,11 @@ flowchart LR
     led -. barrera .-> opto
 ```
 
-1. Pin de un Pmod de la Basys 3 (JA, JB o JC), activo alto. Los Pmod traen 200 Ω en serie en la placa [5]. Las compuertas quedan lejos del JXADC para no meter flancos de 3,3 V junto a la entrada analógica del sensor.
-2. PN2222A como interruptor bajo del LED. La base lleva 2,7 kΩ con un capacitor de aceleración en paralelo y un pull-down entre base y emisor. El LED se alimenta de los 3,3 V del Pmod (pines 6 y 12, con tierra en 5 y 11) a través de su propia resistencia. Esos pines entregan hasta 1 A [5], y los cuatro LED piden unos 40 mA.
-3. 6N137, con `VCC` de 4,5 a 5,5 V, un cerámico de 100 nF entre los pines 8 y 5 a menos de 1 cm, y `IFH` entre 7 y 20 mA [1, p. 2]. Su salida de colector abierto lleva un pull-up a 5 V.
-4. 74HCT14, alimentado con los mismos 5 V. Invierte la salida del 6N137 y limpia el flanco. Su entrada tiene umbrales TTL y la salida del 6N137 va de 0 a 5 V.
-5. IR2110 con `VDD` = 5 V (acepta de 3 a 20 V sobre `VSS`, [4, p. 2]), con `VSS` y `COM` en la tierra de potencia. Con `VDD` = 5 V, `VIH` máximo ronda 3,2 V y `VIL` mínimo 1,9 V (Fig. 12B y 13B, [4, p. 9], lectura aproximada de la curva), y el 74HCT14 pasa los dos umbrales con margen. Su `VCC` es de 12 V, dentro del rango de 10 a 20 V [4, p. 2], y sale de un canal aparte de la fuente de banco con el negativo en la tierra de potencia. Vdc no sirve como `VCC` porque llega a 24 V. El consumo es bajo, con 340 µA máximos de `IQCC` [4, p. 3] más la carga de compuerta de dos MOSFET, unos 2 mA a 40 kHz.
+1. Pin de un Pmod de la Basys 3 (JA, JB o JC), activo alto. Los Pmod traen 200 Ω en serie en la placa [11, hoja 1]. Las compuertas quedan lejos del JXADC para no meter flancos de 3,3 V junto a la entrada analógica del sensor.
+2. PN2222A como interruptor bajo del LED. La base lleva 2,7 kΩ con un capacitor de aceleración en paralelo y un pull-down de 10 kΩ entre base y emisor. El LED se alimenta de los 3,3 V del Pmod (pines 6 y 12, con tierra en 5 y 11) a través de 130 Ω. Esos pines entregan hasta 1 A [5], y los cuatro LED piden unos 40 mA.
+3. 6N137, con `VCC` de 4,5 a 5,5 V, un cerámico de 100 nF entre los pines 8 y 5 a menos de 1 cm, y `IFH` entre 7 y 20 mA [1, p. 2]. Su salida de colector abierto lleva un pull-up de 470 Ω a 5 V.
+4. 74HC14, alimentado con los mismos 5 V. Invierte la salida del 6N137 y limpia el flanco.
+5. IR2110 con `VDD` = 5 V (acepta de 3 a 20 V sobre `VSS`, [4, p. 2]), con `VSS` y `COM` en la tierra de potencia. Con `VDD` = 5 V, `VIH` máximo ronda 3,2 V y `VIL` mínimo 1,9 V (Fig. 12B y 13B, [4, p. 9], lectura aproximada de la curva), y el 74HC14 pasa los dos umbrales con margen, con `VOH` de 3,84 V mínimos y `VOL` de 0,33 V máximos con 4 mA y `VCC` de 4,5 V [8, p. 7]. Su `VCC` es de 12 V, dentro del rango de 10 a 20 V [4, p. 2], y sale de un canal aparte de la fuente de banco con el negativo en la tierra de potencia. Vdc no sirve como `VCC` porque llega a 24 V. El consumo es bajo, con 340 µA máximos de `IQCC` [4, p. 3] más la carga de compuerta de dos MOSFET, unos 2 mA a 40 kHz.
 6. IRF520N, con 10 Ω entre cada salida del IR2110 y su compuerta.
 7. Los 5 V del lado del puente salen de un L7805 alimentado desde los 12 V. Hace falta una tensión regulada porque el 6N137 consume 7 mA típicos con la salida en alto y 12 mA con la salida en bajo (`ICCH` e `ICCL`, [1, p. 3]), y el consumo cambia con cada flanco. Desde los 12 V el 7805 disipa `(12 − 5)·I`, y toda la cadena funciona con Vdc apagado, así que las compuertas y el tiempo muerto se revisan en el osciloscopio sin energizar el bus.
 
@@ -145,25 +145,35 @@ El LED alimentado directo desde el pin queda con los 200 Ω de la placa en serie
 
 Para la base se toman unos 10 mA en el LED, `VBE` cerca de 0,7 V y una β forzada de 10, es decir 1 mA de base. El total queda en (3,3 − 0,7) / 1 mA = 2,6 kΩ, y sin los 200 Ω de la placa son 2,4 kΩ. Con 2,7 kΩ la base queda en unos 0,9 mA, una β forzada cerca de 11. La `hFE` mínima con `IC` = 10 mA es 75, y 35 a −55 °C [7, p. 3], así que el transistor queda saturado con margen.
 
+La resistencia del LED es de 130 Ω. Con el transistor saturado, los 3,3 V se reparten entre la resistencia, el LED y el transistor, así que `R = (3,3 − VF − VCE(sat)) / IF`. Con 10 mA, `VF` máximo de 1,75 V [1, p. 3] y `VCE(sat)` de 0,3 V da 125 Ω, y se usa el valor normalizado siguiente. La `VCE(sat)` de la hoja está medida con 150 mA [7, p. 3], así que con 10 mA es una cota. Los 10 mA quedan sobre el mínimo de 7 mA de `IFH` y cerca de los 7,5 mA con que se miden los retardos [1, p. 4]. Con la resistencia en +5 % y las caídas máximas la corriente da 9,2 mA, y para bajar a 7 mA el riel de 3,3 V tendría que caer a 3,0 V. Con la resistencia en −5 % y el transistor en 0 V, llegar a los 20 mA máximos pediría una `VF` de 0,83 V, muy por debajo de los 1,65 V típicos. Disipa 13 mW.
+
+El pull-down entre base y emisor es de 10 kΩ. Con el pin en alto se lleva `0,7 V / 10 kΩ` = 70 µA, menos del 10 % de la corriente de base, y a la base le quedan 0,83 mA. Con la corriente de LED más alta, 13,4 mA, la β forzada queda en 16, muy por debajo de la `hFE` mínima. Con el pin en alta impedancia, la fuga del pin de la FPGA (15 µA máximos, [12, Tabla 3, p. 3]) y la del colector a la base del PN2222A (`ICBO`, 10 µA máximos a 125 °C, [7, p. 3]) salen por el pull-down y dejan la base en 0,25 V como mucho, menos de la mitad del `VBE(sat)` mínimo de 0,6 V [7, p. 3]. Aunque pasara algo de corriente por el LED, el 6N137 mantiene la salida en alto con hasta 250 µA (`IFL`, [1, p. 2]).
+
 El capacitor de aceleración solo actúa en los flancos. Al encender da un pico de corriente de base y al apagar tira la base hacia negativo y barre la carga almacenada, lo que acorta el tiempo de almacenamiento. En régimen estable no conduce, así que la saturación la sigue fijando la resistencia. Los 200 Ω de la placa limitan ese pico a unos 16 mA. Su valor se elige midiendo `ts` con la potencia apagada.
+
+### Salida del aislamiento
+
+La salida del 6N137 es de colector abierto y lleva un pull-up de 470 Ω a 5 V. El valor queda entre dos límites. Con la salida en bajo, `VOL` está garantizado en 0,6 V como máximo solo hasta 13 mA [1, p. 3], lo que pide al menos `(5,5 − 0,6) / 13 mA` = 377 Ω con `VCC` en 5,5 V. Con la salida en alto, la fuga `IOH` llega a 250 µA [1, p. 3] y baja la línea a `VCC − IOH · R`. Con 470 Ω entran 10,4 mA en bajo y la línea alta cae 0,12 V. Una resistencia mayor alarga el flanco de subida, que corresponde al apagado de la compuerta, y los retardos de la hoja están medidos con 350 Ω y 15 pF [1, p. 4], así que el valor se mantiene cerca de ese.
+
+El inversor es un 74HC14, de umbrales proporcionales a `VCC`. Con 4,5 V, `VT−` mínimo es 0,9 V y `VT+` máximo 3,15 V [8, p. 10], así que el nivel bajo del 6N137 queda 0,3 V por debajo de un umbral y el alto, 4,38 V en el peor caso, 1,2 V por encima del otro. Con 6,0 V `VT+` máximo es 4,2 V [8, p. 10], que acota el valor con 5,5 V, y ahí la línea alta queda en 5,38 V.
 
 ### Estado sin señal
 
-Cada eslabón tiene que dejar la compuerta apagada cuando no recibe señal. Mientras se configura la FPGA los pines quedan en alta impedancia sin pull-ups, porque la Basys 3 tiene `PUDC_B` en alto [6]. Con el cable del Pmod suelto o la Basys 3 apagada, el LED se queda sin alimentación. En todos esos casos el LED queda apagado, así que la cadena tiene que traducir LED apagado en compuerta apagada.
+Cada eslabón tiene que dejar la compuerta apagada cuando no recibe señal. Mientras se configura la FPGA los pines quedan en alta impedancia sin pull-ups, porque en la Basys 3 el pin `PUDC_B` (E18) va a 3,3 V por 1 kΩ, con la resistencia a tierra sin montar [11, hoja 5], y con `PUDC_B` en alto la FPGA deja los pull-ups desactivados durante la configuración [6]. Con el cable del Pmod suelto o la Basys 3 apagada, el LED se queda sin alimentación. En todos esos casos el LED queda apagado, así que la cadena tiene que traducir LED apagado en compuerta apagada.
 
-- LED apagado. La salida del 6N137 sube por el pull-up, el 74HCT14 la baja y el IR2110 apaga la compuerta.
-- Pin en 1. El transistor conduce, el LED se enciende, el 6N137 baja su salida (tabla de verdad, [1, p. 1]), el 74HCT14 sube y la compuerta se enciende.
+- LED apagado. La salida del 6N137 sube por el pull-up, el 74HC14 la baja y el IR2110 apaga la compuerta.
+- Pin en 1. El transistor conduce, el LED se enciende, el 6N137 baja su salida (tabla de verdad, [1, p. 1]), el 74HC14 sube y la compuerta se enciende.
 - Mientras se configura la FPGA, el pull-down de la base mantiene el transistor cortado.
 
-Sin el 74HCT14, LED apagado sería compuerta encendida. Como el IR2110 maneja `HIN` y `LIN` por separado y no impide que estén en alto a la vez, una falla del lado de la Basys 3 encendería las cuatro compuertas y cortocircuitaría las dos piernas.
+Sin el 74HC14, LED apagado sería compuerta encendida. Como el IR2110 maneja `HIN` y `LIN` por separado y no impide que estén en alto a la vez, una falla del lado de la Basys 3 encendería las cuatro compuertas y cortocircuitaría las dos piernas.
 
 ## Retardo y asimetría
 
 El retardo de la cadena, si fuera igual en los dos flancos, no cambia el tiempo muerto. Solo suma al retardo del lazo, que en `diseno_pr.md` se toma de hasta 2 µs. Lo que entra al tiempo muerto es la diferencia entre flancos. En cada eslabón, si apagar tarda más que encender, la diferencia se resta del tiempo muerto, y si es al revés se suma.
 
 - PN2222A. El corte del transistor apaga el LED y eso apaga la compuerta, así que su flanco lento, `ts + tf`, cae en el apagado y se resta. La hoja da `ton` de 35 ns máximos (`td` de 15 ns y `tr` de 20 ns) y `toff` de 250 ns máximos (`ts` de 200 ns y `tf` de 60 ns) [7, p. 3], así que la diferencia llega a unos 215 ns. Esos tiempos se miden con `IC` = 150 mA, 15 mA de base al encender y −15 mA al apagar. En este circuito la corriente inversa de base sale solo del capacitor de aceleración, así que `ts` puede ser más largo que el de la hoja.
-- 6N137. `tPLH` y `tPHL` valen 60 ns típicos y 75 ns máximos cada uno [1, p. 4]. La hoja no da la diferencia entre los dos, así que la cota es 75 ns.
-- 74HCT14. `tPHL` y `tPLH` valen 20 ns típicos y 34 ns máximos con `VCC` = 4,5 V, 50 pF de carga y 25 °C, con transiciones de 7 ns típicos y 15 ns máximos [8, p. 13]. La hoja no da la diferencia entre los dos, así que la cota es 34 ns.
+- 6N137. `tPLH` y `tPHL` valen 60 ns típicos y 75 ns máximos cada uno, con 350 Ω de carga [1, p. 4]. La hoja no da la diferencia entre los dos, así que la cota es 75 ns. Con los 470 Ω del pull-up el flanco de subida, que es el del apagado, se alarga un par de nanosegundos.
+- 74HC14. `tPHL` y `tPLH` valen 15 ns típicos y 25 ns máximos con `VCC` = 4,5 V, 50 pF de carga y 25 °C, con transiciones de 7 ns típicos y 15 ns máximos [8, p. 12]. La hoja no da la diferencia entre los dos, así que la cota es 25 ns.
 - IR2110 con `VDD` = 5 V. `ton` ronda 140 ns típicos y 170 ns máximos (Fig. 7C) y `toff` 145 ns típicos y 180 ns máximos (Fig. 8C) [4, p. 7], lecturas aproximadas de la curva. La diferencia, de 5 a 10 ns, se resta. Las dos curvas son muy empinadas cerca de 5 V, así que la tolerancia del 7805 las mueve. La diferencia entre el canal alto y el bajo es de 10 ns máximos, con `VDD` = 15 V [4, p. 3].
 - IRF520N con 10 Ω de compuerta. El cruce de Miller dura unos 16 ns al encender y 22 ns al apagar, porque la compuerta se descarga con los 5 V de la meseta y se carga con 7 V. Antes del cruce, el apagado baja la compuerta desde 12 V hasta la meseta, y el encendido solo la sube hasta el umbral, de 2 a 4 V [9, p. 2], así que el apagado es el flanco lento y la diferencia se resta. La resistencia de salida del IR2110 queda en serie con los 10 Ω y alarga los dos flancos.
 
@@ -190,3 +200,7 @@ El PN2222A es el término más grande. La suma de todas más un margen fija el m
 [9] International Rectifier, "IRF520N HEXFET Power MOSFET", hoja de datos PD-91339A, 13 may. 1998.
 
 [10] Philips Semiconductors, "1N4148; 1N4448 High-speed diodes", hoja de datos, 25 may. 1999.
+
+[11] Digilent, "Basys 3", esquemático, documento 500-183, rev. D.1, 2021.
+
+[12] AMD, "Artix 7 FPGAs Data Sheet: DC and AC Switching Characteristics", DS181 v1.27.1, 3 jul. 2024.
