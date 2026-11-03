@@ -1,5 +1,4 @@
 // Núcleo del periférico PWM, especificado en docs/diseño/modulos/nucleo_pwm.md
-// Por ahora llega hasta el control de running, falta pwm_trigger_o
 module nucleo_pwm #(
     // Tiempo muerto en ciclos de clk
     parameter int unsigned DEAD_TIME_CICLOS = 100,
@@ -281,7 +280,10 @@ module nucleo_pwm #(
 
     assign running = corriendo;
 
-    // Pendiente, etapa 7
-    assign pwm_trigger_o = 1'b0;
+    // Disparo del ADC en el centro del pulso, registrado para que no lleve glitches y sin depender de running
+    always_ff @(posedge clk) begin
+        if (!rst_n) pwm_trigger_o <= 1'b0;
+        else pwm_trigger_o <= valle;
+    end
 
 endmodule
