@@ -103,7 +103,11 @@ Al pasar `running` a 1, lo primero que encienden las dos piernas son las compuer
 
 Por eso el núcleo del PWM lleva un estado de precarga. Al pasar `running` a 1, cada pierna enciende su compuerta baja durante `PRECARGA_CICLOS`, un `parameter` como `DEAD_TIME_CICLOS`, y después sigue por `MUERTO` como hasta ahora. Las dos bajas encendidas dejan los dos extremos de la carga en la tierra de potencia, la carga ve 0 V y no hay camino de Vdc a tierra. Va en el núcleo porque es parte de la secuencia de las compuertas y no decide nada del control, y porque el software solo escribe `enable` y `duty_ref`. El reset y `DETENIDO` siguen con las cuatro apagadas.
 
-Partiendo de 0 V, el capacitor pasa del 99 % de su carga final en 5τ, unos 52 µs, que son 5200 ciclos de 100 MHz. `PRECARGA_CICLOS` cubre al menos ese tiempo, redondeado hacia arriba por la tolerancia de R, C y `VCC`.
+Partiendo de 0 V, el capacitor pasa del 99 % de su carga final en 5τ, unos 52 µs con los valores nominales. El peor caso de τ sale con los 22 Ω en +5 %, 1 Ω más en serie por el diodo, la `RDS(on)` del MOSFET bajo y el cableado, y el capacitor en +20 %, la tolerancia más amplia de un cerámico. Eso da τ = 24,1 Ω · 564 nF ≈ 13,6 µs y 5τ ≈ 68 µs, así que `PRECARGA_CICLOS` = 7000, 70 µs. La caída de capacitancia de un X7R con la tensión continua encima acorta τ, así que no empeora el caso. Como se cuenta en ciclos de `clk`, el valor sirve en las tres frecuencias.
+
+`VCC` no cambia τ, solo la tensión final, unos 0,7 V por debajo de `VCC` por la caída del diodo. Con 70 µs y τ en el peor caso el capacitor queda sobre el 99,4 % de esa tensión, y la compuerta alta termina su primer encendido sobre 10 V aun a 10 kHz (`Q / C` = 53 nC / 470 nF ≈ 0,11 V) mientras `VCC` no baje de unos 10,9 V.
+
+En cada arranque la carga ve 0 V durante esos 70 µs, 1,4 períodos a 20 kHz y un 0,35 % de un ciclo de 50 Hz.
 
 ## Cadena de cada compuerta
 
@@ -175,7 +179,7 @@ El PN2222A es el término más grande. La suma de todas más un margen fija el m
 
 [4] International Rectifier, "IR2110(-1-2)(S)PbF/IR2113(-1-2)(S)PbF High and Low Side Driver", hoja de datos PD60147 rev. U.
 
-[5] Digilent, "Basys 3 Reference Manual", sección de los puertos Pmod. https://digilent.com/reference/programmable-logic/basys-3/reference-manual
+[5] Digilent, "Basys 3 Reference Manual", sección de los puertos Pmod. <https://digilent.com/reference/programmable-logic/basys-3/reference-manual>
 
 [6] AMD Xilinx, "7 Series FPGAs Configuration User Guide", UG470.
 
