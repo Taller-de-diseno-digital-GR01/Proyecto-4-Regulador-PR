@@ -1,5 +1,5 @@
 // Núcleo del periférico PWM, especificado en docs/diseño/modulos/nucleo_pwm.md
-// Por ahora solo tiene la portadora, el resto de las etapas se agrega después
+// Por ahora tiene la portadora y el cálculo de las referencias, el resto de las etapas se agrega después
 module nucleo_pwm #(
     // Tiempo muerto en ciclos de clk
     parameter int unsigned DEAD_TIME_CICLOS = 100,
@@ -25,8 +25,26 @@ module nucleo_pwm #(
 
     // Ancho del contador, sale del máximo más grande
     localparam int unsigned ANCHO_PORTADORA = $clog2(MAX_FREQ_00 + 1);
+    // +1 y -1 en Q2.14
+    localparam logic signed [15:0] DUTY_MAX = 16'sd16384;
+    localparam logic signed [15:0] DUTY_MIN = -16'sd16384;
+    // Referencia de reinicio, la de duty_ref = 0 con MAX_FREQ_00
+    localparam logic [ANCHO_PORTADORA-1:0] REF_REINICIO = ANCHO_PORTADORA'((MAX_FREQ_00 * 16384) >> 15);
 
     logic [ANCHO_PORTADORA-1:0] max_entrada;
+    logic signed [15:0] duty_sat;
+
+    logic [ANCHO_PORTADORA-1:0] max_etapa1;
+    logic signed [15:0] duty_sat_etapa1;
+
+    logic [16:0] duty_desplazado;
+    logic [ANCHO_PORTADORA+15:0] producto;
+    logic [ANCHO_PORTADORA-1:0] ref_a_calculada;
+
+    logic [ANCHO_PORTADORA-1:0] max_etapa2;
+    logic [ANCHO_PORTADORA-1:0] ref_a_etapa2;
+    logic [ANCHO_PORTADORA-1:0] ref_b_etapa2;
+
     logic [ANCHO_PORTADORA-1:0] max_sombra;
     logic [ANCHO_PORTADORA-1:0] portadora;
     logic contando_arriba;
@@ -42,13 +60,53 @@ module nucleo_pwm #(
         endcase
     end
 
+    // Saturación de duty_ref a -1 y +1, la comparación es con signo
+    always_comb begin
+        if (duty_ref > DUTY_MAX) duty_sat = DUTY_MAX;
+        else if (duty_ref < DUTY_MIN) duty_sat = DUTY_MIN;
+        else duty_sat = duty_ref;
+    end
+
+    // Etapa 1 del pipeline, guarda duty_sat junto con su MAX
+    always_ff @(posedge clk) begin
+        if (!rst_n) begin
+            max_etapa1 <= ANCHO_PORTADORA'(MAX_FREQ_00);
+            duty_sat_etapa1 <= '0;
+        end
+        else begin
+            max_etapa1 <= max_entrada;
+            duty_sat_etapa1 <= duty_sat;
+        end
+    end
+
+    // 16384 + duty_sat va de 0 a 32768, ya sin signo
+    assign duty_desplazado = 17'(17'sd16384 + 17'(duty_sat_etapa1));
+    // MAX · (16384 + duty_sat), menos de 2^28 con MAX = 5000, cabe en un DSP48E1
+    assign producto = max_etapa1 * duty_desplazado[15:0];
+    // Correr 15 bits divide entre 32768, así ref_a = MAX · (1 + d) / 2
+    assign ref_a_calculada = producto[ANCHO_PORTADORA+14:15];
+
+    // Etapa 2 del pipeline, ref_b sale de una resta para que ref_a + ref_b = MAX exacto
+    always_ff @(posedge clk) begin
+        if (!rst_n) begin
+            max_etapa2 <= ANCHO_PORTADORA'(MAX_FREQ_00);
+            ref_a_etapa2 <= REF_REINICIO;
+            ref_b_etapa2 <= ANCHO_PORTADORA'(MAX_FREQ_00) - REF_REINICIO;
+        end
+        else begin
+            max_etapa2 <= max_etapa1;
+            ref_a_etapa2 <= ref_a_calculada;
+            ref_b_etapa2 <= max_etapa1 - ref_a_calculada;
+        end
+    end
+
     // Un ciclo por período, cuando el contador vale 0
     assign valle = (portadora == '0);
 
-    // El MAX nuevo solo entra en el valle, así ningún período mezcla dos frecuencias
+    // El MAX nuevo solo entra en el valle y sale de la etapa 2, así entra junto con las referencias calculadas con él
     always_ff @(posedge clk) begin
         if (!rst_n) max_sombra <= ANCHO_PORTADORA'(MAX_FREQ_00);
-        else if (valle) max_sombra <= max_entrada;
+        else if (valle) max_sombra <= max_etapa2;
     end
 
     // Portadora triangular de 0 a max_sombra y de vuelta, 2·MAX ciclos por período
