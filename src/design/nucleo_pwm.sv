@@ -1,5 +1,5 @@
 // Núcleo del periférico PWM, especificado en docs/diseño/modulos/nucleo_pwm.md
-// Por ahora tiene la portadora y el cálculo de las referencias, el resto de las etapas se agrega después
+// Por ahora tiene la portadora, el cálculo de las referencias y sus registros sombra, el resto de las etapas se agrega después
 module nucleo_pwm #(
     // Tiempo muerto en ciclos de clk
     parameter int unsigned DEAD_TIME_CICLOS = 100,
@@ -46,6 +46,8 @@ module nucleo_pwm #(
     logic [ANCHO_PORTADORA-1:0] ref_b_etapa2;
 
     logic [ANCHO_PORTADORA-1:0] max_sombra;
+    logic [ANCHO_PORTADORA-1:0] ref_a_sombra;
+    logic [ANCHO_PORTADORA-1:0] ref_b_sombra;
     logic [ANCHO_PORTADORA-1:0] portadora;
     logic contando_arriba;
     logic valle;
@@ -103,10 +105,19 @@ module nucleo_pwm #(
     // Un ciclo por período, cuando el contador vale 0
     assign valle = (portadora == '0);
 
-    // El MAX nuevo solo entra en el valle y sale de la etapa 2, así entra junto con las referencias calculadas con él
+    // Registros sombra, solo se cargan en el valle y el resto del período conservan el valor
     always_ff @(posedge clk) begin
-        if (!rst_n) max_sombra <= ANCHO_PORTADORA'(MAX_FREQ_00);
-        else if (valle) max_sombra <= max_etapa2;
+        if (!rst_n) begin
+            max_sombra <= ANCHO_PORTADORA'(MAX_FREQ_00);
+            ref_a_sombra <= REF_REINICIO;
+            ref_b_sombra <= ANCHO_PORTADORA'(MAX_FREQ_00) - REF_REINICIO;
+        end
+        // Los tres salen de la etapa 2, así el MAX entra junto con las referencias calculadas con él
+        else if (valle) begin
+            max_sombra <= max_etapa2;
+            ref_a_sombra <= ref_a_etapa2;
+            ref_b_sombra <= ref_b_etapa2;
+        end
     end
 
     // Portadora triangular de 0 a max_sombra y de vuelta, 2·MAX ciclos por período
