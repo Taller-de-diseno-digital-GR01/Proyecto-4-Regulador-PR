@@ -208,7 +208,7 @@ Los reinicios salen de un Processor System Reset, que los sincroniza con el relo
 
 Las otras dos entradas van a un Constant en 1. `dcm_locked` va en alto porque no hay un generador de reloj al que esperar [1, p. 9], y `aux_reset_in` no se usa y queda con su polaridad activa en bajo, así que el 1 es su nivel inactivo.
 
-Mientras la FPGA se configura todavía no hay diseño que maneje los pines. En la Basys 3 `PUDC_B` está en alto por una resistencia a 3,3 V, así que los pines de usuario quedan en alta impedancia y sin pull-ups internos [3]. En ese intervalo las compuertas las mantiene apagadas el pull-down a la entrada del aislamiento, que se define en el #19.
+Mientras la FPGA se configura todavía no hay diseño que maneje los pines. En la Basys 3 `PUDC_B` está en alto por una resistencia a 3,3 V, así que los pines de usuario quedan en alta impedancia y sin pull-ups internos [3]. En ese intervalo las compuertas las mantiene apagadas el pull-down entre base y emisor del transistor que maneja el LED del aislamiento (`potencia/diseno_puente_h.md`).
 
 - Entradas, `clk` de 100 MHz en W5, `BTN_RST` y `Debug_SYS_Rst` del MDM.
 - Salidas, el reloj del sistema y cinco reinicios.
@@ -247,7 +247,7 @@ Tiene un solo maestro, `M_AXI_DP`, el puerto de datos para periféricos del Micr
 
 Las instrucciones y los datos de la BRAM van por LMB y no pasan por acá.
 
-La rutina periódica hace entre cinco y seis accesos AXI por iteración (depuración, reconocimiento del Timer, dato y contador del ADC en una sola lectura, `duty_ref` y depuración otra vez), así que la latencia de la interconexión cae dentro del plazo del control. Se usa la IP que coloca Connection Automation de Vivado, pendiente de confirmar si es AXI Interconnect o SmartConnect. Con seis esclavos AXI4-Lite las dos atienden una transacción a la vez [5], [6], y lo que agregan a la rutina se confirma midiendo la salida de depuración. Las direcciones base se asignan en el Address Editor (#15).
+La rutina periódica hace entre cinco y seis accesos AXI por iteración (depuración, reconocimiento del Timer, dato y contador del ADC en una sola lectura, `duty_ref` y depuración otra vez), así que la latencia de la interconexión cae dentro del plazo del control. Se usa la IP que coloca Connection Automation de Vivado. Con seis esclavos AXI4-Lite, tanto AXI Interconnect como SmartConnect atienden una transacción a la vez [5], [6]. Las direcciones base se asignan en el Address Editor (#15).
 
 - Entradas, accesos de `M_AXI_DP`, respuestas de los esclavos e `interconnect_aresetn`.
 - Salidas, accesos hacia los seis esclavos y respuestas hacia el procesador.
@@ -261,8 +261,6 @@ El XADC Wizard va sin interfaz AXI, en modo por eventos y con canal único [7]. 
 `envoltura_xadc` es esclava AXI4-Lite de la interconexión y maestra del puerto DRP del wizard. Un bit de su registro de control elige si `CONVST` lo dispara `pwm_trigger_o` o el inicio por software, y la fuente que no está elegida se ignora. Al fin de cada conversión lee el registro de estado del canal por el DRP y publica el dato junto con un contador de conversiones, que el software compara con su lectura anterior para saber si hay dato nuevo. El detalle está en [`envoltura_xadc`](../modulos/envoltura_xadc.md).
 
 El wizard queda como instancia aparte, fuera de la envoltura, para que el testbench de la envoltura use un modelo simple de los puertos DRP y de conversión, sin simular la primitiva analógica.
-
-Quedan pendientes el canal del JXADC y el modo de entrada (#33), y el instante de captura respecto al valle (#34).
 
 - Entradas, `corriente_i` por el par Vaux del canal del JXADC, `pwm_trigger_o` de `periferico_pwm`, accesos AXI4-Lite y `peripheral_aresetn`.
 - Salidas, el dato y el contador de conversiones hacia el procesador por AXI4-Lite.
@@ -298,7 +296,7 @@ Los botones pasan por un antirrebote en hardware antes del GPIO. El manual de la
 
 `debounce` se reutiliza del Proyecto 2 (`src/design/debounce.sv`) y va una instancia por botón, entre el pin y el canal 1. Dos flip-flops en cadena sincronizan el botón con el reloj. Un contador vuelve a cero cada vez que la entrada cambia, y la salida copia la entrada recién cuando el contador enciende su bit más alto. Con `N = 21` eso son 2^20 ciclos, unos 10,5 ms de entrada estable a 100 MHz. Su reinicio es activo en alto, por eso va a `peripheral_reset`. Entra al Block Design como módulo RTL. Los switches no pasan por `debounce` porque `control_principal` los lee como niveles.
 
-El orden de los bits en cada canal queda pendiente para el Block Design (#15), y `drivers` lo toma de ahí.
+El orden de los bits en cada canal se fija en el Block Design (#15), y `drivers` lo toma de ahí.
 
 - Entradas, `BTN_HABILITAR`, `BTN_EXPORTAR`, `SW[1:0]`, accesos AXI4-Lite, `peripheral_aresetn` y `peripheral_reset`.
 - Salidas, `led[1:0]`, la salida de depuración, y el estado de botones y switches hacia el procesador por AXI4-Lite.
