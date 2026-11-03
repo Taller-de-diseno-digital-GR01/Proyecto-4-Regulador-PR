@@ -1,5 +1,5 @@
 // Núcleo del periférico PWM, especificado en docs/diseño/modulos/nucleo_pwm.md
-// Por ahora llega hasta el tiempo muerto, faltan el control de running y pwm_trigger_o
+// Por ahora llega hasta el control de running, falta pwm_trigger_o
 module nucleo_pwm #(
     // Tiempo muerto en ciclos de clk
     parameter int unsigned DEAD_TIME_CICLOS = 100,
@@ -45,6 +45,12 @@ module nucleo_pwm #(
         BAJA
     } estado_pierna_t;
 
+    // Un solo bit, así el registro de estado es running y sale directo de un flip-flop
+    typedef enum logic {
+        DETENIDO = 1'b0,
+        CORRIENDO = 1'b1
+    } estado_control_t;
+
     logic [ANCHO_PORTADORA-1:0] max_entrada;
     logic signed [15:0] duty_sat;
 
@@ -69,7 +75,8 @@ module nucleo_pwm #(
     logic comparacion_a;
     logic comparacion_b;
 
-    // Provisional hasta la etapa 6, que lo reemplaza por la máquina de control
+    estado_control_t estado_control;
+    // Copia de running que leen las máquinas de las piernas
     logic corriendo;
 
     // Índice 0 es la pierna A y 1 la pierna B
@@ -167,8 +174,16 @@ module nucleo_pwm #(
     assign comparacion_a = (portadora < ref_a_sombra);
     assign comparacion_b = (portadora < ref_b_sombra);
 
-    // Pendiente, en 0 el puente queda apagado hasta que esté la máquina de control
-    always_comb corriendo = 1'b0;
+    // Máquina de control, enable solo tiene efecto en el valle para no cortar un pulso a medias
+    always_ff @(posedge clk) begin
+        if (!rst_n) estado_control <= DETENIDO;
+        else if (valle) begin
+            if (enable) estado_control <= CORRIENDO;
+            else estado_control <= DETENIDO;
+        end
+    end
+
+    assign corriendo = (estado_control == CORRIENDO);
 
     assign comparacion = {comparacion_b, comparacion_a};
 
@@ -264,8 +279,9 @@ module nucleo_pwm #(
     assign compuerta_b_alta = alta[1];
     assign compuerta_b_baja = baja[1];
 
-    // Pendiente, etapas 6 y 7
-    assign running = 1'b0;
+    assign running = corriendo;
+
+    // Pendiente, etapa 7
     assign pwm_trigger_o = 1'b0;
 
 endmodule
