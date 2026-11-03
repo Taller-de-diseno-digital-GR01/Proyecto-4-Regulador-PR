@@ -1,6 +1,6 @@
 # Diseño del puente H, decisiones y justificación
 
-Este documento reúne las decisiones de diseño del puente H de la etapa de potencia (#16) y la razón de cada una. Cubre el aislamiento entre la Basys 3 y el puente (#21) y el manejo de las compuertas que sale de él.
+Este documento reúne las decisiones de diseño del puente H de la etapa de potencia (#16) y la razón de cada una. Cubre el aislamiento entre la Basys 3 y el puente (#21), y el MOSFET, el driver y el bootstrap de las compuertas (#17).
 
 ## Qué cruza el aislamiento
 
@@ -13,13 +13,65 @@ La tierra del puente es propia del lado de potencia (`nivel01.md`). Toda señal 
 
 Las compuertas cruzan la barrera con un optoacoplador de salida lógica 6N137 por compuerta. El criterio es el retardo y, sobre todo, la diferencia de retardo entre los dos flancos, que se resta del tiempo muerto. En el 6N137 `tPLH` y `tPHL` valen 60 ns típicos y 75 ns máximos, con flancos de 30 ns [1, p. 4], muy por debajo del semiperíodo de 25 µs a 20 kHz y del tiempo muerto de 1 µs que usa hoy `nucleo_pwm.md`. Además pasa niveles fijos, así que sostiene la compuerta con `duty_ref` cerca de ±1 o con el puente detenido.
 
+## MOSFET
+
+Las cuatro llaves son MOSFET de canal N IRF520N en TO-220 [9].
+
+### Tensión y corriente
+
+En cada pierna, con un MOSFET encendido el otro queda apagado con Vdc entre drenador y source, y el encendido lleva toda la corriente de la carga.
+
+- Tensión. Con Vdc de hasta 24 V se pide `VDS` de al menos 40 V, 1,67 veces el bus. El margen cubre el sobrepico `L·di/dt` que la inductancia parásita entre el bus y la pierna suma a Vdc al apagar, y la energía que la carga inductiva devuelve al bus en parte de cada período, que una fuente de laboratorio no absorbe y que sube la tensión de sus capacitores.
+- Corriente. El peor caso no es el 1 A pico de la referencia. La sobrecorriente la detecta el software con una muestra por período. En una falla con casi todo Vdc sobre la inductancia de la carga, la corriente sube `Vdc / L` = 24 V / 1 mH = 24 A/ms, es decir 1,2 A en los 50 µs entre muestras a 20 kHz (L de `diseno_pr.md`). Desde el umbral de 1,3 A de `supervisor_falla.md` puede llegar a unos 2,5 a 3 A antes de que el software apague las compuertas.
+
+El IRF520N da 100 V, 9,7 A continuos y 38 A pulsados [9, p. 1].
+
+### Pérdidas
+
+Con esos límites casi cualquier MOSFET en TO-220 sirve, así que la elección la deciden las pérdidas y la carga de compuerta. La estimación es por transistor, con Vdc = 24 V y 1 A pico.
+
+- Conducción. Con 0,707 A eficaces y `RDS(on)` de 0,20 Ω máximos con `VGS` = 10 V [9, p. 2], `I²·RDS(on)` da 0,1 W. Es una cota, porque en unipolar ningún transistor conduce el período completo.
+- Conmutación. Durante cada cruce la tensión y la corriente coexisten en el transistor, y `½ · Vdc · I · (tr + tf) · f_sw` con 100 ns de cruce total da 24 mW a 20 kHz y 48 mW a 40 kHz. El cruce que sale de la resistencia de compuerta es de unos 38 ns, así que la cota queda del lado seguro.
+- Recuperación inversa del diodo de cuerpo. Durante el tiempo muerto los dos MOSFET de la pierna están apagados y la corriente de la carga sigue por el diodo de cuerpo. Cuando el MOSFET complementario se enciende, la carga almacenada en el diodo (`Qrr`) sale como un pico de corriente inversa por ese MOSFET, con casi todo Vdc encima. `Qrr · Vdc · f_sw` con 390 nC típicos [9, p. 2] da 187 mW a 20 kHz y 374 mW a 40 kHz. `Qrr` está medido con 5,7 A y 100 A/µs, y con 1 A es menor, así que también es una cota.
+
+La recuperación es el término más grande, y por eso el MOSFET se elige por `Qrr` bajo, junto con `Qg` bajo por el driver y el bootstrap. Sumando los tres términos, cada transistor disipa cerca de 0,5 W a 40 kHz. Con `RθJA` de 62 °C/W [9, p. 1] la unión queda unos 32 °C sobre el ambiente, sin disipador. Las pérdidas no limitan la frecuencia de 40 kHz de la tabla de `freq_sel`.
+
+### Resistencia de compuerta
+
+Cada salida del IR2110 llega a su MOSFET por una resistencia de 10 Ω. El pico de corriente de compuerta es `VCC / Rg` = 1,2 A, por debajo de los 2 A mínimos que el IR2110 garantiza en `IO+` e `IO−` [4, p. 3].
+
+El cruce de tensión ocurre en la meseta de Miller, donde la compuerta queda fija en `V_plateau` mientras se carga o descarga `Qgd`. Con `Qgd` de 11 nC máximos [9, p. 2] y la meseta cerca de 5 V (Fig. 6, [9, p. 4]), los dos cruces quedan así.
+
+```
+encendido:  t ≈ Qgd · Rg / (VCC − V_plateau) = 11 nC · 10 Ω / 7 V ≈ 16 ns
+apagado:    t ≈ Qgd · Rg / V_plateau        = 11 nC · 10 Ω / 5 V ≈ 22 ns
+```
+
+Una resistencia menor acorta el cruce pero sube `di/dt` y `dv/dt`, con más sobrepico sobre la inductancia parásita y más acople al resto del circuito. Una mayor alarga el cruce, las pérdidas y el retardo que se come el tiempo muerto.
+
 ## Compuertas altas con bootstrap
 
 Un MOSFET de canal N se enciende con la tensión entre compuerta y source. En las compuertas altas el source está en el nodo de salida de la pierna, que salta entre 0 y Vdc. Una señal de 0 a 5 V referida a la tierra de potencia lo empieza a encender con el nodo en 0 V, pero a medida que el nodo sube `VGS` baja y el MOSFET queda en zona lineal sin llegar a Vdc. Para tenerlo encendido con el source en Vdc, la compuerta tiene que estar unos 10 V por encima de Vdc.
 
 Esa tensión sale de un bootstrap [2], [3], con un driver de medio puente IR2110 por pierna. Las cuatro entradas quedan referidas a la tierra de potencia y el lado del puente no necesita ninguna fuente aislada.
 
-El capacitor de bootstrap de cada pierna se carga mientras conduce el MOSFET bajo de esa pierna, con el nodo en 0 V, y se descarga mientras conduce el alto. El IR2110 bloquea la salida alta mientras la alimentación flotante esté por debajo de su umbral de subtensión (`VBSUV`, [4, p. 3]).
+El capacitor de bootstrap de cada pierna se carga desde `VCC` a través de un diodo mientras conduce el MOSFET bajo de esa pierna, con el nodo en 0 V, y se descarga mientras conduce el alto. El IR2110 pide entre `VB` y `VS` de 10 a 20 V [4, p. 2] y bloquea la salida alta mientras esa tensión esté por debajo de su umbral de subtensión (`VBSUV−`, de 9,4 V como máximo, [4, p. 3]).
+
+### Capacitor
+
+Mientras la compuerta alta está encendida el diodo queda en inversa y el capacitor es la única fuente del lado flotante. Entrega la carga de la compuerta (`Qg`, 25 nC máximos, [9, p. 2]) y alimenta todo ese tiempo la corriente quiescente del lado flotante (`IQBS`, 230 µA máximos) y la fuga del desplazador de nivel (`ILK`, 50 µA máximos) [4, p. 3]. El peor caso es 10 kHz con la compuerta alta encendida casi todo el período de 100 µs.
+
+```
+Q = Qg + (IQBS + ILK) · t_on = 25 nC + 280 µA · 100 µs = 53 nC
+```
+
+Con una caída de 0,5 V, `C ≥ Q / ΔV` = 106 nF. El capacitor es de 470 nF, unas 4,4 veces el mínimo, cerámico X7R o de película para que conserve la capacitancia con la tensión continua encima y entregue el pico de corriente de la compuerta con baja ESR. Como flota con `VS`, entre sus terminales solo ve `VCC` menos la caída del diodo, unos 11 a 12 V, así que basta con 25 V nominales.
+
+### Diodo y resistencia
+
+El diodo es un 1N4148 con 22 Ω en serie. Al arrancar el capacitor está en 0 V, y sin resistencia la primera carga solo queda limitada por la resistencia del diodo, la `RDS(on)` del MOSFET bajo y el cableado, con un pico de unos 12 A si suman 1 Ω. El 1N4148 aguanta 4 A solo durante 1 µs, 1 A durante 1 ms y 450 mA repetitivos [10, p. 2]. Con 22 Ω el pico baja a (12 − 0,7) V / 22 Ω ≈ 0,51 A, una vez por arranque y por debajo del valor de 1 ms. La constante de tiempo queda en `τ = R·C` = 22 Ω · 470 nF ≈ 10,3 µs.
+
+Con la compuerta alta encendida el diodo queda en inversa con Vdc encima, 24 V más los sobrepicos, dentro de los 75 V de `VRRM` [10, p. 2].
 
 ### Recarga en cada período
 
@@ -29,13 +81,29 @@ Con la portadora de `nucleo_pwm.md`, la compuerta baja de la pierna A conduce
 
 La pierna B sigue la misma expresión con `−duty_ref`. A 20 kHz (`MAX = 2500`) y con `DEAD_TIME_CICLOS = 100`, eso da 24 µs con `duty_ref = 0`, 11,5 µs con `duty_ref = 0,5` y nada con `duty_ref = 0,96`. Desde `duty_ref = 1 − DEAD_TIME_CICLOS / MAX` el capacitor de A deja de recargarse, y con `duty_ref` hacia −1 le pasa lo mismo al de B.
 
-En operación normal no aparece, porque 1 A pico pide `duty_ref` cerca de 0,11 con los valores de `diseno_pr.md`. Sí aparece si el PR satura. Por eso `PR_U_MAX` de `pr_discreto.md` tiene que quedar por debajo de `1 − (DEAD_TIME_CICLOS + ciclos mínimos de recarga) / MAX`, con el mínimo de recarga del driver.
+El capacitor no necesita recuperarse entero en cada período. En un tiempo `t` de recarga, el RC recupera la fracción `1 − e^(−t/τ)` de lo que le falta para llegar a la tensión final, así que se asienta en el valor donde lo repuesto iguala a lo que pierde en cada período. Si al empezar la recarga le faltan `D` voltios,
+
+```
+D · (1 − e^(−t/τ)) = Q / C
+```
+
+A 20 kHz la carga por período es 25 nC + 280 µA · 50 µs = 39 nC, y `Q / C` = 0,083 V. Con `duty_ref = 0,9` la compuerta baja conduce 150 ciclos (1,5 µs), `D` da 0,61 V y la compuerta alta arranca cerca de 10,7 V y termina cerca de 10,6 V.
+
+El mínimo aceptado al final del encendido es 10 V, la tensión a la que el IRF520N tiene especificada la `RDS(on)` [9, p. 2] y el mínimo de `VB − VS` del IR2110 [4, p. 2]. Partiendo de unos 11,3 V, eso deja `D ≤ 11,3 − 10 − 0,083` = 1,22 V, que pide `1 − e^(−t/τ) ≥ 0,068` y `t ≥ 0,73 µs`. Con margen por la tolerancia de R, C, `VCC` y la caída del diodo, la compuerta baja tiene que conducir al menos 100 ciclos por período.
+
+En operación normal el límite no aparece, porque 1 A pico pide `duty_ref` cerca de 0,11 con los valores de `diseno_pr.md`. Sí aparece si el PR satura. Por eso `PR_U_MAX` de `pr_discreto.md` queda por debajo de
+
+`1 − (DEAD_TIME_CICLOS + 100) / MAX`,
+
+que da 0,92 a 20 kHz con `DEAD_TIME_CICLOS = 100`.
 
 ### Precarga en el arranque
 
 Al pasar `running` a 1, lo primero que encienden las dos piernas son las compuertas altas (tabla de eventos de `nucleo_pwm.md`). Si el puente estuvo detenido, los capacitores están descargados y el IR2110 no las enciende, así que el primer período sale distorsionado. Lo mismo pasa al reanudar después de una falla.
 
-Por eso el núcleo del PWM lleva un estado de precarga. Al pasar `running` a 1, cada pierna enciende su compuerta baja durante `PRECARGA_CICLOS`, un `parameter` como `DEAD_TIME_CICLOS`, y después sigue por `MUERTO` como hasta ahora. Las dos bajas encendidas dejan los dos extremos de la carga en la tierra de potencia, la carga ve 0 V y no hay camino de Vdc a tierra. Va en el núcleo porque es parte de la secuencia de las compuertas y no decide nada del control, y porque el software solo escribe `enable` y `duty_ref`. El reset y `DETENIDO` siguen con las cuatro apagadas. `PRECARGA_CICLOS` se fija con el tiempo mínimo de recarga del driver.
+Por eso el núcleo del PWM lleva un estado de precarga. Al pasar `running` a 1, cada pierna enciende su compuerta baja durante `PRECARGA_CICLOS`, un `parameter` como `DEAD_TIME_CICLOS`, y después sigue por `MUERTO` como hasta ahora. Las dos bajas encendidas dejan los dos extremos de la carga en la tierra de potencia, la carga ve 0 V y no hay camino de Vdc a tierra. Va en el núcleo porque es parte de la secuencia de las compuertas y no decide nada del control, y porque el software solo escribe `enable` y `duty_ref`. El reset y `DETENIDO` siguen con las cuatro apagadas.
+
+Partiendo de 0 V, el capacitor pasa del 99 % de su carga final en 5τ, unos 52 µs, que son 5200 ciclos de 100 MHz. `PRECARGA_CICLOS` cubre al menos ese tiempo, redondeado hacia arriba por la tolerancia de R, C y `VCC`.
 
 ## Cadena de cada compuerta
 
@@ -49,8 +117,10 @@ flowchart LR
     subgraph potencia["Lado del puente"]
         opto["Salida del 6N137<br/>pull-up a 5 V"] --> inv["74HCT14"]
         inv --> drv["IR2110<br/>VDD = 5 V, bootstrap"]
-        drv --> mos["MOSFET"]
-        v5["7805 desde Vdc"] --> opto
+        drv --> mos["IRF520N<br/>10 Ω de compuerta"]
+        v12["Fuente de 12 V<br/>canal aparte"] --> drv
+        v12 --> v5["7805"]
+        v5 --> opto
         v5 --> inv
         v5 --> drv
     end
@@ -61,8 +131,9 @@ flowchart LR
 2. PN2222A como interruptor bajo del LED. La base lleva 2,7 kΩ con un capacitor de aceleración en paralelo y un pull-down entre base y emisor. El LED se alimenta de los 3,3 V del Pmod (pines 6 y 12, con tierra en 5 y 11) a través de su propia resistencia. Esos pines entregan hasta 1 A [5], y los cuatro LED piden unos 40 mA.
 3. 6N137, con `VCC` de 4,5 a 5,5 V, un cerámico de 100 nF entre los pines 8 y 5 a menos de 1 cm, y `IFH` entre 7 y 20 mA [1, p. 2]. Su salida de colector abierto lleva un pull-up a 5 V.
 4. 74HCT14, alimentado con los mismos 5 V. Invierte la salida del 6N137 y limpia el flanco. Su entrada tiene umbrales TTL y la salida del 6N137 va de 0 a 5 V.
-5. IR2110 con `VDD` = 5 V (acepta de 3 a 20 V sobre `VSS`, [4, p. 2]), con `VSS` y `COM` en la tierra de potencia. Con `VDD` = 5 V, `VIH` máximo ronda 3,2 V y `VIL` mínimo 1,9 V (Fig. 12B y 13B, [4, p. 9], lectura aproximada de la curva), y el 74HCT14 pasa los dos umbrales con margen.
-6. Los 5 V del lado del puente salen de un L7805 alimentado desde Vdc. Hace falta una tensión regulada porque el 6N137 consume 7 mA típicos con la salida en alto y 12 mA con la salida en bajo (`ICCH` e `ICCL`, [1, p. 3]), y el consumo cambia con cada flanco.
+5. IR2110 con `VDD` = 5 V (acepta de 3 a 20 V sobre `VSS`, [4, p. 2]), con `VSS` y `COM` en la tierra de potencia. Con `VDD` = 5 V, `VIH` máximo ronda 3,2 V y `VIL` mínimo 1,9 V (Fig. 12B y 13B, [4, p. 9], lectura aproximada de la curva), y el 74HCT14 pasa los dos umbrales con margen. Su `VCC` es de 12 V, dentro del rango de 10 a 20 V [4, p. 2], y sale de un canal aparte de la fuente de banco con el negativo en la tierra de potencia. Vdc no sirve como `VCC` porque llega a 24 V. El consumo es bajo, con 340 µA máximos de `IQCC` [4, p. 3] más la carga de compuerta de dos MOSFET, unos 2 mA a 40 kHz.
+6. IRF520N, con 10 Ω entre cada salida del IR2110 y su compuerta.
+7. Los 5 V del lado del puente salen de un L7805 alimentado desde los 12 V. Hace falta una tensión regulada porque el 6N137 consume 7 mA típicos con la salida en alto y 12 mA con la salida en bajo (`ICCH` e `ICCL`, [1, p. 3]), y el consumo cambia con cada flanco. Desde los 12 V el 7805 disipa `(12 − 5)·I`, y toda la cadena funciona con Vdc apagado, así que las compuertas y el tiempo muerto se revisan en el osciloscopio sin energizar el bus.
 
 ### Entrada del aislamiento
 
@@ -90,8 +161,9 @@ El retardo de la cadena, si fuera igual en los dos flancos, no cambia el tiempo 
 - 6N137. `tPLH` y `tPHL` valen 60 ns típicos y 75 ns máximos cada uno [1, p. 4]. La hoja no da la diferencia entre los dos, así que la cota es 75 ns.
 - 74HCT14. `tPHL` y `tPLH` valen 20 ns típicos y 34 ns máximos con `VCC` = 4,5 V, 50 pF de carga y 25 °C, con transiciones de 7 ns típicos y 15 ns máximos [8, p. 13]. La hoja no da la diferencia entre los dos, así que la cota es 34 ns.
 - IR2110 con `VDD` = 5 V. `ton` ronda 140 ns típicos y 170 ns máximos (Fig. 7C) y `toff` 145 ns típicos y 180 ns máximos (Fig. 8C) [4, p. 7], lecturas aproximadas de la curva. La diferencia, de 5 a 10 ns, se resta. Las dos curvas son muy empinadas cerca de 5 V, así que la tolerancia del 7805 las mueve. La diferencia entre el canal alto y el bajo es de 10 ns máximos, con `VDD` = 15 V [4, p. 3].
+- IRF520N con 10 Ω de compuerta. El cruce de Miller dura unos 16 ns al encender y 22 ns al apagar, porque la compuerta se descarga con los 5 V de la meseta y se carga con 7 V. Antes del cruce, el apagado baja la compuerta desde 12 V hasta la meseta, y el encendido solo la sube hasta el umbral, de 2 a 4 V [9, p. 2], así que el apagado es el flanco lento y la diferencia se resta. La resistencia de salida del IR2110 queda en serie con los 10 Ω y alarga los dos flancos.
 
-El PN2222A es el término más grande. La suma de todas, más la del MOSFET y un margen, fija el mínimo de `DEAD_TIME_CICLOS` (#18).
+El PN2222A es el término más grande. La suma de todas más un margen fija el mínimo de `DEAD_TIME_CICLOS` (#18).
 
 ## Referencias
 
@@ -110,3 +182,7 @@ El PN2222A es el término más grande. La suma de todas, más la del MOSFET y un
 [7] Philips Semiconductors, "PN2222A NPN switching transistor", hoja de datos, 21 may. 1999.
 
 [8] Philips Semiconductors, "74HC14; 74HCT14 Hex inverting Schmitt trigger", hoja de datos, 30 oct. 2003.
+
+[9] International Rectifier, "IRF520N HEXFET Power MOSFET", hoja de datos PD-91339A, 13 may. 1998.
+
+[10] Philips Semiconductors, "1N4148; 1N4448 High-speed diodes", hoja de datos, 25 may. 1999.
