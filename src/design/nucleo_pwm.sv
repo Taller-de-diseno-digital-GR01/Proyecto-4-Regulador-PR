@@ -1,5 +1,5 @@
 // Núcleo del periférico PWM, especificado en docs/diseño/modulos/nucleo_pwm.md
-// Por ahora tiene la portadora, el cálculo de las referencias y sus registros sombra, el resto de las etapas se agrega después
+// Por ahora llega hasta los comparadores, faltan el tiempo muerto, el control de running y pwm_trigger_o
 module nucleo_pwm #(
     // Tiempo muerto en ciclos de clk
     parameter int unsigned DEAD_TIME_CICLOS = 100,
@@ -51,6 +51,9 @@ module nucleo_pwm #(
     logic [ANCHO_PORTADORA-1:0] portadora;
     logic contando_arriba;
     logic valle;
+
+    logic comparacion_a;
+    logic comparacion_b;
 
     // Tabla de MAX según freq_sel, el código 11 usa MAX_FREQ_11
     always_comb begin
@@ -138,7 +141,11 @@ module nucleo_pwm #(
         end
     end
 
-    // Pendiente, mientras no estén las demás etapas las salidas quedan en 0 y el puente apagado
+    // Modulación unipolar, cada pierna pide su compuerta alta mientras la portadora está debajo de su referencia
+    assign comparacion_a = (portadora < ref_a_sombra);
+    assign comparacion_b = (portadora < ref_b_sombra);
+
+    // Pendiente, sin el tiempo muerto los comparadores no van a las compuertas y el puente queda apagado
     assign running = 1'b0;
     assign compuerta_a_alta = 1'b0;
     assign compuerta_a_baja = 1'b0;
