@@ -2,7 +2,7 @@
 
 Este documento junta las decisiones de diseño del regulador proporcional-resonante (PR) del lazo de corriente, con la razón de cada una. Los valores de `Vdc`, `fsw`, `L` y `R` son provisionales y están marcados como tales, porque la carga y el puente todavía no se miden. Todo lo que depende de ellos se rehace cambiando esos números, el procedimiento no cambia.
 
-Los márgenes y las curvas de error de este documento se calcularon en Python con el lazo discreto descrito en las secciones de sintonización, y cada cifra lleva sus condiciones. Los coeficientes finales los escribe `sw/generar_pr_params.py` en `pr_params.h`, y para que salgan estos falta implementar `tustin_prewarp`.
+Los márgenes y las curvas de error de este documento se calcularon en Python con el lazo discreto descrito en las secciones de sintonización, y cada cifra lleva sus condiciones. Los coeficientes finales los escribe `sw/generar_pr_params.m` en `pr_params.h`, y corre igual en Octave y en MATLAB.
 
 ## Objetivo del lazo
 
@@ -81,7 +81,7 @@ Se usa Tustin con precorrección en 50 Hz, `s = (ω0/tan(ω0T/2))(z-1)/(z+1)`. C
 - `a1 = -2·cos(θ)`
 - `a2 = 1`
 
-La estructura de cinco coeficientes de `pr_discreto` y de `generar_pr_params.py` ya soporta esto sin cambios. Falta implementar la fórmula en `coeficientes_resonante` para `tustin_prewarp`.
+La estructura de cinco coeficientes de `pr_discreto` y de `generar_pr_params.m` ya soporta esto sin cambios, y `coeficientes_resonante` implementa estas fórmulas para `tustin_prewarp`. `sw/pruebas/prueba_generar_pr_params.m` revisa que salgan los coeficientes de abajo y que el polo quede en 50 Hz después de redondear `A1`.
 
 ## Coeficientes resultantes
 
@@ -214,7 +214,6 @@ Propios.
 - Medir el retardo efectivo del lazo con el GPIO de la ISR y comparar con `1,5·Ts`.
 - Que el Timer y la portadora cuenten exactamente lo mismo (5000 ciclos a 20 kHz), y medir con el GPIO de la ISR contra `pwm_trigger_o` que la fase no deriva.
 - Fijar `PR_U_MAX`, que tiene 1,0 como tope porque `duty_ref` va en Q2.14 de -1,0 a +1,0, y baja según el tiempo muerto.
-- Implementar `tustin_prewarp` en `generar_pr_params.py`.
 
 ## Referencias
 
