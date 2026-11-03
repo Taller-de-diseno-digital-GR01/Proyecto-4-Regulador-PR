@@ -1,4 +1,3 @@
-// docs/diseño/modulos/ref_senoidal.md
 #ifndef REF_SENOIDAL_H
 #define REF_SENOIDAL_H
 
