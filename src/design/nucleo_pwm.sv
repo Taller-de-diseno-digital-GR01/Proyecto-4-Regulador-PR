@@ -1,8 +1,10 @@
 // Núcleo del periférico PWM, especificado en docs/diseño/modulos/nucleo_pwm.md
-// Por ahora llega hasta los comparadores, faltan el tiempo muerto, el control de running y pwm_trigger_o
+// Por ahora llega hasta el tiempo muerto, faltan el control de running y pwm_trigger_o
 module nucleo_pwm #(
     // Tiempo muerto en ciclos de clk
     parameter int unsigned DEAD_TIME_CICLOS = 100,
+    // Ciclos de clk con la compuerta baja encendida al arrancar, para cargar el bootstrap
+    parameter int unsigned PRECARGA_CICLOS = 100,
     // Máximo de la portadora por código de freq_sel, MAX_FREQ_00 tiene que ser el mayor
     parameter int unsigned MAX_FREQ_00 = 5000,
     parameter int unsigned MAX_FREQ_01 = 2500,
@@ -30,6 +32,18 @@ module nucleo_pwm #(
     localparam logic signed [15:0] DUTY_MIN = -16'sd16384;
     // Referencia de reinicio, la de duty_ref = 0 con MAX_FREQ_00
     localparam logic [ANCHO_PORTADORA-1:0] REF_REINICIO = ANCHO_PORTADORA'((MAX_FREQ_00 * 16384) >> 15);
+    // La cuenta la comparten PRECARGA y MUERTO, así que su ancho sale de la espera más larga
+    localparam int unsigned ESPERA_MAYOR = (DEAD_TIME_CICLOS > PRECARGA_CICLOS) ? DEAD_TIME_CICLOS : PRECARGA_CICLOS;
+    // Al menos 1 bit, porque la cuenta arranca en 1 aunque los dos parámetros valgan 0
+    localparam int unsigned ANCHO_CUENTA = (ESPERA_MAYOR > 0) ? $clog2(ESPERA_MAYOR + 1) : 1;
+
+    typedef enum logic [2:0] {
+        APAGADA,
+        PRECARGA,
+        MUERTO,
+        ALTA,
+        BAJA
+    } estado_pierna_t;
 
     logic [ANCHO_PORTADORA-1:0] max_entrada;
     logic signed [15:0] duty_sat;
@@ -54,6 +68,14 @@ module nucleo_pwm #(
 
     logic comparacion_a;
     logic comparacion_b;
+
+    // Provisional hasta la etapa 6, que lo reemplaza por la máquina de control
+    logic corriendo;
+
+    // Índice 0 es la pierna A y 1 la pierna B
+    logic [1:0] comparacion;
+    logic [1:0] alta;
+    logic [1:0] baja;
 
     // Tabla de MAX según freq_sel, el código 11 usa MAX_FREQ_11
     always_comb begin
@@ -145,12 +167,105 @@ module nucleo_pwm #(
     assign comparacion_a = (portadora < ref_a_sombra);
     assign comparacion_b = (portadora < ref_b_sombra);
 
-    // Pendiente, sin el tiempo muerto los comparadores no van a las compuertas y el puente queda apagado
+    // Pendiente, en 0 el puente queda apagado hasta que esté la máquina de control
+    always_comb corriendo = 1'b0;
+
+    assign comparacion = {comparacion_b, comparacion_a};
+
+    // Máquina de tiempo muerto, una por pierna con la misma lógica
+    for (genvar p = 0; p < 2; p++) begin : g_pierna
+        estado_pierna_t estado;
+        estado_pierna_t estado_siguiente;
+        logic [ANCHO_CUENTA-1:0] cuenta;
+        logic [ANCHO_CUENTA-1:0] cuenta_siguiente;
+        // Valor de la comparación que se espera que quede estable en MUERTO
+        logic objetivo;
+        logic objetivo_siguiente;
+        logic comparacion_pierna;
+
+        assign comparacion_pierna = comparacion[p];
+
+        always_comb begin
+            estado_siguiente = estado;
+            cuenta_siguiente = cuenta;
+            objetivo_siguiente = objetivo;
+            case (estado)
+                APAGADA: begin
+                    // La cuenta arranca en 1 para que PRECARGA dure PRECARGA_CICLOS
+                    if (corriendo) begin
+                        estado_siguiente = PRECARGA;
+                        cuenta_siguiente = ANCHO_CUENTA'(1);
+                    end
+                end
+                PRECARGA: begin
+                    // Ignora la comparación, al terminar pasa por MUERTO como cualquier otro cambio
+                    if (cuenta >= ANCHO_CUENTA'(PRECARGA_CICLOS)) begin
+                        estado_siguiente = MUERTO;
+                        cuenta_siguiente = ANCHO_CUENTA'(1);
+                        objetivo_siguiente = comparacion_pierna;
+                    end
+                    else cuenta_siguiente = cuenta + 1'b1;
+                end
+                MUERTO: begin
+                    // Si la comparación cambia antes de tiempo, la espera vuelve a empezar
+                    if (comparacion_pierna != objetivo) begin
+                        objetivo_siguiente = comparacion_pierna;
+                        cuenta_siguiente = ANCHO_CUENTA'(1);
+                    end
+                    else if (cuenta >= ANCHO_CUENTA'(DEAD_TIME_CICLOS)) begin
+                        if (objetivo) estado_siguiente = ALTA;
+                        else estado_siguiente = BAJA;
+                    end
+                    else cuenta_siguiente = cuenta + 1'b1;
+                end
+                ALTA: begin
+                    // Apagar es inmediato, solo el encendido espera
+                    if (!comparacion_pierna) begin
+                        estado_siguiente = MUERTO;
+                        cuenta_siguiente = ANCHO_CUENTA'(1);
+                        objetivo_siguiente = 1'b0;
+                    end
+                end
+                BAJA: begin
+                    if (comparacion_pierna) begin
+                        estado_siguiente = MUERTO;
+                        cuenta_siguiente = ANCHO_CUENTA'(1);
+                        objetivo_siguiente = 1'b1;
+                    end
+                end
+                default: estado_siguiente = APAGADA;
+            endcase
+            // Sin running la pierna se apaga desde cualquier estado
+            if (!corriendo) estado_siguiente = APAGADA;
+        end
+
+        // Las compuertas se calculan del estado siguiente y se registran, así salen de flip-flops sin un ciclo extra
+        always_ff @(posedge clk) begin
+            if (!rst_n) begin
+                estado <= APAGADA;
+                cuenta <= '0;
+                objetivo <= 1'b0;
+                alta[p] <= 1'b0;
+                baja[p] <= 1'b0;
+            end
+            else begin
+                estado <= estado_siguiente;
+                cuenta <= cuenta_siguiente;
+                objetivo <= objetivo_siguiente;
+                // Ningún estado enciende las dos, eso es lo que impide el solapamiento
+                alta[p] <= (estado_siguiente == ALTA);
+                baja[p] <= (estado_siguiente == BAJA) || (estado_siguiente == PRECARGA);
+            end
+        end
+    end
+
+    assign compuerta_a_alta = alta[0];
+    assign compuerta_a_baja = baja[0];
+    assign compuerta_b_alta = alta[1];
+    assign compuerta_b_baja = baja[1];
+
+    // Pendiente, etapas 6 y 7
     assign running = 1'b0;
-    assign compuerta_a_alta = 1'b0;
-    assign compuerta_a_baja = 1'b0;
-    assign compuerta_b_alta = 1'b0;
-    assign compuerta_b_baja = 1'b0;
     assign pwm_trigger_o = 1'b0;
 
 endmodule
