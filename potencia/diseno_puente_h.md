@@ -1,6 +1,6 @@
 # Diseño del puente H, decisiones y justificación
 
-Este documento reúne las decisiones de diseño del puente H de la etapa de potencia (#16) y la razón de cada una. Cubre el aislamiento entre la Basys 3 y el puente (#21), y el MOSFET, el driver y el bootstrap de las compuertas (#17).
+Este documento reúne las decisiones de diseño del puente H de la etapa de potencia (#16) y la razón de cada una. Cubre el aislamiento entre la Basys 3 y el puente (#21), el MOSFET, el driver y el bootstrap de las compuertas (#17) y el tiempo muerto (#18).
 
 ## Qué cruza el aislamiento
 
@@ -11,7 +11,7 @@ La tierra del puente es propia del lado de potencia (`nivel01.md`). Toda señal 
 
 ## Método de aislamiento
 
-Las compuertas cruzan la barrera con un VO3120 por compuerta, un optoacoplador con una etapa de salida push-pull de 2,5 A [1]. El criterio es el retardo y, sobre todo, la diferencia de retardo entre los dos flancos, que se resta del tiempo muerto. En el VO3120 `tPHL` y `tPLH` van de 0,1 a 0,4 µs, y la distorsión de ancho de pulso, `|tPHL − tPLH|`, es de 0,2 µs como máximo [1, p. 4], por debajo del tiempo muerto de 1 µs que usa hoy `nucleo_pwm.md` y muy por debajo del semiperíodo de 25 µs a 20 kHz. Pasa niveles fijos, así que sostiene la compuerta con `duty_ref` cerca de ±1 o con el puente detenido.
+Las compuertas cruzan la barrera con un VO3120 por compuerta, un optoacoplador con una etapa de salida push-pull de 2,5 A [1]. El criterio es el retardo y, sobre todo, la diferencia entre el apagado de una compuerta y el encendido de la otra, que tiene que caber en el tiempo muerto. En el VO3120 `tPHL` y `tPLH` van de 0,1 a 0,4 µs [1, p. 4], así que entre dos unidades esa diferencia llega a 0,3 µs, por debajo del tiempo muerto de 1 µs y muy por debajo del semiperíodo de 25 µs a 20 kHz. Pasa niveles fijos, así que sostiene la compuerta con `duty_ref` cerca de ±1 o con el puente detenido.
 
 Su inmunidad a modo común es de 25 kV/µs como mínimo [1, p. 5]. El nodo de cada pierna salta unos 24 V en unos 11 ns, cerca de 2 kV/µs.
 
@@ -161,16 +161,35 @@ Cada eslabón tiene que dejar la compuerta apagada cuando no recibe señal. Mien
 
 La polaridad importa porque el IR2110 maneja `HIN` y `LIN` por separado y no impide que estén en alto a la vez. Si LED apagado fuera compuerta encendida, una falla del lado de la Basys 3 encendería las cuatro compuertas y cortocircuitaría las dos piernas.
 
-## Retardo y asimetría
+## Tiempo muerto
 
-El retardo de la cadena, si fuera igual en los dos flancos, no cambia el tiempo muerto. Solo suma al retardo del lazo, que en `diseno_pr.md` se toma de hasta 2 µs. Lo que entra al tiempo muerto es la diferencia entre flancos. En cada eslabón, si apagar tarda más que encender, la diferencia se resta del tiempo muerto, y si es al revés se suma.
+Al conmutar una pierna, la FPGA baja la compuerta que se apaga en `t = 0` y sube la complementaria `TM` después, con `TM = DEAD_TIME_CICLOS · 10 ns`. Cada orden recorre su propia cadena, así que el MOSFET que se apaga deja de conducir en `t_off` y el que se enciende empieza a conducir en `TM + t_on`. Para que los dos no conduzcan a la vez,
 
-- PN2222A. El corte del transistor apaga el LED y eso apaga la compuerta, así que su flanco lento, `ts + tf`, cae en el apagado y se resta. La hoja da `ton` de 35 ns máximos (`td` de 15 ns y `tr` de 20 ns) y `toff` de 250 ns máximos (`ts` de 200 ns y `tf` de 60 ns) [7, p. 3], así que la diferencia llega a unos 215 ns. Esos tiempos se miden con `IC` = 150 mA, 15 mA de base al encender y −15 mA al apagar. En este circuito la corriente inversa de base sale solo del capacitor de aceleración, así que `ts` puede ser más largo que el de la hoja.
-- VO3120. `tPHL` y `tPLH` van de 0,1 a 0,4 µs, y la distorsión de ancho de pulso llega a 0,2 µs [1, p. 4], medidas con 10 Ω y 10 nF de carga. La hoja no dice cuál de los dos flancos es el lento, así que la cota se resta entera.
-- IR2110 con 15 V. `ton` vale 120 ns típicos y 150 ns máximos, y `toff` 94 ns típicos y 125 ns máximos [4, p. 3]. Con los típicos el encendido es 26 ns más lento que el apagado, lo que suma al tiempo muerto, pero la hoja no da mínimos y no se cuenta como margen. Entre el canal alto y el bajo hay hasta 10 ns de diferencia [4, p. 3], que se restan.
-- IRF520N con 10 Ω de compuerta. El cruce de Miller dura unos 11 ns al encender y 22 ns al apagar, porque la compuerta se descarga con los 5 V de la meseta y se carga con 10 V. Antes del cruce, el apagado baja la compuerta desde 15 V hasta la meseta, y el encendido solo la sube hasta el umbral, de 2 a 4 V [8, p. 2], así que el apagado es el flanco lento y la diferencia se resta. La resistencia de salida del IR2110 queda en serie con los 10 Ω y alarga los dos flancos.
+`TM > t_off − t_on`
 
-El PN2222A y el VO3120 son los términos más grandes. Con los cuatro eslabones la asimetría suma unos 440 ns, y esa suma más un margen fija el mínimo de `DEAD_TIME_CICLOS` (#18). El retardo total de la cadena en el flanco más lento llega a unos 0,83 µs, dentro de los 2 µs de `diseno_pr.md`.
+El retardo que comparten los dos flancos se cancela en la resta y no cambia el tiempo muerto. Solo suma al retardo del lazo, que en `diseno_pr.md` se toma de hasta 2 µs. El peor caso usa `t_off` máximo y `t_on` mínimo en cada eslabón, y cuando la hoja no da el mínimo de `t_on` se toma 0. Las dos compuertas de una pierna pasan por eslabones distintos (dos PN2222A, dos VO3120, los canales HO y LO del IR2110 y dos MOSFET), así que la diferencia se toma entre dos unidades y no dentro de una misma.
+
+- PN2222A. El corte del transistor apaga el LED y eso apaga la compuerta, así que en el apagado entra `toff`, de 250 ns máximos (`ts` de 200 ns y `tf` de 60 ns) [7, p. 3]. `ton` tiene 35 ns máximos y no tiene mínimo. Aporta 250 ns. La hoja mide estos tiempos con `IC` = 150 mA, 15 mA de base al encender y −15 mA al apagar. En este circuito la corriente inversa de base sale solo del capacitor de aceleración, así que `ts` puede ser más largo que el de la hoja.
+- VO3120. `tPHL` y `tPLH` van de 0,1 a 0,4 µs [1, p. 4], medidos con 10 Ω y 10 nF de carga. Con `tPHL` máximo en una unidad y `tPLH` mínimo en la otra aporta 0,3 µs. La distorsión de ancho de pulso, de 0,2 µs como máximo, es `|tPHL − tPLH|` dentro de una misma unidad [1, p. 4, nota 2] y no acota la diferencia entre dos. La nota 3 de esa tabla define la diferencia entre dos unidades, pero ninguna fila le da un valor.
+- IR2110 con 15 V. En una pierna se cruzan el apagado de HO con el encendido de LO, o al revés. `toff` vale 125 ns máximos y `ton` no tiene mínimo [4, p. 3], así que aporta 125 ns. El "delay matching" de 10 ns [4, p. 3] compara el mismo flanco en los dos canales y no acota esta diferencia.
+- IRF520N. Deja de conducir al final de `td(off) + tf` y empieza a conducir al final de `td(on)`, que la hoja da solo como típico, así que `t_on` se toma 0. Los tiempos de la tabla son típicos y están medidos con `RG` = 22 Ω e `ID` = 5,7 A [8, p. 2], así que para este circuito se estiman con la carga de compuerta.
+
+Para el IRF520N la resistencia de compuerta es la de 10 Ω más la salida del IR2110. `IO−` es de 2,0 A como mínimo con la salida en 15 V [4, p. 3], así que esa salida equivale como mucho a 7,5 Ω y `RG_total` queda en 17,5 Ω. Durante `td(off)` el MOSFET todavía conduce, con `VDS` = 1,3 A · 0,20 Ω ≈ 0,26 V, fuera del rango de la Fig. 5. La capacidad de entrada en esa zona sale del tramo de la Fig. 6 posterior a la meseta, de 11 a 23 nC entre unos 5 y 15 V, es decir 1,2 nF [8, p. 4], más del doble de los 520 pF que marca la Fig. 5 con 1 V. Con 1,3 A la meseta queda cerca del umbral. La Fig. 3 [8, p. 3] marca unos 4 V para esa corriente y `VGS(th)` va de 2,0 a 4,0 V [8, p. 2], así que se toma `Vp` = 2 V, el valor que más alarga el apagado. Con la compuerta descargándose como un RC desde 15 V hasta `Vp`, y después a corriente `Vp / RG_total` durante la meseta,
+
+```
+td(off) = RG_total · C · ln(VCC / Vp) = 17,5 Ω · 1,2 nF · ln(15 / 2) ≈ 42 ns
+tf ≈ Qgd · RG_total / Vp = 11 nC · 17,5 Ω / 2 V ≈ 96 ns
+```
+
+El IRF520N aporta unos 138 ns, contra los 55 ns típicos de la hoja. `Qgd` de 11 nC está medido con 80 V, y con Vdc de hasta 24 V la meseta de la Fig. 6 es más angosta, así que `tf` queda del lado seguro.
+
+```
+t_off − t_on = 250 + 300 + 125 + 138 ≈ 813 ns
+```
+
+`DEAD_TIME_CICLOS = 100`, 1 µs con el reloj de 100 MHz. El margen de 187 ns, un 23 %, cubre un `ts` del PN2222A más largo que el de la hoja y el cableado. Con ese valor el límite del bootstrap queda en 0,92 a 20 kHz.
+
+El flanco más lento de la cadena es el apagado, con unos 250 + 400 + 125 + 138 ≈ 0,91 µs entre el pin y el corte del MOSFET, dentro de los 2 µs de `diseno_pr.md`.
 
 ## Referencias
 
