@@ -80,7 +80,7 @@ La envoltura no tiene una máquina de estados propia. Su control resulta de las 
 | Instantánea de lectura de `running` | `interfaz_axi_pwm`, utilizando el estado del núcleo |
 | Saturación efectiva de la referencia | `nucleo_pwm` |
 | Portadora, comparadores y registros sombra | `nucleo_pwm` |
-| Tiempo muerto, compuertas y trigger | `nucleo_pwm` |
+| Precarga, tiempo muerto, compuertas y trigger | `nucleo_pwm` |
 | Conexiones, exposición de parámetros y frontera IP | `periferico_pwm` |
 
 Esta separación conserva el reparto del nivel 3 y evita dos versiones diferentes de la misma lógica de saturación o actualización.
@@ -101,17 +101,18 @@ El signo de `duty_ref` debe conservarse tanto en la declaración interna como al
 
 ### h.3 Parámetros expuestos por la IP
 
-| Parámetro | Valor de partida | Uso |
+| Parámetro | Valor en el Block Design | Uso |
 |---|---:|---|
-| `DEAD_TIME_CICLOS` | 100, provisional | Tiempo muerto en ciclos del reloj común |
+| `DEAD_TIME_CICLOS` | 100 | Tiempo muerto final de 1 µs a 100 MHz |
+| `PRECARGA_CICLOS` | 7000 | Precarga de los capacitores de bootstrap durante 70 µs a 100 MHz |
 | `MAX_FREQ_00` | 5000 | 10 kHz a 100 MHz |
 | `MAX_FREQ_01` | 2500 | 20 kHz a 100 MHz |
 | `MAX_FREQ_10` | 1250 | 40 kHz a 100 MHz |
 | `MAX_FREQ_11` | 2500 | Código alternativo equivalente a 20 kHz |
 
-Los valores proceden de la ficha del núcleo revisada. El tiempo muerto definitivo depende de los componentes de potencia. El mapa de esta propuesta no agrega un registro AXI para modificarlo en ejecución; se expone como parámetro de personalización de la IP, de acuerdo con el planteamiento actual.
+La [sección h.1 del Block Design](block_design.md#h1-instancias-y-configuración) fija los seis valores de la instancia. La sección [Tiempo muerto](https://github.com/Taller-de-diseno-digital-GR01/Proyecto-4-Regulador-PR/blob/08f6ac7c8c3c1e5ac408df8e93421b7c671e3ce0/potencia/diseno_puente_h.md#tiempo-muerto) justifica los 100 ciclos a partir de un peor caso de 813 ns en la cadena de compuertas, con 187 ns de margen. La sección [Precarga en el arranque](https://github.com/Taller-de-diseno-digital-GR01/Proyecto-4-Regulador-PR/blob/08f6ac7c8c3c1e5ac408df8e93421b7c671e3ce0/potencia/diseno_puente_h.md#precarga-en-el-arranque) obtiene aproximadamente 68 µs para 5τ del RC de bootstrap en el peor caso de tolerancias y fija la precarga en 70 µs. Ambos valores se pasan como parámetros al núcleo, que usa `PRECARGA_CICLOS` en el estado `PRECARGA`.
 
-La frecuencia se calcula como `f_clk/(2·MAX)`, siempre que el contador implementado tenga exactamente ese período. En el núcleo actual `MAX_FREQ_00` debe ser el mayor porque fija el ancho de portadora. Las configuraciones de prueba deben respetar esa restricción, MAX positivo y un tiempo muerto representable por los contadores. Un cambio del reloj requiere recalcular frecuencias y tiempo muerto físico.
+La frecuencia se calcula como `f_clk/(2·MAX)`, siempre que el contador implementado tenga exactamente ese período. En el núcleo actual `MAX_FREQ_00` debe ser el mayor porque fija el ancho de portadora. Las configuraciones de prueba deben respetar esa restricción y usar valores positivos de `MAX`. Un cambio del reloj requiere recalcular `MAX` y los ciclos de tiempo muerto y precarga para mantener las duraciones especificadas.
 
 ### h.4 Registros visibles y actualización
 
@@ -128,9 +129,9 @@ La orden `enable=0` se aplica en el valle siguiente según el diseño actual. El
 
 La IP se denominará `periferico_pwm`, con una interfaz esclava `S_AXI`, datos de 32 bits y direcciones locales de 4 bits. Reloj y reset se asociarán explícitamente a esa interfaz; el reset se declarará activo en bajo y el reloj nominal será 100 MHz.
 
-Se incluirán como fuentes de síntesis la envoltura, la interfaz y el núcleo. Los bancos de prueba pertenecen al grupo de simulación y no a la lógica sintetizable. Los cinco parámetros de la tabla anterior se publicarán con descripción y restricciones coherentes con el núcleo.
+Se incluirán como fuentes de síntesis la envoltura, la interfaz y el núcleo. Los bancos de prueba pertenecen al grupo de simulación y no a la lógica sintetizable. Los seis parámetros de la tabla anterior se publicarán con descripción y restricciones coherentes con el núcleo.
 
-El Address Editor asignará la base y el segmento de direcciones de la IP. El bloque debe seguir decodificando únicamente los offsets previstos, aunque Vivado asigne una ventana mayor que los ocho bytes de registros útiles.
+El Address Editor asignará una base alineada al segmento de 4 KiB, que abarca desde la base hasta `base + 0xFFF`, según la [sección h.2 del Block Design](block_design.md#h2-mapa-de-direcciones). El software usa esa base desde `xparameters.h` y accede a los registros en `0x00` y `0x04`. Como la interfaz decodifica los cuatro bits bajos del offset, los dos registros se repiten cada 16 bytes dentro del segmento.
 
 Durante la implementación se comprobará que Vivado reconoce todos los canales AXI y las asociaciones de reloj/reset. En la entrega actual se presenta este contrato de integración; no se afirma que exista ya un paquete `component.xml`, un `.xsa` o un Block Design validado.
 
@@ -138,7 +139,7 @@ Durante la implementación se comprobará que Vivado reconoce todos los canales 
 
 El banco de pruebas se conectará al nivel de `periferico_pwm`, realizará transacciones AXI y observará compuertas y trigger. Así se verificará la relación entre escrituras, estado y actuación real, además de probar por separado la interfaz.
 
-Se cubrirán las condiciones del [plan de verificación](../plan_verificacion_pwm.md), incluyendo reset, contrapresión, escrituras parciales, saturación, frecuencias, actualización en valle, no solapamiento y tiempo muerto. La simulación temporizada posterior utilizará la implementación y su SDF con un banco compatible; sus resultados corresponden a una etapa posterior.
+Se cubrirán reset, contrapresión, escrituras parciales, saturación, frecuencias, actualización en valle, no solapamiento y tiempo muerto. En cada arranque se comprobará que las dos compuertas bajas permanezcan encendidas durante los 7000 ciclos de precarga y que las altas permanezcan apagadas durante la precarga y el tiempo muerto posterior. La simulación temporizada posterior utilizará la implementación y su SDF con un banco compatible; sus resultados corresponden a una etapa posterior.
 
 ## i) Diagrama esquemático detallado del diseño
 
@@ -148,7 +149,7 @@ flowchart TD
     IF --> EN["enable interno"]
     IF --> FS["freq_sel interno"]
     IF --> DR["duty_ref interno con signo"]
-    EN --> CORE["nucleo_pwm con parámetros de portadora y tiempo muerto"]
+    EN --> CORE["nucleo_pwm con parámetros de portadora, precarga y tiempo muerto"]
     FS --> CORE
     DR --> CORE
     CORE -->|"running interno"| IF
@@ -169,7 +170,7 @@ flowchart TD
 
 Las compuertas se asignan a pines de la Basys 3 con el estándar eléctrico y polaridad acordados con la etapa de potencia. Los drivers deben ser compatibles con el nivel lógico seleccionado. No se conectan las salidas de la FPGA directamente como accionamiento de potencia de los MOSFET.
 
-Los pines concretos, la polaridad final y el valor definitivo de tiempo muerto se registran en la documentación del núcleo, integración y potencia cuando queden acordados. La adquisición analógica y su acondicionamiento pertenecen al camino XADC y quedan fuera de esta IP PWM.
+La asignación de pines está en la [sección h.7 del Block Design](block_design.md#h7-pines). La adquisición analógica y su acondicionamiento pertenecen al camino XADC.
 
 ## Referencias
 
