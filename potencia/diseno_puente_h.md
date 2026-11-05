@@ -24,9 +24,9 @@ Las cuatro llaves son MOSFET de canal N IRF520N en TO-220 [8].
 En cada pierna, con un MOSFET encendido el otro queda apagado con Vdc entre drenador y source, y el encendido lleva toda la corriente de la carga.
 
 - Tensión. Con Vdc de hasta 24 V se pide `VDS` de al menos 40 V, 1,67 veces el bus. El margen cubre el sobrepico `L·di/dt` que la inductancia parásita entre el bus y la pierna suma a Vdc al apagar, y la energía que la carga inductiva devuelve al bus en parte de cada período, que una fuente de laboratorio no absorbe y que sube la tensión de sus capacitores.
-- Corriente. El peor caso no es el 1 A pico de la referencia. La sobrecorriente la detecta el software con una muestra por período. En una falla con casi todo Vdc sobre la inductancia de la carga, la corriente sube `Vdc / L` = 24 V / 1 mH = 24 A/ms, es decir 1,2 A en los 50 µs entre muestras a 20 kHz (L de `diseno_pr.md`). Desde el umbral de 1,3 A de `supervisor_falla.md` puede llegar a unos 2,5 a 3 A antes de que el software apague las compuertas.
+- Corriente. El peor caso no es el 1 A pico de la referencia. La sobrecorriente la detecta el software, y desde que la corriente cruza el umbral de 1,3 A hasta que las compuertas quedan en bajo pasan hasta dos períodos, 100 µs a 20 kHz, uno hasta que la siguiente muestra la ve y otro hasta que el núcleo del PWM toma `enable` en el valle. Con el PR saturado en `PR_U_MAX = 0,92` la corriente sube `(0,92 · Vdc − R · I) / L`, unos 14 A/ms con 18 V, 1 mH y 2 Ω, y unos 28 A/ms con 24 V y 0,7 mH. Eso suma de 1,4 a 2,8 A en los 100 µs, así que la corriente puede llegar a entre 2,7 y 4,1 A antes de que se apaguen las compuertas (`supervisor_falla.md`).
 
-El IRF520N da 100 V, 9,7 A continuos y 38 A pulsados, con `VGS` de ±20 V como máximo [8, p. 1]. Las compuertas llegan a unos 15 V.
+El IRF520N da 100 V, 9,7 A continuos a 25 °C y 6,8 A a 100 °C, y 38 A pulsados, con `VGS` de ±20 V como máximo [8, p. 1]. Las compuertas llegan a unos 15 V.
 
 ### Pérdidas
 
