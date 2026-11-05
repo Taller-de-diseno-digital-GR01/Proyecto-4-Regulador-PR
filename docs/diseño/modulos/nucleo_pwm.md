@@ -172,7 +172,7 @@ El rizado en la carga está al doble de f_sw porque en unipolar la tensión dife
 
 El tiempo muerto dura `DEAD_TIME_CICLOS · 10 ns` a cualquier frecuencia, porque se cuenta en ciclos de `clk`. Su valor sale de los tiempos de conmutación del MOSFET y del driver.
 
-Los ciclos se cuentan desde el valle, el ciclo en que el contador vale 0. El ejemplo describe un período después de la precarga con `freq_sel = 01` y `duty_ref = 0,5`, así que `ref_a = 1875` y `ref_b = 625`. Las compuertas salen de flip-flops, así que van un ciclo detrás de la comparación, como se vio en simulación. Las latencias de `running` y `pwm_trigger_o` se confirman en el testbench.
+Los ciclos se cuentan desde el valle, el ciclo en que el contador vale 0. El ejemplo describe un período después de la precarga con `freq_sel = 01` y `duty_ref = 0,5`, así que `ref_a = 1875` y `ref_b = 625`. Las compuertas salen de flip-flops, así que van un ciclo detrás de la comparación, como se vio en simulación. `running` y `pwm_trigger_o` cambian en el ciclo 1, también según la simulación.
 
 | ciclo | evento |
 |---|---|
@@ -195,7 +195,7 @@ Los ciclos se cuentan desde el valle, el ciclo en que el contador vale 0. El eje
 
 La comparación de A queda en alto 3749 de 5000 ciclos y la de B 1249, sin contar el tiempo muerto. Con `portadora < ref` el valle y el pico pasan una sola vez por período y los demás valores dos veces, así que una comparación queda en alto `2·ref - 1` ciclos. Las dos piernas pierden el mismo ciclo, así que la diferencia sigue siendo `(ref_a - ref_b) / MAX`, el 50 % que pide `duty_ref = 0,5`. Desde el ciclo 4377 + `DEAD_TIME_CICLOS` hasta el 625 del período siguiente las dos compuertas altas están encendidas, y ese es el estado cero en que se muestrea la corriente.
 
-Al subir `enable`, `running` pasa a 1 en el ciclo 1 del valle siguiente. Las piernas salen de `APAGADA` por `PRECARGA`, con las dos compuertas bajas encendidas desde el ciclo 1 durante `PRECARGA_CICLOS`, y después pasan por `MUERTO`. A partir del ciclo `1 + PRECARGA_CICLOS + DEAD_TIME_CICLOS`, cada pierna enciende la compuerta que indique su comparación cuando esta se haya mantenido estable durante el tiempo muerto. Al bajar `enable`, el período en curso termina normal y las cuatro compuertas se apagan después del ciclo 1 del valle siguiente.
+Al subir `enable`, `running` pasa a 1 en el ciclo 1 del valle siguiente. Las piernas salen de `APAGADA` por `PRECARGA`, con las dos compuertas bajas encendidas desde el ciclo 2 durante `PRECARGA_CICLOS`, y después pasan por `MUERTO`. A partir del ciclo `2 + PRECARGA_CICLOS + DEAD_TIME_CICLOS`, cada pierna enciende la compuerta que indique su comparación cuando esta se haya mantenido estable durante el tiempo muerto. Al bajar `enable`, el período en curso termina normal y las cuatro compuertas se apagan después del ciclo 1 del valle siguiente.
 
 ### h.8) Interfaz en SystemVerilog
 
@@ -232,7 +232,6 @@ module nucleo_pwm #(
 - Tiempo mínimo de la compuerta baja en cada período. Con `duty_ref` cerca de ±1 el pulso de la baja es más corto que el tiempo muerto y desaparece, así que el capacitor de bootstrap no se recarga mientras dure la saturación [6]. Se resuelve con un `PR_U_MAX` más bajo, que deje ese tiempo mínimo, y el valor sale de la hoja del driver de Nicolás.
 - Polaridad de las compuertas, con Nicolás.
 - Instante de captura respecto al valle, con Nicolás.
-- Latencias de `running` y `pwm_trigger_o`, que se confirman en el testbench.
 - Pines de las cuatro compuertas en `basys3.xdc` y resistencia de pull-down a la entrada del aislamiento, con Nicolás.
 
 ## i) Diagrama esquemático detallado del diseño
@@ -264,7 +263,7 @@ flowchart LR
     CNT[["portadora [12:0]"]] --> SUMA["± 1"]
     DIR[["contando_arriba"]] --> SUMA
     SUMA --> CNT
-    CNT --> FIN["== max_sombra - 1 o == 1"]
+    CNT --> FIN["portadora + 1 >= max_sombra o == 1"]
     SM --> FIN
     FIN -->|"invierte"| DIR
     CNT --> VAL["== 0"]
