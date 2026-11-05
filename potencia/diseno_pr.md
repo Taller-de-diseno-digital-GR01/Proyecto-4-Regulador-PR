@@ -98,9 +98,9 @@ Con los valores provisionales y dividiendo entre `Vdc` para que la salida sea í
 
 ## Saturación y anti-windup
 
-El PR calcula un índice de modulación `u[k]` que se recorta a `±PR_U_MAX` antes de convertirlo a `duty_ref` en Q2.14. El tope absoluto es 1,0, el rango del periférico, y lo que lo baja es el tiempo muerto. A 20 kHz el máximo real es `1 - (1 + DEAD_TIME_CICLOS)/5000`, que con 100 ciclos da cerca de 0,98. Si hubo recorte, el estado que se guarda del resonante es el que habría hecho caer la suma justo en el límite, y así no acumula energía mientras el puente está saturado. La fórmula y las razones están en `pr_discreto.md`, sección h.5, que es la fuente de verdad de esa parte.
+El PR calcula un índice de modulación `u[k]` que se recorta a `±PR_U_MAX` antes de convertirlo a `duty_ref` en Q2.14. El tope absoluto es 1,0, el rango del periférico, y lo que lo baja son el tiempo muerto y el bootstrap. A 20 kHz, con `MAX = 2500`, hace falta `PR_U_MAX < 1 - (DEAD_TIME_CICLOS + 100)/MAX`, que con 100 ciclos de tiempo muerto da 0,92. Si hubo recorte, el estado que se guarda del resonante es el que habría hecho caer la suma justo en el límite, y así no acumula energía mientras el puente está saturado. La fórmula y las razones están en `pr_discreto.md`, sección h.5, que es la fuente de verdad de esa parte.
 
-Con los valores provisionales no hay saturación en régimen, porque 1,0 A pico pide un índice de 0,11 contra un tope de 0,98. Solo podría pasar con un escalón grande o con una `R` mucho mayor a la prevista.
+Con los valores provisionales no hay saturación en régimen, porque 1,0 A pico pide un índice de 0,11 contra un tope de 0,92. Solo podría pasar con un escalón grande o con una `R` mucho mayor a la prevista.
 
 ## Aliasing y filtro del sensor
 
@@ -213,7 +213,7 @@ Propios.
 
 - Medir el retardo efectivo del lazo con el GPIO de la ISR y comparar con `1,5·Ts`.
 - Que el Timer y la portadora cuenten exactamente lo mismo (5000 ciclos a 20 kHz), y medir con el GPIO de la ISR contra `pwm_trigger_o` que la fase no deriva.
-- Fijar `PR_U_MAX`, que tiene 1,0 como tope porque `duty_ref` va en Q2.14 de -1,0 a +1,0, y baja según el tiempo muerto.
+- Fijar `PR_U_MAX`, que tiene 1,0 como tope porque `duty_ref` va en Q2.14 de -1,0 a +1,0, y baja a 0,92 por el tiempo muerto y el bootstrap.
 
 ## Referencias
 
