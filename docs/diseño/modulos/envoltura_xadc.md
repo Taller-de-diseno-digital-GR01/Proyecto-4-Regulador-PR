@@ -226,15 +226,15 @@ La envoltura no tiene pines propios. La señal analógica entra por el Pmod JXAD
 ```mermaid
 flowchart LR
     SEN["acondicionamiento del sensor<br/>0 a 1 V"] -->|"señal y referencia"| JX["Pmod JXADC"]
-    JX -->|"par vauxp/vauxn"| XW["XADC Wizard"]
+    JX -->|"XA1, vauxp6 y vauxn6"| XW["XADC Wizard"]
     XW <-->|"DRP, convst, busy, eoc, channel"| ENV["envoltura_xadc"]
-    ENV <-->|"AXI4-Lite"| IC["interconexión AXI"]
+    ENV <-->|"AXI4-Lite"| IC["AXI SmartConnect"]
     PER["periferico_pwm"] -->|"pwm_trigger_o"| ENV
 ```
 
-El JXADC lleva cuatro pares, XA1 a XA4, en los pines J3 y K3, L3 y M3, M2 y M1, y N2 y N1 (positivo y negativo de cada par) [4]. El par que se usa y su entrada auxiliar se fijan en `basys3.xdc`. La entrada es unipolar de 0 a 1 V, con `VN` entre 0 y 0,5 V, como fija el bloque 7 del [nivel 2](../diagramas/nivel02.md) [1, Analog Inputs], [7, Tabla 65, p. 57].
+El JXADC lleva cuatro pares, XA1 a XA4, en los pines J3 y K3, L3 y M3, M2 y M1, y N2 y N1 (positivo y negativo de cada par) [4]. Se usa el par XA1, en J3 y K3, que en la XC7A35T es la entrada auxiliar VAUX6, y el XADC Wizard queda con canal único en VAUX6 ([`block_design`](block_design.md), h.1 y h.7). La entrada es unipolar de 0 a 1 V, con `VN` entre 0 y 0,5 V, como fija el bloque 7 del [nivel 2](../diagramas/nivel02.md) [1, Analog Inputs], [7, Tabla 65, p. 57].
 
-El negativo del par es la referencia de la medición y está del lado de la Basys 3. Con el puente aislado, el cruce de la señal del sensor por esa barrera se trata en el diseño del sensor (#30).
+El negativo del par es la referencia de la medición y está del lado de la Basys 3. Con el puente aislado, el cruce de la señal del sensor por esa barrera se trata en el diseño del sensor.
 
 ## Referencias
 
