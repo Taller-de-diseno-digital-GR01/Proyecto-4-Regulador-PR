@@ -143,7 +143,7 @@ flowchart TD
             BRAM["Block Memory Generator<br/>doble puerto"]
         end
 
-        IC["Interconexión AXI<br/>1 maestro y 6 esclavos"]
+        IC["AXI SmartConnect<br/>1 maestro y 6 esclavos"]
 
         subgraph ESC["Esclavos AXI4-Lite"]
             TMR["AXI Timer<br/>un contador"]
@@ -247,7 +247,7 @@ Tiene un solo maestro, `M_AXI_DP`, el puerto de datos para periféricos del Micr
 
 Las instrucciones y los datos de la BRAM van por LMB y no pasan por acá.
 
-La rutina periódica hace entre cinco y seis accesos AXI por iteración (depuración, reconocimiento del Timer, dato y contador del ADC en una sola lectura, `duty_ref` y depuración otra vez), así que la latencia de la interconexión cae dentro del plazo del control. Se usa la IP que coloca Connection Automation de Vivado. Con seis esclavos AXI4-Lite, tanto AXI Interconnect como SmartConnect atienden una transacción a la vez [5], [6]. Las direcciones base se asignan en el Address Editor (#15).
+La rutina periódica hace entre cinco y seis accesos AXI por iteración (depuración, reconocimiento del Timer, dato y contador del ADC en una sola lectura, `duty_ref` y depuración otra vez), así que la latencia de la interconexión cae dentro del plazo del control. Se usa un AXI SmartConnect, la IP que coloca Connection Automation de Vivado. Con seis esclavos AXI4-Lite atiende una transacción a la vez, igual que AXI Interconnect [5], [6]. Las direcciones base las asigna el Address Editor, y el mapa está en [`block_design`](../modulos/block_design.md).
 
 - Entradas, accesos de `M_AXI_DP`, respuestas de los esclavos e `interconnect_aresetn`.
 - Salidas, accesos hacia los seis esclavos y respuestas hacia el procesador.
