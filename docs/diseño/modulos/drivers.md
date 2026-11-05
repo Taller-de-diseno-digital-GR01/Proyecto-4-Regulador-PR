@@ -58,7 +58,7 @@ El periférico copia `freq_sel` y `duty_ref` a registros sombra en el valle de l
 Funciones.
 
 - `void drivers_pwm_configurar(uint32_t freq_sel)`, escribe `freq_sel` con `enable` en cero. Solo en el arranque.
-- `void drivers_pwm_habilitar(bool habilitar)`, desde el lazo principal. Lee el offset `0x00`, cambia el bit 0 y lo escribe, con las interrupciones deshabilitadas durante esas tres operaciones.
+- `void drivers_pwm_habilitar(bool habilitar)`, desde el lazo principal. Lee el offset `0x00`, cambia el bit 0 y lo escribe, dentro de la sección crítica que mantiene `control_principal` desde su última comprobación de `falla`. El driver no cambia el estado global de las interrupciones.
 - `void drivers_pwm_apagar(void)`, desde la interrupción ante falla. La misma lectura, modificación y escritura, sin deshabilitar nada porque la interrupción no se interrumpe.
 - `void drivers_pwm_escribir_duty(uint16_t duty_ref)`, una escritura al offset `0x04`. El argumento es el patrón de 16 bits en Q2.14 que devuelve `pr_discreto_calcular`, sin conversión.
 - `bool drivers_pwm_running(void)`, lee el bit 3. Sube y baja en un valle, así que se retrasa entre un ciclo de `clk` y un período completo respecto a `enable`.
@@ -105,10 +105,11 @@ La recepción no se usa, igual que en el nivel 2.
 
 ### h.5) AXI Timer e interrupción del procesador
 
-- `void drivers_timer_iniciar(uint32_t tlr)`, deja el contador 0 en modo de generación, contando hacia abajo, con recarga automática y con la interrupción habilitada, y lo arranca. El período queda en `tlr + 2` ciclos de 100 MHz.
+- `void drivers_timer_preparar(uint32_t tlr)`, configura el contador 0 en modo de generación, cuenta descendente, recarga automática e interrupción. Carga el valor inicial, limpia la interrupción pendiente y deja el contador detenido. El período queda en `tlr + 2` ciclos de 100 MHz.
+- `void drivers_timer_arrancar(void)`, habilita la cuenta del Timer ya preparado después de observar la publicación del XADC y aplicar el margen de arranque.
 - `void drivers_timer_reconocer(void)`, escribe uno en el bit de interrupción del registro de control y estado del contador 0, que es como el AXI Timer limpia la interrupción, sin tocar los demás bits.
 - `void drivers_interrupciones_iniciar(void (*rutina)(void *))`, registra la rutina con las funciones de excepciones del BSP (`xil_exception.h`) y habilita las interrupciones del procesador. No hay AXI INTC, la salida del Timer va directo a la única entrada de interrupción del MicroBlaze V. Los nombres exactos de las funciones se toman del BSP cuando esté el `.xsa`.
-- `void drivers_interrupciones_deshabilitar(void)` y `void drivers_interrupciones_habilitar(void)`, para las secciones protegidas del lazo principal.
+- `uint32_t drivers_interrupciones_guardar_y_deshabilitar(void)` devuelve el estado previo y enmascara las interrupciones. `void drivers_interrupciones_restaurar(uint32_t estado)` restaura ese estado al salir de la sección crítica.
 
 ### h.6) Prueba en la PC
 

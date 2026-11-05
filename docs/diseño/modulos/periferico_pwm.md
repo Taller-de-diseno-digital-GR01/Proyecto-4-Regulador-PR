@@ -137,6 +137,8 @@ Durante la implementación se comprobará que Vivado reconoce todos los canales 
 
 ### h.6 Estrategia de verificación
 
+El [plan de verificación del PWM](../plan_verificacion_pwm.md) detalla los estímulos, resultados esperados y pruebas de integración en FPGA.
+
 El banco de pruebas se conectará al nivel de `periferico_pwm`, realizará transacciones AXI y observará compuertas y trigger. Así se verificará la relación entre escrituras, estado y actuación real, además de probar por separado la interfaz.
 
 Se cubrirán reset, contrapresión, escrituras parciales, saturación, frecuencias, actualización en valle, no solapamiento y tiempo muerto. En cada arranque se comprobará que las dos compuertas bajas permanezcan encendidas durante los 7000 ciclos de precarga y que las altas permanezcan apagadas durante la precarga y el tiempo muerto posterior. La simulación temporizada posterior utilizará la implementación y su SDF con un banco compatible; sus resultados corresponden a una etapa posterior.

@@ -68,7 +68,7 @@ flowchart TD
 
 El programa tiene dos contextos. `lazo_control` corre dentro de la interrupción del Timer y es lo único con plazo fijo, junto con lo que llama (`ref_senoidal`, `pr_discreto`, `supervisor_falla` y la escritura en `buffer_muestras`). `control_principal` y `exportador_uart` corren en el lazo principal, que nunca bloquea y puede ser interrumpido en cualquier punto. Ningún acceso que espere a un periférico lento, como la UART, entra a la interrupción.
 
-Los dos contextos comparten pocas variables, cada una de 32 bits y declarada `volatile`, con un solo escritor. `control_principal` escribe `control_habilitado` y `amplitud_ref`, y la interrupción solo las lee. La interrupción escribe `falla` y el lazo principal solo la lee. Así ninguna necesita candado.
+Los dos contextos comparten pocas variables, cada una de 32 bits y declarada `volatile`, con un solo escritor. `control_principal` escribe `control_habilitado` y `amplitud_ref`, y la interrupción solo las lee. La interrupción escribe `falla` y el lazo principal solo la lee. La secuencia que vuelve a comprobar `falla` y escribe `enable = 1` se protege como una unidad en [control principal](../modulos/control_principal.md).
 
 ## Periférico PWM
 
@@ -247,7 +247,7 @@ Tiene un solo maestro, `M_AXI_DP`, el puerto de datos para periféricos del Micr
 
 Las instrucciones y los datos de la BRAM van por LMB y no pasan por acá.
 
-La rutina periódica hace entre cinco y seis accesos AXI por iteración (depuración, reconocimiento del Timer, dato y contador del ADC en una sola lectura, `duty_ref` y depuración otra vez), así que la latencia de la interconexión cae dentro del plazo del control. Se usa un AXI SmartConnect, la IP que coloca Connection Automation de Vivado. Con seis esclavos AXI4-Lite atiende una transacción a la vez, igual que AXI Interconnect [5], [6]. Las direcciones base las asigna el Address Editor, y el mapa está en [`block_design`](../modulos/block_design.md).
+La rutina periódica hace entre cinco y seis accesos AXI por iteración (depuración, reconocimiento del Timer, dato y contador del ADC en una sola lectura, `duty_ref` y depuración otra vez), y el presupuesto temporal del control debe incluir la latencia de la interconexión. Se usa un AXI SmartConnect, la IP que coloca Connection Automation de Vivado. Con seis esclavos AXI4-Lite atiende una transacción a la vez, igual que AXI Interconnect [5], [6]. Las direcciones base las asigna el Address Editor, y el mapa está en [`block_design`](../modulos/block_design.md).
 
 - Entradas, accesos de `M_AXI_DP`, respuestas de los esclavos e `interconnect_aresetn`.
 - Salidas, accesos hacia los seis esclavos y respuestas hacia el procesador.
@@ -267,7 +267,7 @@ El wizard queda como instancia aparte, fuera de la envoltura, para que el testbe
 
 ### Bloque 8, AXI Timer
 
-Va con un solo contador, el 0, y el Timer 2 desactivado [8]. El modo de generación, la cuenta hacia abajo, la recarga automática y la interrupción los configura `drivers` al arrancar.
+Va con un solo contador, el 0, y el Timer 2 desactivado [8]. El modo de generación, la cuenta hacia abajo, la recarga automática y la interrupción los configura `drivers` con el Timer detenido. [Control principal](../modulos/control_principal.md) arranca la cuenta después de usar una publicación del XADC como referencia de fase.
 
 Su salida de interrupción va directo a la entrada de interrupción del MicroBlaze V, configurada por nivel. La salida del Timer se queda en alto hasta que el software la limpia, y con una entrada por nivel la rutina tiene que limpiarla antes de terminar o la interrupción vuelve a dispararse [9]. `lazo_control` la reconoce en el paso 2, que se ejecuta en todas las iteraciones, también cuando no hay dato nuevo.
 
