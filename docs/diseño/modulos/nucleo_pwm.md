@@ -10,7 +10,7 @@
 flowchart LR
     CR(["clk y rst_n"]) --> NUC
     IF_IN(["interfaz_axi_pwm"]) -->|"enable, freq_sel, duty_ref"| NUC["nucleo_pwm<br/>portadora, comparadores,<br/>tiempo muerto y trigger"]
-    PAR(["DEAD_TIME_CICLOS, parameter"]) --> NUC
+    PAR(["DEAD_TIME_CICLOS y PRECARGA_CICLOS, parameter"]) --> NUC
     NUC -->|"running"| IF_OUT(["interfaz_axi_pwm"])
     NUC -->|"pwm_trigger_o"| ADC(["envoltura_xadc"])
     NUC -->|"compuerta_a_alta, compuerta_a_baja,<br/>compuerta_b_alta, compuerta_b_baja"| PH(["drivers del puente H"])
@@ -28,6 +28,7 @@ Convierte `duty_ref` en las cuatro señales de compuerta del puente H, con modul
 - `freq_sel`, `logic [1:0]`, desde `interfaz_axi_pwm` (bits [2:1] de `0x00`). Elige el `MAX` de la portadora y se copia a su registro sombra en el valle.
 - `duty_ref`, `logic signed [15:0]` en Q2.14, desde `interfaz_axi_pwm` (bits [15:0] de `0x04`). Es la tensión promedio pedida sobre la carga como fracción de Vdc, de -1 a +1 sin importar la frecuencia. Se copia a su registro sombra en el valle.
 - `DEAD_TIME_CICLOS`, `parameter`, tiempo muerto en ciclos de `clk`.
+- `PRECARGA_CICLOS`, `parameter`, ciclos de `clk` con la compuerta baja encendida al arrancar cada pierna, para cargar el capacitor de bootstrap de la alta.
 - `MAX_FREQ_00`, `MAX_FREQ_01`, `MAX_FREQ_10` y `MAX_FREQ_11`, `parameter`, el máximo de la portadora para cada código de `freq_sel`. En simulación se reemplazan por valores chicos.
 
 ## e) Salidas
@@ -64,6 +65,8 @@ El tiempo muerto va aparte en cada pierna. Cuando la comparación cambia de esta
 
 Con `running` en cero las cuatro compuertas quedan en bajo, que es también el estado después del reinicio. Como `running` solo cambia en el valle, al subir `enable` el núcleo arranca en el siguiente período completo, y al bajarlo termina el período en curso antes de apagar.
 
+Al arrancar, cada pierna enciende primero su compuerta baja durante `PRECARGA_CICLOS`, para que se cargue el capacitor de bootstrap de la alta, y después pasa por el tiempo muerto antes de seguir a su comparación. Mientras dura la precarga las dos bajas están encendidas y la carga ve 0 V.
+
 ## h) Diseño
 
 El núcleo tiene dos máquinas. Una sola de control decide si el puente conmuta, y cada pierna tiene su propia máquina de tiempo muerto. El sentido del contador de la portadora es un bit que se invierte en 0 y en `MAX`, así que no lleva diagrama. Toda la lógica corre en el flanco de subida de `clk` con reinicio síncrono, porque en las FPGA de Xilinx un reinicio síncrono aprovecha mejor los flip-flops y los DSP [1].
@@ -92,7 +95,7 @@ Después del recorte, un solo multiplicador saca las dos referencias de comparac
 
 Es lo mismo que `MAX/2 · (1 ± duty_ref)`, pero sin dividir `MAX` antes, para no perder medio ciclo cuando `MAX` es impar. `ref_b` sale de una resta, así que `ref_a + ref_b = MAX` exacto y las dos piernas no tienen errores de redondeo distintos. `16384 + duty_sat` va de 0 a 32768 y el producto más grande es 5000 · 32768, menos de 2^28, que cabe en un DSP48E1, de 25 × 18 bits [2]. Con `duty_ref = 0,5` y `MAX = 2500`, `ref_a = 2500 · 24576 >> 15 = 1875` y `ref_b = 625`.
 
-El cálculo corre en todos los ciclos en dos etapas registradas. La primera guarda `duty_sat` y el `MAX` que elige el `freq_sel` de entrada, y la segunda guarda `ref_a`, `ref_b` y ese mismo `MAX`. En el valle, `max_sombra`, `ref_a_sombra` y `ref_b_sombra` copian la salida de la segunda etapa, así que nunca se mezcla la referencia de una frecuencia con el `MAX` de otra. Lo que el software escriba uno o dos ciclos antes del valle entra en el período siguiente.
+El cálculo corre en todos los ciclos en dos etapas registradas. La primera guarda `duty_sat` y el `MAX` que elige el `freq_sel` de entrada, y la segunda guarda `ref_a`, `ref_b` y ese mismo `MAX`. En el valle, `max_sombra`, `ref_a_sombra` y `ref_b_sombra` copian la salida de la segunda etapa, así que nunca se mezcla la referencia de una frecuencia con el `MAX` de otra. Lo que el software escriba en el ciclo anterior al valle o en el valle mismo entra en el período siguiente, y desde dos ciclos antes ya alcanza a entrar en ese valle. Después del reinicio, las dos etapas y los registros sombra quedan con `MAX_FREQ_00` y `duty_ref = 0`, así que el primer período dura lo de 10 kHz aunque `freq_sel` ya esté en `01`.
 
 Como `MAX` sale de `freq_sel` dentro del núcleo, el software escribe el mismo valor a cualquier frecuencia.
 
@@ -107,25 +110,32 @@ La entrada es la comparación de la pierna, `portadora < ref_a_sombra` en A y `p
 ```mermaid
 stateDiagram-v2
     [*] --> APAGADA : rst_n = 0
-    APAGADA --> MUERTO : running = 1
+    APAGADA --> PRECARGA : running = 1
+    PRECARGA --> MUERTO : cuenta = PRECARGA_CICLOS
     MUERTO --> ALTA : cuenta = DEAD_TIME_CICLOS y objetivo = 1
     MUERTO --> BAJA : cuenta = DEAD_TIME_CICLOS y objetivo = 0
     MUERTO --> MUERTO : comparación distinta de objetivo, reinicia cuenta
     ALTA --> MUERTO : comparación = 0
     BAJA --> MUERTO : comparación = 1
+    PRECARGA --> APAGADA : running = 0
     MUERTO --> APAGADA : running = 0
     ALTA --> APAGADA : running = 0
     BAJA --> APAGADA : running = 0
 ```
 
 - `APAGADA`, las dos compuertas de la pierna en bajo mientras `running` esté en 0.
-- `MUERTO`, las dos compuertas en bajo mientras se cuenta el tiempo muerto. Al entrar, `objetivo` toma la comparación y `cuenta` vuelve a cero.
+- `PRECARGA`, compuerta baja en 1 y alta en 0 durante `PRECARGA_CICLOS` ciclos, sin mirar la comparación. Al entrar, `cuenta` arranca en 1.
+- `MUERTO`, las dos compuertas en bajo mientras se cuenta el tiempo muerto. Al entrar, `objetivo` toma la comparación y `cuenta` arranca en 1, así que dura exactamente `DEAD_TIME_CICLOS` ciclos y nunca menos de uno, aunque el parámetro valga 0.
 - `ALTA`, compuerta alta en 1 y baja en 0.
 - `BAJA`, compuerta baja en 1 y alta en 0.
 
 De `ALTA` a `BAJA`, o al revés, siempre se pasa por `MUERTO`, y no hay ningún estado con las dos compuertas en 1. Eso es lo que garantiza que no haya solapamiento. La salida a `APAGADA` es inmediata desde cualquier estado porque apagar las dos compuertas nunca causa un cortocircuito.
 
-`cuenta` tiene `$clog2(DEAD_TIME_CICLOS + 1)` bits. `DEAD_TIME_CICLOS = 100`, 1 µs, es un valor provisional con margen, sin fuente. El valor final lo fija Nicolás como parámetro de la IP en el Block Design, a partir del tiempo muerto mínimo del puente con el retardo del aislamiento. El enunciado pide tiempo muerto configurable en 4.2.2, pero el mapa de registros sugerido en 4.2.3 no tiene un registro para eso, así que se deja configurable al sintetizar. Dura `DEAD_TIME_CICLOS · 10 ns` a cualquier frecuencia, porque se cuenta en ciclos de `clk`.
+`PRECARGA` carga el capacitor de bootstrap que alimenta la compuerta alta mientras conduce la baja de la misma pierna [6]. El estado mantiene la alta apagada y sale por `MUERTO`, de modo que el arranque respeta el tiempo muerto. Las dos bajas encendidas a la vez dejan la carga en 0 V sin camino entre Vdc y tierra. Cada salida de `APAGADA` pasa por `PRECARGA` porque el capacitor puede descargarse mientras el puente está detenido.
+
+`cuenta` es la misma para `PRECARGA` y `MUERTO`, y tiene `$clog2(max(DEAD_TIME_CICLOS, PRECARGA_CICLOS) + 1)` bits, con 1 bit como mínimo. `DEAD_TIME_CICLOS = 100` fija el tiempo muerto final de 1 µs a 100 MHz, frente a un peor caso de 813 ns en la cadena de compuertas. La justificación está en la ficha de [`periferico_pwm`](periferico_pwm.md#h3-parámetros-expuestos-por-la-ip). El tiempo muerto es configurable al sintetizar y dura `DEAD_TIME_CICLOS · 10 ns` en todas las frecuencias de conmutación.
+
+`PRECARGA_CICLOS = 7000` fija 70 µs a 100 MHz para cubrir 5τ del RC de bootstrap en el peor caso de tolerancias. El [Block Design](block_design.md#h1-instancias-y-configuración) fija ambos parámetros al instanciar la IP.
 
 ### h.5) Control y running
 
@@ -137,9 +147,9 @@ stateDiagram-v2
 ```
 
 - `DETENIDO`, `running` en 0 y las dos piernas apagadas. El contador y `pwm_trigger_o` siguen corriendo.
-- `CORRIENDO`, `running` en 1 y las piernas siguen a sus comparaciones.
+- `CORRIENDO`, `running` en 1 y las piernas siguen a sus comparaciones después de la precarga.
 
-Fuera del valle la máquina no cambia de estado, aunque cambie `enable`. Por eso `running` siempre arranca y termina en un borde de período.
+Fuera del valle la máquina no cambia de estado, aunque cambie `enable`. Por eso `running` siempre arranca y termina en un borde de período. En cada arranque la carga ve 0 V durante los 70 µs de precarga, que equivalen a 0,7 períodos a 10 kHz, 1,4 a 20 kHz y 2,8 a 40 kHz.
 
 Con `running` en cero las piernas van a `APAGADA`, y `rst_n` en cero deja las dos máquinas en su estado inicial, con las cuatro compuertas en bajo. En una falla el puente sigue conmutando como mucho un período después de que el software baja `enable`. La desconexión rápida le toca a la protección por hardware de la etapa de potencia.
 
@@ -162,28 +172,30 @@ El rizado en la carga está al doble de f_sw porque en unipolar la tensión dife
 
 El tiempo muerto dura `DEAD_TIME_CICLOS · 10 ns` a cualquier frecuencia, porque se cuenta en ciclos de `clk`. Su valor sale de los tiempos de conmutación del MOSFET y del driver.
 
-El rizado en la carga está al doble de f_sw porque en unipolar la tensión diferencial tiene dos pulsos por período. La resolución es el cambio de `duty_ref` que mueve `ref_a` una cuenta. En tiempo, una cuenta siempre ensancha el pulso 20 ns, 10 ns en cada flanco, sin importar la frecuencia.
-
-Los ciclos se cuentan desde el valle, el ciclo en que el contador vale 0. El ejemplo usa `freq_sel = 01` y `duty_ref = 0,5`, así que `ref_a = 1875` y `ref_b = 625`. Las latencias de un ciclo por los registros se confirman en el testbench.
+Los ciclos se cuentan desde el valle, el ciclo en que el contador vale 0. El ejemplo describe un período después de la precarga con `freq_sel = 01` y `duty_ref = 0,5`, así que `ref_a = 1875` y `ref_b = 625`. Las compuertas salen de flip-flops, así que van un ciclo detrás de la comparación, como se vio en simulación. `running` y `pwm_trigger_o` cambian en el ciclo 1, también según la simulación.
 
 | ciclo | evento |
 |---|---|
 | 0 | El contador vale 0. |
 | 1 | `pwm_trigger_o` en 1 durante un ciclo. Los registros sombra de `freq_sel` y `duty_ref` ya tienen el valor nuevo. `running` toma `enable`. |
-| 625 | La comparación de B baja. `compuerta_b_alta` se apaga. |
-| 625 + `DEAD_TIME_CICLOS` | `compuerta_b_baja` se enciende. |
-| 1875 | La comparación de A baja. `compuerta_a_alta` se apaga. |
-| 1875 + `DEAD_TIME_CICLOS` | `compuerta_a_baja` se enciende. |
+| 625 | La comparación de B baja. |
+| 626 | `compuerta_b_alta` se apaga. |
+| 626 + `DEAD_TIME_CICLOS` | `compuerta_b_baja` se enciende. |
+| 1875 | La comparación de A baja. |
+| 1876 | `compuerta_a_alta` se apaga. |
+| 1876 + `DEAD_TIME_CICLOS` | `compuerta_a_baja` se enciende. |
 | 2500 | Pico, el contador cambia de sentido. |
-| 3125 | La comparación de A sube. `compuerta_a_baja` se apaga. |
-| 3125 + `DEAD_TIME_CICLOS` | `compuerta_a_alta` se enciende. |
-| 4375 | La comparación de B sube. `compuerta_b_baja` se apaga. |
-| 4375 + `DEAD_TIME_CICLOS` | `compuerta_b_alta` se enciende. |
+| 3126 | La comparación de A sube. |
+| 3127 | `compuerta_a_baja` se apaga. |
+| 3127 + `DEAD_TIME_CICLOS` | `compuerta_a_alta` se enciende. |
+| 4376 | La comparación de B sube. |
+| 4377 | `compuerta_b_baja` se apaga. |
+| 4377 + `DEAD_TIME_CICLOS` | `compuerta_b_alta` se enciende. |
 | 5000 | Valle siguiente, vuelve al ciclo 0. |
 
-La pierna A queda en alto 3750 de 5000 ciclos, el 75 %, y la B 1250, el 25 %, sin contar el tiempo muerto. Desde el ciclo 4375 + `DEAD_TIME_CICLOS` hasta el 625 del período siguiente las dos compuertas altas están encendidas, y ese es el estado cero en que se muestrea la corriente.
+La comparación de A queda en alto 3749 de 5000 ciclos y la de B 1249, sin contar el tiempo muerto. Con `portadora < ref` el valle y el pico pasan una sola vez por período y los demás valores dos veces, así que una comparación queda en alto `2·ref - 1` ciclos. Las dos piernas pierden el mismo ciclo, así que la diferencia sigue siendo `(ref_a - ref_b) / MAX`, el 50 % que pide `duty_ref = 0,5`. Desde el ciclo 4377 + `DEAD_TIME_CICLOS` hasta el 625 del período siguiente las dos compuertas altas están encendidas, y ese es el estado cero en que se muestrea la corriente.
 
-Al subir `enable`, `running` pasa a 1 en el ciclo 1 del valle siguiente, y las compuertas altas se encienden en el ciclo `1 + DEAD_TIME_CICLOS`, porque las piernas salen de `APAGADA` por `MUERTO`. Al bajar `enable`, el período en curso termina normal y las cuatro compuertas se apagan después del ciclo 1 del valle siguiente.
+Al subir `enable`, `running` pasa a 1 en el ciclo 1 del valle siguiente. Las piernas salen de `APAGADA` por `PRECARGA`, con las dos compuertas bajas encendidas desde el ciclo 2 durante `PRECARGA_CICLOS`, y después pasan por `MUERTO`. A partir del ciclo `2 + PRECARGA_CICLOS + DEAD_TIME_CICLOS`, cada pierna enciende la compuerta que indique su comparación cuando esta se haya mantenido estable durante el tiempo muerto. Al bajar `enable`, el período en curso termina normal y las cuatro compuertas se apagan después del ciclo 1 del valle siguiente.
 
 ### h.8) Interfaz en SystemVerilog
 
@@ -191,6 +203,8 @@ Al subir `enable`, `running` pasa a 1 en el ciclo 1 del valle siguiente, y las c
 module nucleo_pwm #(
     // Tiempo muerto en ciclos de clk
     parameter int unsigned DEAD_TIME_CICLOS = 100,
+    // Ciclos de clk con la compuerta baja encendida al arrancar, para cargar el bootstrap
+    parameter int unsigned PRECARGA_CICLOS = 7000,
     // Máximo de la portadora por código de freq_sel, MAX_FREQ_00 tiene que ser el mayor
     parameter int unsigned MAX_FREQ_00 = 5000,
     parameter int unsigned MAX_FREQ_01 = 2500,
@@ -215,15 +229,14 @@ module nucleo_pwm #(
 ### h.9) Pendientes
 
 - Pérdidas del puente a 40 kHz, que confirma Nicolás. Si el puente no aguanta, cambia `MAX_FREQ_10`.
-- `DEAD_TIME_CICLOS`, que sale del puente y del aislamiento de Nicolás. Con ese valor se le pasa a Mattio el ciclo de trabajo máximo para `PR_U_MAX`.
+- Tiempo mínimo de la compuerta baja en cada período. Con `duty_ref` cerca de ±1 el pulso de la baja es más corto que el tiempo muerto y desaparece, así que el capacitor de bootstrap no se recarga mientras dure la saturación [6]. Se resuelve con un `PR_U_MAX` más bajo, que deje ese tiempo mínimo, y el valor sale de la hoja del driver de Nicolás.
 - Polaridad de las compuertas, con Nicolás.
 - Instante de captura respecto al valle, con Nicolás.
-- Latencias de un ciclo por los registros, que se confirman en el testbench.
 - Pines de las cuatro compuertas en `basys3.xdc` y resistencia de pull-down a la entrada del aislamiento, con Nicolás.
 
 ## i) Diagrama esquemático detallado del diseño
 
-Los registros van con `[[ ]]`, la lógica combinacional con `[ ]` y las máquinas de estado con `{{ }}`. Todos los registros usan `clk` y `rst_n`, que no se dibujan. Los anchos son los de los valores por defecto y salen de los `parameter`, 13 bits para la portadora y las referencias y 7 para `cuenta`. `16384 + duty_sat` llega hasta 32768, así que entra al multiplicador con 16 bits sin signo.
+Los registros van con `[[ ]]`, la lógica combinacional con `[ ]` y las máquinas de estado con `{{ }}`. Todos los registros usan `clk` y `rst_n`, que no se dibujan. Los anchos son los de los valores por defecto y salen de los `parameter`, 13 bits para la portadora, las referencias y `cuenta`. `16384 + duty_sat` llega hasta 32768, así que entra al multiplicador con 16 bits sin signo.
 
 ### i.1) Referencias y portadora
 
@@ -250,7 +263,7 @@ flowchart LR
     CNT[["portadora [12:0]"]] --> SUMA["± 1"]
     DIR[["contando_arriba"]] --> SUMA
     SUMA --> CNT
-    CNT --> FIN["== max_sombra - 1 o == 1"]
+    CNT --> FIN["portadora + 1 >= max_sombra o == 1"]
     SM --> FIN
     FIN -->|"invierte"| DIR
     CNT --> VAL["== 0"]
@@ -270,9 +283,9 @@ flowchart LR
     PORT --> CMPB["portadora < ref_b_sombra"]
     RB(["ref_b_sombra [12:0]"]) --> CMPB
 
-    CMPA --> FSMA{{"tiempo muerto A<br/>con cuenta [6:0]"}}
+    CMPA --> FSMA{{"precarga y tiempo muerto A<br/>con cuenta [12:0]"}}
     CTRL -->|"running"| FSMA
-    CMPB --> FSMB{{"tiempo muerto B<br/>con cuenta [6:0]"}}
+    CMPB --> FSMB{{"precarga y tiempo muerto B<br/>con cuenta [12:0]"}}
     CTRL -->|"running"| FSMB
 
     FSMA --> GA[["compuerta_a_alta<br/>compuerta_a_baja"]]
@@ -309,3 +322,5 @@ Mientras la FPGA no está configurada, `rst_n` no puede mantener las compuertas 
 [4] Digilent, *Basys 3 FPGA Board Reference Manual*.
 
 [5] AMD Xilinx, *7 Series FPGAs Configuration User Guide*, UG470.
+
+[6] Texas Instruments, "Bootstrap Circuitry Selection for Half-Bridge Configurations," Application Report SLUA887.

@@ -2,7 +2,7 @@
 
 ## a) Nombre del módulo
 
-`pr_discreto`, en `sw/pr_discreto.c` y `sw/pr_discreto.h`, con los coeficientes en `sw/pr_params.h` generado por `sw/generar_pr_params.py`. Es parte del software del MicroBlaze V del [nivel 3](../diagramas/nivel03.md).
+`pr_discreto`, en `sw/pr_discreto.c` y `sw/pr_discreto.h`, con los coeficientes en `sw/pr_params.h` generado por `sw/generar_pr_params.m`. Es parte del software del MicroBlaze V del [nivel 3](../diagramas/nivel03.md).
 
 ## b) Diagrama modular
 
@@ -82,7 +82,7 @@ es decir, el valor que el resonante tendría que haber dado para que la suma cay
 
 Se probó el mecanismo en el lazo discreto de `potencia/diseno_pr.md`, con una referencia de 10 A pico durante dos períodos, que con 18 V no se puede alcanzar, y luego de vuelta a 1,0 A. Con el anti-windup la salida estuvo saturada 35 iteraciones y sin él 181. En la recuperación el error de amplitud baja a 2,7 % a los cuatro períodos contra 3,8 % sin anti-windup, y el pico de corriente después de la saturación es 2,58 A contra 2,71 A. La mejora es moderada porque la recuperación la manda el polo del resonante en lazo cerrado, de 17 ms. Falta el caso con tiempo muerto y cuantización, que es del PLECS.
 
-El periférico también satura `duty_ref`, pero el PR no debe depender de eso. Si recortara solo el periférico, el resonante seguiría integrando un error que la planta nunca va a poder seguir, y el software no sabría que se saturó. `PR_U_MAX` tiene que quedar dentro del rango admisible del periférico, que según Jefferson es de -1,0 a +1,0 igual en todas las frecuencias de `freq_sel`, así que 1,0 es el tope. Por debajo de eso lo fija el tiempo muerto, porque con el índice cerca de 1,0 un pulso queda más corto que `DEAD_TIME_CICLOS` y el puente deja de seguir. El máximo real a 20 kHz es `1 - (1 + DEAD_TIME_CICLOS) / 5000`, que con el valor provisional de 100 ciclos da cerca de 98 %.
+El periférico también satura `duty_ref`, pero el PR no debe depender de eso. Si recortara solo el periférico, el resonante seguiría integrando un error que la planta nunca va a poder seguir, y el software no sabría que se saturó. `PR_U_MAX` tiene que quedar dentro del rango admisible del periférico, que según Jefferson es de -1,0 a +1,0 igual en todas las frecuencias de `freq_sel`, así que 1,0 es el tope. Por debajo de eso lo fijan el tiempo muerto y el bootstrap. Con el índice cerca de 1,0 un pulso queda más corto que `DEAD_TIME_CICLOS` y el puente deja de seguir, y la compuerta baja tiene que conducir al menos 100 ciclos por período para recargar el capacitor de la alta. Con `MAX = 2500` a 20 kHz eso da `PR_U_MAX < 1 - (DEAD_TIME_CICLOS + 100) / MAX = 0,92`.
 
 ### h.6) Conversión a duty_ref
 
@@ -96,7 +96,7 @@ Coeficientes, estados y entradas son `valor_t`, de `sw/numerico.h`. Las multipli
 
 ### h.8) Generador de coeficientes
 
-`sw/generar_pr_params.py` recibe la estructura, las ganancias, `Vdc`, la frecuencia de muestreo y el método de discretización, y escribe `pr_params.h` con `PR_FRECUENCIA_MUESTREO_HZ`, los coeficientes `PR_KP`, `PR_B0`, `PR_B1`, `PR_B2`, `PR_A1` y `PR_A2` (los `KP`, `B0` y demás de las ecuaciones de arriba) y `PR_U_MAX`. Para retocar ganancias en el banco se cambia la entrada del script, se regenera el header y se recompila, sin tocar `pr_discreto.c`. La fórmula de `tustin_prewarp` de h.2 todavía no está implementada en `coeficientes_resonante`, y las demás combinaciones lanzan `NotImplementedError`. `PR_FRECUENCIA_MUESTREO_HZ` es la única fuente de la frecuencia de muestreo en todo el programa, porque los coeficientes solo valen para esa frecuencia, y el Timer, `ref_senoidal` y la cabecera de la exportación la toman de ahí.
+`sw/generar_pr_params.m` recibe la estructura, las ganancias, `Vdc`, la frecuencia de muestreo y el método de discretización, y escribe `pr_params.h` con `PR_FRECUENCIA_MUESTREO_HZ`, los coeficientes `PR_KP`, `PR_B0`, `PR_B1`, `PR_B2`, `PR_A1` y `PR_A2` (los `KP`, `B0` y demás de las ecuaciones de arriba) y `PR_U_MAX`. Para retocar ganancias en el banco se cambia la entrada del script, se regenera el header y se recompila, sin tocar `pr_discreto.c`. Corre igual en Octave y en MATLAB. `coeficientes_resonante` implementa la fórmula de `tustin_prewarp` de h.2 para la estructura ideal, y las demás combinaciones terminan en `error` hasta que PEDP pida alguna. `sw/pruebas/prueba_generar_pr_params.m` lo revisa contra los coeficientes de `potencia/diseno_pr.md`. `PR_FRECUENCIA_MUESTREO_HZ` es la única fuente de la frecuencia de muestreo en todo el programa, porque los coeficientes solo valen para esa frecuencia, y el Timer, `ref_senoidal` y la cabecera de la exportación la toman de ahí.
 
 ### h.9) Interfaz en C
 
@@ -106,9 +106,9 @@ Coeficientes, estados y entradas son `valor_t`, de `sw/numerico.h`. Las multipli
 ### h.10) Pendientes
 
 - `L` y `R` reales de la carga, que caracteriza Jefferson, y `Vdc` y la frecuencia de muestreo definitiva, que salen de la `f_sw` que elige Nicolás. Con ellos se repite la sintonización.
-- `PR_U_MAX`, que queda con 1,0 como tope por el rango del periférico y se fija en `1 - (1 + DEAD_TIME_CICLOS) / 5000`, con el tiempo muerto que fija Nicolás para el puente (#18) y que Jefferson implementa como `DEAD_TIME_CICLOS`. El 98 % de los 100 ciclos es provisional hasta que Nicolás cierre #18.
+- `PR_U_MAX` queda en 0,92. Nicolás cerró el tiempo muerto en #18 con `DEAD_TIME_CICLOS = 100` (813 ns de peor caso, en `potencia/diseno_puente_h.md`), y en #7 dejó el límite `PR_U_MAX < 1 - (DEAD_TIME_CICLOS + 100) / MAX`, con `MAX = 2500` a 20 kHz. Pasado `1 - DEAD_TIME_CICLOS / MAX = 0,96` el pulso alto de la pierna B desaparece, y el requisito de 100 ciclos de la baja para el bootstrap ya cubre ese caso. El valor se revisa si cambia `DEAD_TIME_CICLOS`.
 - FPU del MicroBlaze V, con Nicolás.
-- Sumar el retardo del filtro antialias (Jefferson, #29) y el del aislamiento de las compuertas (Nicolás, #21, con los retardos de subida y bajada de la hoja de datos) al `Td = 1,5 · Ts` de `potencia/diseno_pr.md` y recalcular los márgenes. Hay presupuesto de sobra. El margen de fase nominal es 79° y baja a 45° con 96 µs extra, un RC de 2 a 5 kHz deja entre 59° y 69°, y 2 µs de aislamiento dejan 78,5°. La asimetría del aislamiento no entra al `Td`, la cubre el tiempo muerto.
+- Sumar el retardo del filtro antialias (Jefferson, #29, todavía sin entregar) al `Td = 1,5 · Ts` de `potencia/diseno_pr.md` y recalcular los márgenes. Hay presupuesto de sobra. El margen de fase nominal es 79° y baja a 45° con 96 µs extra, un RC de 2 a 5 kHz deja entre 59° y 69°, y 2 µs de aislamiento dejan 78,5°. Nicolás cerró el aislamiento en #21 y #34 con un retardo de la cadena de 0,1 a 0,91 µs, dentro de esos 2 µs. La asimetría del aislamiento no entra al `Td`, la cubre el tiempo muerto.
 - Respuesta del profesor sobre la estructura ideal.
 - Completar la validación de saturación y anti-windup en el PLECS que arma Nicolás (#38), con tiempo muerto y cuantización del ADC, que el lazo discreto de `potencia/diseno_pr.md` no tiene.
 
