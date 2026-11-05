@@ -69,20 +69,19 @@ Ninguna de las dos apaga las compuertas al instante. Bajar `enable` surte efecto
 
 ### h.2) Interfaz ADC/XADC
 
-El mapa de registros lo define Nicolás en `envoltura_xadc.md`, que todavía está en blanco. Lo que `drivers` le pide a ese mapa para poder fijar las funciones de abajo es lo siguiente.
+El mapa de registros lo define Nicolás en `envoltura_xadc.md`. Hay dos registros.
 
-- Un registro de control con un bit que dispara la conversión por software y otro que elige entre ese disparo y `pwm_trigger_o`.
-- Un registro de estado con el bit de dato nuevo.
-- Un registro de datos con la cuenta de 12 bits, y que leerlo baje la bandera de dato nuevo, para que `lazo_control` haga una sola lectura por iteración. Si no, `drivers_adc_leer` tiene que reconocer aparte con una escritura.
+- `0x00`, control. El bit 0 dispara una conversión por software, se borra solo y se ignora si el bit 1 vale 1 o si ya hay una conversión en curso. El bit 1 elige la fuente, 0 software y 1 `pwm_trigger_o`, y arranca en 0.
+- `0x04`, dato, solo lectura. La muestra de 12 bits va en `[11:0]` y un contador de conversiones de 2 bits en `[13:12]`, que arranca en 0 y no se borra nunca.
 
-Con eso las funciones que necesita el resto del programa se fijan desde ya.
+No hay bandera de dato nuevo. Con bandera había que bajarla, y si la bajaba la lectura también la borraba el depurador de Vitis, mientras que si la bajaba una escritura se podía perder una conversión que terminara entre la lectura y la escritura. El contador evita las dos cosas, y la muestra y el contador salen de una sola lectura.
 
-- `bool drivers_adc_dato_nuevo(void)`, la bandera de dato nuevo.
-- `uint16_t drivers_adc_leer(void)`, la cuenta de 12 bits, de 0 a 4095, y que la lectura baje la bandera o que la baje una escritura aparte depende de cómo quede la interfaz.
-- `void drivers_adc_iniciar_por_software(void)`, para diagnóstico en el arranque.
-- `void drivers_adc_configurar(void)`, deja la conversión disparada por `pwm_trigger_o`.
+- `bool drivers_adc_dato_nuevo(void)`, lee el registro de dato una vez, guarda la muestra y el contador, y devuelve si el contador cambió respecto al de la lectura anterior. El contador de la lectura anterior arranca en 0.
+- `uint16_t drivers_adc_leer(void)`, la muestra de 12 bits, de 0 a 4095, que guardó la última llamada a `drivers_adc_dato_nuevo`. No lee el bus, así que `lazo_control` hace una sola lectura por iteración.
+- `void drivers_adc_iniciar_por_software(void)`, para diagnóstico en el arranque. Con la fuente en software, escribe el bit 0 y espera a que cambie el contador antes de pedir otra conversión.
+- `void drivers_adc_configurar(void)`, pone el bit 1 en 1 para que la conversión la dispare `pwm_trigger_o`. Lo llama `control_principal` en el arranque, antes de habilitar el control.
 
-Si el XADC entrega el resultado alineado a la izquierda en 16 bits, como hace su registro de estado, el corrimiento a 12 bits se hace acá y no en `lazo_control`.
+El corrimiento a 12 bits ya lo hace la envoltura, así que `drivers` no desplaza nada.
 
 ### h.3) AXI GPIO
 
@@ -92,7 +91,7 @@ Se necesitan tres grupos de señales que no pueden compartir registro de salida,
 - LEDs, `led[1:0]`, que escribe solo el lazo principal.
 - Salida de depuración, un bit que escribe solo la interrupción.
 
-La propuesta es una instancia de AXI GPIO de dos canales, el canal 1 como entradas y el canal 2 como LEDs, y una segunda instancia de un canal para la salida de depuración. Así cada registro de datos tiene un solo escritor. Queda por confirmar con Nicolás en el Block Design.
+La propuesta es una instancia de AXI GPIO de dos canales, el canal 1 como entradas y el canal 2 como LEDs, y una segunda instancia de un canal para la salida de depuración. Así cada registro de datos tiene un solo escritor.
 
 - `uint32_t drivers_gpio_entradas(void)`, los cuatro bits de entrada.
 - `void drivers_gpio_leds(uint32_t leds)`.
