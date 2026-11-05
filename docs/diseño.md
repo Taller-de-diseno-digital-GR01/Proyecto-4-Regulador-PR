@@ -21,6 +21,7 @@
 - [buffer_muestras](#buffer_muestras)
 - [exportador_uart](#exportador_uart)
 - [receptor_pc](#receptor_pc)
+- [Integración con la etapa de potencia](#integración-con-la-etapa-de-potencia)
 
 ---
 
@@ -3001,3 +3002,133 @@ No aplica, el módulo es un script de Python que corre en la computadora y no ti
 ## j) Diagrama completo de conexiones eléctricas del diseño
 
 No aplica, la única conexión es el cable USB entre la computadora y la Basys 3, que ya está en el nivel 1.
+
+---
+
+<!-- Fuente: potencia/diseno_puente_h.md, block_design.md, nucleo_pwm.md, envoltura_xadc.md, supervisor_falla.md y el plan de pruebas de potencia/diseno_pr.md -->
+
+# Integración con la etapa de potencia
+
+La Basys 3 y el puente H no comparten tierra. La tierra del puente es propia del lado de potencia, así que cada señal entre los dos lados cruza una barrera de aislamiento. Cruzan solo dos cosas, las cuatro compuertas de la Basys 3 hacia el puente y la medición de corriente del sensor hacia el JXADC. El dimensionamiento del puente, con las hojas de datos y los cálculos completos, está en `potencia/diseno_puente_h.md`.
+
+## Diagrama de la frontera
+
+```mermaid
+flowchart LR
+    subgraph basys["Basys 3, tierra de la Basys 3"]
+        NUC["periferico_pwm"] -->|"cuatro compuertas<br/>JA7 a JA10, LVCMOS33"| ENT["Entrada del aislamiento<br/>PN2222A y LED<br/>3,3 V de JA"]
+        NUC -->|"pwm_trigger_o"| ENV["envoltura_xadc"]
+        ENV -->|"CONVST y DRP"| XW["XADC Wizard<br/>VAUX6 unipolar"]
+        JX(["JXADC, XA1<br/>0 a 1 V"]) --> XW
+    end
+    subgraph puente["Lado del puente, tierra de potencia"]
+        OPTO["4 VO3120"] --> DRV["2 IR2110<br/>con bootstrap"]
+        DRV --> MOS["4 IRF520N<br/>puente H"]
+        MOS --> RL["Carga RL"]
+        F15(["15 V<br/>canal aparte"]) --> OPTO
+        F15 --> DRV
+        VDC(["Vdc de 12 a 24 V<br/>con límite de corriente"]) --> MOS
+    end
+    ENT -.->|"barrera óptica"| OPTO
+    RL --> SEN["Sensor de corriente<br/>y acondicionamiento"]
+    SEN -.->|"cruza la barrera"| JX
+```
+
+## Señales y alimentaciones de la frontera
+
+Del lado de la Basys 3 ([block_design](#block_design), h.7).
+
+- `compuerta_a_alta` en G3 (JA10), `compuerta_a_baja` en H2 (JA9), `compuerta_b_alta` en K2 (JA8) y `compuerta_b_baja` en H1 (JA7), en LVCMOS33 y activas en alto. Un 1 enciende el MOSFET. Salen de flip-flops del núcleo del PWM, así que no llevan glitches.
+- Los 3,3 V (pin 12) y la tierra (pin 11) de la misma fila de JA alimentan la entrada de la cadena de aislamiento. Los cuatro LED piden 60 mA como mucho, y los 3,3 V de los Pmod entregan hasta 1 A [4].
+- `vauxp6` en J3 (XA1_P) y `vauxn6` en K3 (XA1_N), la entrada auxiliar VAUX6 del XADC en modo unipolar.
+
+Del lado del puente.
+
+- 15 V de un canal aparte de la fuente de banco, con el negativo en la tierra de potencia, para la salida de los VO3120 y para `VCC` y `VDD` de los IR2110.
+- Vdc, de 12 a 24 V, de otro canal, solo para el puente.
+
+La cadena de las compuertas funciona entera con Vdc apagado, y por eso las compuertas y el tiempo muerto se revisan sin energizar el bus.
+
+## Accionamiento de las compuertas
+
+Cada compuerta tiene su propia cadena.
+
+1. El pin del Pmod, con los 200 Ω en serie de la placa [5, hoja 1], maneja la base de un PN2222A por 2,7 kΩ, con un capacitor de aceleración en paralelo y 10 kΩ entre base y emisor.
+2. El PN2222A enciende el LED del VO3120, alimentado de los 3,3 V del Pmod por 160 Ω. La corriente del LED queda entre 8,3 y 15,1 mA, dentro de los 7 a 16 mA de la hoja [1, p. 2].
+3. El VO3120 aísla y entrega en su salida 15 V o 0 V referidos a la tierra de potencia. Su inmunidad a modo común es de 25 kV/µs como mínimo [1, p. 5], contra unos 2 kV/µs del nodo de cada pierna.
+4. Un IR2110 por pierna maneja la compuerta baja y la alta. La alta se alimenta de un bootstrap con 470 nF, un 1N4148 y 22 Ω en serie [2], así que el lado del puente no necesita fuentes flotantes.
+5. Cada salida del IR2110 llega a su IRF520N por 10 Ω [3].
+
+El pin es activo en alto y LED apagado es compuerta apagada. Con esa polaridad, una falla del lado de la Basys 3 (placa apagada, cable suelto o FPGA sin configurar) deja las cuatro compuertas apagadas. Con la polaridad contraria las encendería todas y cortocircuitaría las dos piernas, porque el IR2110 maneja `HIN` y `LIN` por separado y no impide que estén en alto a la vez [2].
+
+Desde el pin hasta el MOSFET la cadena atrasa cada flanco entre 0,1 y 0,91 µs. El más lento es el apagado.
+
+## Tiempo muerto, precarga y límite de `duty_ref`
+
+Los tres valores salen del puente. Los dos primeros son parámetros de la IP del PWM fijados en el Block Design ([block_design](#block_design), h.1), y el tercero es una constante del software.
+
+- `DEAD_TIME_CICLOS = 100`, 1 µs. Para que los dos MOSFET de una pierna no conduzcan a la vez, el tiempo muerto tiene que superar `t_off − t_on` entre las dos cadenas, con `t_off` máximo y `t_on` mínimo en cada eslabón. La diferencia suma 813 ns (250 del PN2222A, 300 del VO3120, 125 del IR2110 y 138 del IRF520N), y quedan 187 ns de margen.
+- `PRECARGA_CICLOS = 7000`, 70 µs. Al pasar `running` a 1, el núcleo enciende las dos compuertas bajas para cargar los capacitores de bootstrap antes de la primera compuerta alta. Son 5τ con τ en el peor caso, 22 Ω en +5 % más 1 Ω en serie y 470 nF en +20 %. Con las dos bajas encendidas la carga ve 0 V.
+- `PR_U_MAX = 0,92`. La compuerta baja de cada pierna tiene que conducir al menos 100 ciclos por período para reponer el bootstrap, así que `duty_ref` queda bajo `1 − (DEAD_TIME_CICLOS + 100) / MAX`, que da 0,92 a 20 kHz ([pr_discreto](#pr_discreto)).
+
+## Estado de las compuertas en el arranque
+
+Las cuatro compuertas quedan apagadas desde que la Basys 3 está sin energía hasta que el operador habilita el control.
+
+- Basys 3 apagada o cable del Pmod suelto. El LED queda sin alimentación y la salida del VO3120 queda en bajo (tabla de verdad, [1, p. 2]).
+- FPGA configurándose. Los pines quedan en alta impedancia sin pull-ups, porque `PUDC_B` (E18) va a 3,3 V por 1 kΩ [5, hoja 5], [6]. Con la fuga del pin, de 15 µA como máximo [7, Tabla 3, p. 3], el pull-down de 10 kΩ deja la base en 0,25 V como mucho y el transistor no conduce.
+- Alimentación de 15 V subiendo. La salida del VO3120 se queda en bajo aunque el LED esté encendido, hasta que `VCC − VEE` pasa de 11 a 13,5 V [1, p. 2].
+- Reinicio. `peripheral_aresetn` deja el núcleo en `DETENIDO`, con las cuatro compuertas apagadas ([nucleo_pwm](#nucleo_pwm)). Cargar un programa por el MDM también reinicia el PWM, por `mb_debug_sys_rst` ([block_design](#block_design), h.4).
+- Después del arranque. `enable` queda en cero hasta el flanco de `BTN_HABILITAR`, y el control solo se habilita con `freq_sel = 01` y sin falla ([control_principal](#control_principal)).
+
+Al habilitar, lo primero que actúa es la precarga. Las compuertas altas recién se encienden cuando terminan la precarga y el tiempo muerto.
+
+## Medición de corriente y sincronización
+
+La medición tiene que llegar al JXADC referida a la tierra de la Basys 3. Si el sensor quedara referido a la tierra de potencia y su salida entrara directo al JXADC, ese cable uniría las dos tierras y anularía el aislamiento de las compuertas. Por eso el cruce de la barrera lo hace el sensor. Del lado de la Basys 3 la entrada pide lo siguiente.
+
+- Rango útil de 0 a 1 V entre `vauxp6` y `vauxn6`, con `vauxn6` entre 0 y 0,5 V [7, Tabla 65, p. 57]. `vauxn6` va a la tierra de la Basys 3, y la corriente alterna se representa con un offset dentro de ese rango.
+- La entrada se mantiene entre −0,1 V y `VCCADC` (1,8 V) para no corromper la conversión de los otros canales [7, Tabla 65, p. 57], y nunca baja de −0,4 V ni pasa de `VCCO + 0,55 V`, 3,85 V, los límites absolutos del pin [7, Tabla 1, p. 1].
+- La ganancia y el offset reales del acondicionamiento se miden y quedan en `calib.h`, que [lazo_control](#lazo_control) usa para pasar de cuentas a amperes.
+
+`pwm_trigger_o` pulsa en cada valle de la portadora, con el puente encendido o apagado, y la envoltura sube `CONVST` 20 ns después ([envoltura_xadc](#envoltura_xadc), h.4). En el valle las dos piernas están en el mismo estado y la corriente pasa por su valor promedio, así que la muestra no ve el rizado. Como la cadena de compuertas atrasa la conmutación entre 0,1 y 0,91 µs, vista desde la corriente la captura se adelanta ese tiempo a su valle. Con ese adelanto el error de amplitud de la fundamental queda entre −0,01 % y −0,17 % en la simulación del lazo de `potencia/diseno_pr.md`, y la captura no lleva retardo.
+
+El AXI Timer cuenta los mismos 5000 ciclos que la portadora a 20 kHz y arranca alineado con una conversión del XADC ([control_principal](#control_principal), h.6). Así cada interrupción encuentra una muestra nueva.
+
+## Limitación de corriente y desconexión ante falla
+
+La corriente queda limitada en dos niveles.
+
+- La fuente de Vdc trabaja con su límite de corriente activo en todas las pruebas energizadas, y la primera energización es con 12 V.
+- El software declara falla en la misma iteración en que la muestra pasa del umbral de sobrecorriente de 1,3 A, sale de la escala útil del ADC o falta más de `ITERACIONES_SIN_DATO_MAX` iteraciones seguidas ([supervisor_falla](#supervisor_falla)). La rutina del Timer escribe `enable = 0`, `control_principal` enciende el LED de falla y deja de aceptar `BTN_HABILITAR`, y la falla queda enclavada hasta `BTN_RST`.
+
+Desde que la corriente cruza el umbral hasta que las compuertas quedan apagadas pasan hasta dos períodos, 100 µs a 20 kHz. Uno es la espera a la siguiente muestra y el otro la espera al valle en que el núcleo toma `enable`. Con el PR saturado en 0,92 la corriente sube entre 14 y 28 A/ms según Vdc, R y L, y llega a entre 2,7 y 4,1 A antes del corte. El IRF520N da 9,7 A continuos a 25 °C, 6,8 A a 100 °C y 38 A pulsados [3, p. 1], así que el puente aguanta ese pico.
+
+Para cortar a mano hay dos caminos que no dependen del programa. `BTN_RST` deja el núcleo en `DETENIDO`, y la salida de Vdc se apaga en la fuente.
+
+## Orden de integración
+
+La integración con el puente sigue el plan de pruebas de `potencia/diseno_pr.md`, en pasos que descartan una causa antes de sumar la siguiente. Se energiza primero la Basys 3, programada y con `enable` en cero, después los 15 V y al final Vdc. Se apaga en el orden inverso.
+
+1. Potencia desenergizada, con los 15 V encendidos y Vdc apagado. En el osciloscopio, y con capturas, se revisan las cuatro compuertas en las patas de los MOSFET, la precarga al habilitar y las tres frecuencias de `freq_sel`. En cada pierna, el hueco entre la bajada de una compuerta y la subida de la otra tiene que quedar sobre los 138 ns que tarda en apagarse el IRF520N, con margen, y si no alcanza se sube `DEAD_TIME_CICLOS`. Se mide el retardo de cada flanco de la cadena, que entra en el retardo del lazo. La falla se prueba con un umbral bajo, para ver que baja `enable`, enciende el LED y no se rearma sola. Con 0 A en la carga, el ADC tiene que dar el offset del acondicionamiento.
+2. Vdc en 12 V con el límite de corriente bajo, en lazo abierto con un `duty_ref` senoidal fijo de 50 Hz y sin PR, desde 0,2 A. La amplitud y el desfase de la corriente confirman la ganancia y el signo del sensor y los valores de R y L.
+3. Solo la parte proporcional del PR, con `Kr = 0`.
+4. PR completo con 0,2, 0,5 y 1,0 A pico, los cambios de amplitud con `SW[1:0]` y el cambio de carga de al menos 25 %. Vdc sube a 18 V cuando el paso anterior sale bien.
+
+La salida de depuración en JB1 acompaña todos los pasos, para medir el período y el jitter del lazo con la potencia conectada. En cada sesión energizada los roles quedan fijos y anotados. Una persona se encarga de la seguridad, con la salida de Vdc al alcance, otra opera la fuente y otra toma los datos.
+
+## Referencias
+
+[1] Vishay Semiconductors, "VO3120 2.5 A Output Current IGBT and MOSFET Driver", hoja de datos 81314 rev. 1.5, 9 dic. 2025.
+
+[2] International Rectifier, "IR2110(-1-2)(S)PbF/IR2113(-1-2)(S)PbF High and Low Side Driver", hoja de datos PD60147 rev. U.
+
+[3] International Rectifier, "IRF520N HEXFET Power MOSFET", hoja de datos PD-91339A, 13 may. 1998.
+
+[4] Digilent, "Basys 3 Reference Manual", sección de los puertos Pmod. <https://digilent.com/reference/programmable-logic/basys-3/reference-manual>
+
+[5] Digilent, "Basys 3", esquemático, documento 500-183, rev. D.1, 2021.
+
+[6] AMD Xilinx, "7 Series FPGAs Configuration User Guide", UG470.
+
+[7] AMD, "Artix 7 FPGAs Data Sheet: DC and AC Switching Characteristics", DS181 v1.27.1, 3 jul. 2024.
