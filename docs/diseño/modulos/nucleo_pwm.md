@@ -38,7 +38,7 @@ Convierte `duty_ref` en las cuatro señales de compuerta del puente H, con modul
 - `running`, `logic`, hacia `interfaz_axi_pwm`, que lo expone en el bit 3 de `0x00`. Vale 1 mientras las compuertas conmutan y cambia en el borde del período, no cuando cambia `enable`.
 - `pwm_trigger_o`, `logic`, pulso de un ciclo de `clk` en el valle hacia `envoltura_xadc`. En el valle las dos piernas están en el mismo estado y la corriente pasa por su valor promedio.
 
-Todas las salidas salen directo de flip-flops, sin lógica combinacional después, para que no lleven glitches. Las compuertas son activas en alto, con 1 para el transistor encendido. Esa polaridad se confirma con Nicolás cuando elija el driver y el aislamiento.
+Todas las salidas salen directo de flip-flops, sin lógica combinacional después, para que no lleven glitches. Las compuertas son activas en alto, con 1 para el transistor encendido, como pide la cadena de aislamiento de `potencia/diseno_puente_h.md`.
 
 ## f) Explicación de la relación con otros módulos
 
@@ -101,7 +101,7 @@ Como `MAX` sale de `freq_sel` dentro del núcleo, el software escribe el mismo v
 
 ### h.3) Comparadores y extremos
 
-Las comparaciones son `portadora < ref_a_sombra` para A y `portadora < ref_b_sombra` para B. En los extremos aparecen pulsos más cortos que el tiempo muerto. Con `duty_ref = +1`, `ref_a = MAX` y la comparación de A cae a 0 solo en el ciclo del pico. La máquina de la pierna apaga la compuerta alta en ese ciclo y la vuelve a encender `DEAD_TIME_CICLOS` ciclos después, así que el ciclo de trabajo máximo real es `1 - (1 + DEAD_TIME_CICLOS) / (2·MAX)`, cerca de 98 % a 20 kHz con el tiempo muerto por defecto. Cualquier pulso más corto que el tiempo muerto desaparece, que es el efecto del tiempo de bloqueo en inversores PWM [3]. Ese máximo es el que fija `PR_U_MAX` en [`pr_discreto`](pr_discreto.md).
+Las comparaciones son `portadora < ref_a_sombra` para A y `portadora < ref_b_sombra` para B. En los extremos aparecen pulsos más cortos que el tiempo muerto. Con `duty_ref = +1`, `ref_a = MAX` y la comparación de A cae a 0 solo en el ciclo del pico. La máquina de la pierna apaga la compuerta alta en ese ciclo y la vuelve a encender `DEAD_TIME_CICLOS` ciclos después, así que el ciclo de trabajo máximo real es `1 - (1 + DEAD_TIME_CICLOS) / (2·MAX)`, cerca de 98 % a 20 kHz con el tiempo muerto por defecto. Cualquier pulso más corto que el tiempo muerto desaparece, que es el efecto del tiempo de bloqueo en inversores PWM [3]. Antes de ese límite está el del bootstrap. La compuerta baja de cada pierna tiene que conducir al menos 100 ciclos por período para recargar el capacitor de la alta [6], así que [`pr_discreto`](pr_discreto.md) recorta su salida a `PR_U_MAX = 0,92`, que sale de `1 - (DEAD_TIME_CICLOS + 100) / MAX` con `MAX = 2500`. Con 0,92, `ref_a = 2400` y la comparación de A queda en bajo 201 ciclos por período, que con el tiempo muerto dejan 101 ciclos de compuerta baja.
 
 ### h.4) Tiempo muerto
 
@@ -229,10 +229,7 @@ module nucleo_pwm #(
 ### h.9) Pendientes
 
 - Pérdidas del puente a 40 kHz, que confirma Nicolás. Si el puente no aguanta, cambia `MAX_FREQ_10`.
-- Tiempo mínimo de la compuerta baja en cada período. Con `duty_ref` cerca de ±1 el pulso de la baja es más corto que el tiempo muerto y desaparece, así que el capacitor de bootstrap no se recarga mientras dure la saturación [6]. Se resuelve con un `PR_U_MAX` más bajo, que deje ese tiempo mínimo, y el valor sale de la hoja del driver de Nicolás.
-- Polaridad de las compuertas, con Nicolás.
 - Instante de captura respecto al valle, con Nicolás.
-- Pines de las cuatro compuertas en `basys3.xdc` y resistencia de pull-down a la entrada del aislamiento, con Nicolás.
 
 ## i) Diagrama esquemático detallado del diseño
 
@@ -296,20 +293,25 @@ Las compuertas son registros a la salida de cada máquina, así que salen de fli
 
 ## j) Diagrama completo de conexiones eléctricas del diseño
 
-El núcleo no tiene pines propios. Sus cuatro compuertas salen por los puertos de `periferico_pwm`, pasan a puertos externos del Block Design y llegan a un conector Pmod de la Basys 3 según `basys3.xdc`, que escribe Nicolás. `pwm_trigger_o`, `running` y las entradas no salen de la FPGA.
+El núcleo no tiene pines propios. Sus cuatro compuertas salen por los puertos de `periferico_pwm`, pasan a puertos externos del Block Design y llegan al conector JA de la Basys 3 según `basys3.xdc`, con los pines que fija [`block_design`](block_design.md). `pwm_trigger_o`, `running` y las entradas no salen de la FPGA.
 
 ```mermaid
 flowchart LR
     NUC["nucleo_pwm"] -->|"4 compuertas"| PER["periferico_pwm"]
     PER -->|"puertos externos"| BD["Block Design"]
-    BD -->|"basys3.xdc, LVCMOS33"| PMOD["conector Pmod"]
-    PMOD -->|"compuertas y GND"| AIS["aislamiento"]
+    BD -->|"basys3.xdc, LVCMOS33"| PMOD["JA7 a JA10"]
+    PMOD -->|"compuertas, 3,3 V y GND"| AIS["aislamiento"]
     AIS --> DRV["drivers del puente H"]
 ```
 
-Las cuatro compuertas van en un mismo conector Pmod, junto a uno de sus pines de GND como retorno hacia el aislamiento. Los bancos de la Basys 3 que llegan a los Pmod trabajan a 3,3 V, así que el estándar es `LVCMOS33` [4]. Los pines exactos los fija Nicolás en `basys3.xdc`.
+Las cuatro compuertas van en la fila de abajo de JA, junto al GND (pin 11) y los 3,3 V (pin 12) que también llegan a la cadena de aislamiento. Los bancos de la Basys 3 que llegan a los Pmod trabajan a 3,3 V, así que el estándar es `LVCMOS33` [4].
 
-Mientras la FPGA no está configurada, `rst_n` no puede mantener las compuertas en bajo. Durante la configuración, los pines pueden quedar con pull-up según `PUDC_B` [5], y un 1 en una compuerta activa en alto enciende el transistor. Por eso conviene que la entrada del aislamiento o del driver tenga una resistencia de pull-down, para que las compuertas queden apagadas también con la FPGA sin configurar o con el cable suelto. Se acuerda con Nicolás junto con la polaridad.
+- `compuerta_a_alta` en G3 (JA10).
+- `compuerta_a_baja` en H2 (JA9).
+- `compuerta_b_alta` en K2 (JA8).
+- `compuerta_b_baja` en H1 (JA7).
+
+Mientras la FPGA no está configurada, `rst_n` no puede mantener las compuertas en bajo. En la Basys 3 `PUDC_B` va a 3,3 V, así que durante la configuración los pines quedan en alta impedancia sin pull-ups [5]. La cadena de aislamiento lleva un pull-down de 10 kΩ en la base del transistor que maneja el LED de cada VO3120, así que con la FPGA sin configurar, con el cable suelto o con la Basys 3 apagada el LED queda apagado y la compuerta también. El detalle está en `potencia/diseno_puente_h.md`.
 
 ## Referencias
 
