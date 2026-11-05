@@ -3,7 +3,7 @@ module nucleo_pwm #(
     // Tiempo muerto en ciclos de clk
     parameter int unsigned DEAD_TIME_CICLOS = 100,
     // Ciclos de clk con la compuerta baja encendida al arrancar, para cargar el bootstrap
-    parameter int unsigned PRECARGA_CICLOS = 100,
+    parameter int unsigned PRECARGA_CICLOS = 7000,
     // Máximo de la portadora por código de freq_sel, MAX_FREQ_00 tiene que ser el mayor
     parameter int unsigned MAX_FREQ_00 = 5000,
     parameter int unsigned MAX_FREQ_01 = 2500,
