@@ -23,7 +23,7 @@ Arranca el sistema en un orden seguro y después atiende todo lo que no tiene pl
 
 ## d) Entradas
 
-- `BTN_HABILITAR` y `BTN_EXPORTAR`, ya filtrados por el bloque 11 del nivel 2, leídos por [`drivers`](drivers.md) desde el AXI GPIO.
+- `BTN_HABILITAR` y `BTN_EXPORTAR`, ya filtrados por el bloque 10 del nivel 2, leídos por [`drivers`](drivers.md) desde el AXI GPIO.
 - `SW[1:0]`, la selección de la amplitud de la referencia, también por `drivers`.
 - `falla`, desde [`lazo_control`](lazo_control.md).
 - Si hay una exportación en curso, desde [`exportador_uart`](exportador_uart.md).
@@ -112,7 +112,7 @@ Los switches son `SW0` y `SW1` de la Basys 3.
 
 ### h.4) Detección de flancos
 
-Se guarda la lectura de los botones de la vuelta anterior, y el flanco de subida es `actual & ~anterior`. El antirrebote ya viene resuelto por el bloque 11, así que una pulsación da un solo flanco. Como el lazo principal da miles de vueltas por segundo, no hay forma de perder una pulsación humana.
+Se guarda la lectura de los botones de la vuelta anterior, y el flanco de subida es `actual & ~anterior`. El antirrebote ya viene resuelto por el bloque 10, así que una pulsación da un solo flanco. Como el lazo principal da miles de vueltas por segundo, no hay forma de perder una pulsación humana.
 
 ### h.5) Cambio de `freq_sel`
 
@@ -126,7 +126,7 @@ El lazo cerrado corre solo a 20 kHz, que es `freq_sel = 01`, y el Timer no cambi
 - `FREQ_SEL_INICIAL` vale `01`, que en la tabla de `nucleo_pwm.md` es 20 kHz y coincide con los 20 kHz de `PR_FRECUENCIA_MUESTREO_HZ`. Si Jefferson y Nicolás cambian las frecuencias de la tabla, este código se cambia con ellas.
 - El período del Timer en ciclos sale de `PR_FRECUENCIA_MUESTREO_HZ`. Con el AXI Timer contando hacia abajo y recarga automática, el período es `TLR + 2` ciclos, así que `TLR = 100 MHz / PR_FRECUENCIA_MUESTREO_HZ - 2`. Con los 20 kHz de partida da `100 MHz / 20 kHz - 2 = 4998`, división exacta. La portadora del PWM a 20 kHz dura `2 · MAX = 5000` ciclos según `nucleo_pwm.md`, y el Timer tiene que quedar en exactamente esos 5000. Los dos cuentan el mismo reloj pero no están amarrados, así que si el período difiere aunque sea un ciclo el desfase entre la interrupción y el valle se corre, y cada tanto la interrupción lee dos veces la misma muestra o se salta una. El valor del desfase depende del orden de arranque, por eso conviene medirlo para el retardo del análisis de estabilidad. Falta medirlo con el GPIO de la interrupción contra `pwm_trigger_o`, y repetir la cuenta si cambia la frecuencia.
 
-Lo que se busca es que la interrupción caiga después de que termine la conversión del XADC, del orden de 1 µs desde el disparo según el divisor del reloj del XADC (a confirmar con Nicolás y Jefferson en #34), y con tiempo de sobra antes del siguiente valle. Cualquier desfase fijo en ese rango sirve. Lo que no sirve es que se mueva. La prueba es ver en el osciloscopio el flanco de subida del GPIO de la interrupción contra `pwm_trigger_o` durante unos minutos, y si la distancia deriva, el Timer y la portadora no están contando lo mismo.
+Lo que se busca es que la interrupción caiga después de que termine la conversión del XADC, del orden de 1 µs desde el disparo, unos 1,1 µs con el divisor 4 según `envoltura_xadc.md`, y con tiempo de sobra antes del siguiente valle. Cualquier desfase fijo en ese rango sirve. Lo que no sirve es que se mueva. La prueba es ver en el osciloscopio el flanco de subida del GPIO de la interrupción contra `pwm_trigger_o` durante unos minutos, y si la distancia deriva, el Timer y la portadora no están contando lo mismo.
 
 ## i) Diagrama esquemático detallado del diseño
 
