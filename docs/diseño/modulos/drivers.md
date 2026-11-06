@@ -1,0 +1,124 @@
+# drivers
+
+## a) Nombre del módulo
+
+`drivers`, en `sw/drivers.c` y `sw/drivers.h`. Es la capa de acceso a periféricos del software del MicroBlaze V del [nivel 3](../diagramas/nivel03.md).
+
+## b) Diagrama modular
+
+```mermaid
+flowchart LR
+    CP(["control_principal"]) -->|"llamadas"| DRV["drivers<br/>única capa que toca registros"]
+    LC(["lazo_control"]) -->|"llamadas"| DRV
+    EXP(["exportador_uart"]) -->|"llamadas"| DRV
+    XP(["xparameters.h"]) -->|"direcciones base"| DRV
+    DRV <-->|"AXI4-Lite"| PWM(["periférico PWM"])
+    DRV <-->|"AXI4-Lite"| ADC(["interfaz ADC/XADC"])
+    DRV <-->|"AXI4-Lite"| GPIO(["AXI GPIO"])
+    DRV <-->|"AXI4-Lite"| UART(["AXI UART Lite"])
+    DRV <-->|"AXI4-Lite"| TMR(["AXI Timer"])
+```
+
+## c) Objetivo del módulo
+
+Concentra todos los accesos a registros de periféricos, de modo que ningún otro módulo conozca una dirección, un offset o un bit de un registro.
+
+## d) Entradas
+
+- Las llamadas de [`control_principal`](control_principal.md), [`lazo_control`](lazo_control.md) y [`exportador_uart`](exportador_uart.md).
+- Las direcciones base de `xparameters.h`, que Vitis genera a partir del `.xsa` y del Address Editor.
+- Las lecturas por AXI4-Lite de cada periférico.
+
+## e) Salidas
+
+- Las escrituras por AXI4-Lite al PWM, al ADC, al GPIO, a la UART y al Timer.
+- Los datos y estados leídos, hacia el módulo que llamó.
+
+## f) Explicación de la relación con otros módulos
+
+Lo usan los dos contextos de ejecución. `control_principal` lo usa para arrancar y para los botones, los switches, los LEDs y `enable`. `lazo_control` lo usa para el ADC, `duty_ref`, el reconocimiento del Timer, el apagado ante falla y la salida de depuración. `exportador_uart` lo usa solo para mandar bytes. Ninguna función que use la interrupción espera a un periférico.
+
+## g) Explicación de funcionamiento
+
+Para el Timer, el GPIO y la UART Lite se apoya en los drivers de Xilinx que genera Vitis (`XTmrCtr`, `XGpio`, `XUartLite`) para la inicialización, y en sus macros de acceso a registros para lo que corre en la interrupción. Para el PWM y la interfaz del ADC, que son propios, son funciones cortas sobre `Xil_In32` y `Xil_Out32` con los offsets de cada mapa de registros.
+
+En el flujo de Vitis 2025.1 los drivers de Xilinx se inicializan con la dirección base del periférico y no con un número de dispositivo. Los nombres exactos de las macros de `xparameters.h` se toman del archivo generado cuando esté el `.xsa`.
+
+## h) Diseño
+
+### h.1) Periférico PWM
+
+Mapa de la sección 4.2.3 del enunciado.
+
+- Offset `0x00`, control y estado. Bit 0 `enable`, bits `[2:1]` `freq_sel`, bit 3 `running` de solo lectura.
+- Offset `0x04`, `duty_ref` en `[15:0]`, en Q2.14 con signo en complemento a dos, de -16384 (-1,0) a 16384 (1,0). Lo que pase de esos límites lo satura el periférico.
+
+El periférico copia `freq_sel` y `duty_ref` a registros sombra en el valle de la portadora y `running` toma el valor de `enable` en ese mismo instante, según `nucleo_pwm.md`. Lo que el software escribe a mitad de período rige desde el valle siguiente.
+
+Funciones.
+
+- `void drivers_pwm_configurar(uint32_t freq_sel)`, escribe `freq_sel` con `enable` en cero. Solo en el arranque.
+- `void drivers_pwm_habilitar(bool habilitar)`, desde el lazo principal. Lee el offset `0x00`, cambia el bit 0 y lo escribe, dentro de la sección crítica que mantiene `control_principal` desde su última comprobación de `falla`. El driver no cambia el estado global de las interrupciones.
+- `void drivers_pwm_apagar(void)`, desde la interrupción ante falla. La misma lectura, modificación y escritura, sin deshabilitar nada porque la interrupción no se interrumpe.
+- `void drivers_pwm_escribir_duty(uint16_t duty_ref)`, una escritura al offset `0x04`. El argumento es el patrón de 16 bits en Q2.14 que devuelve `pr_discreto_calcular`, sin conversión.
+- `bool drivers_pwm_running(void)`, lee el bit 3. Sube y baja en un valle, así que se retrasa entre un ciclo de `clk` y un período completo respecto a `enable`.
+
+Hacen falta dos versiones del apagado porque la del lazo principal tiene que protegerse de la interrupción y la de la interrupción no puede tocar la habilitación global de interrupciones, ya que al salir la volvería a dejar en uno a destiempo.
+
+Ninguna de las dos apaga las compuertas al instante. Bajar `enable` surte efecto en el valle siguiente, y no hay otra escritura que lo adelante, porque `duty_ref` también espera al valle. Desde la escritura hasta que las compuertas quedan en bajo pasa hasta un período de portadora, 50 µs a 20 kHz.
+
+### h.2) Interfaz ADC/XADC
+
+El mapa de registros lo define Nicolás en `envoltura_xadc.md`. Hay dos registros.
+
+- `0x00`, control. El bit 0 dispara una conversión por software, se borra solo y se ignora si el bit 1 vale 1 o si ya hay una conversión en curso. El bit 1 elige la fuente, 0 software y 1 `pwm_trigger_o`, y arranca en 0.
+- `0x04`, dato, solo lectura. La muestra de 12 bits va en `[11:0]` y un contador de conversiones de 2 bits en `[13:12]`, que arranca en 0 y no se borra nunca.
+
+No hay bandera de dato nuevo. Con bandera había que bajarla, y si la bajaba la lectura también la borraba el depurador de Vitis, mientras que si la bajaba una escritura se podía perder una conversión que terminara entre la lectura y la escritura. El contador evita las dos cosas, y la muestra y el contador salen de una sola lectura.
+
+- `bool drivers_adc_dato_nuevo(void)`, lee el registro de dato una vez, guarda la muestra y el contador, y devuelve si el contador cambió respecto al de la lectura anterior. El contador de la lectura anterior arranca en 0.
+- `uint16_t drivers_adc_leer(void)`, la muestra de 12 bits, de 0 a 4095, que guardó la última llamada a `drivers_adc_dato_nuevo`. No lee el bus, así que `lazo_control` hace una sola lectura por iteración.
+- `void drivers_adc_iniciar_por_software(void)`, para diagnóstico en el arranque. Con la fuente en software, escribe el bit 0 y espera a que cambie el contador antes de pedir otra conversión.
+- `void drivers_adc_configurar(void)`, pone el bit 1 en 1 para que la conversión la dispare `pwm_trigger_o`. Lo llama `control_principal` en el arranque, antes de habilitar el control.
+
+El corrimiento a 12 bits ya lo hace la envoltura, así que `drivers` no desplaza nada.
+
+### h.3) AXI GPIO
+
+Se necesitan tres grupos de señales que no pueden compartir registro de salida, por la regla de `lazo_control`.
+
+- Entradas, `BTN_HABILITAR` en el bit 0, `BTN_EXPORTAR` en el 1 y `SW[1:0]` en los bits 3 y 2.
+- LEDs, `led[1:0]`, que escribe solo el lazo principal.
+- Salida de depuración, un bit que escribe solo la interrupción.
+
+La propuesta es una instancia de AXI GPIO de dos canales, el canal 1 como entradas y el canal 2 como LEDs, y una segunda instancia de un canal para la salida de depuración. Así cada registro de datos tiene un solo escritor.
+
+- `uint32_t drivers_gpio_entradas(void)`, los cuatro bits de entrada.
+- `void drivers_gpio_leds(uint32_t leds)`.
+- `void drivers_depuracion(bool nivel)`, una escritura al registro de datos de la segunda instancia, sin leer antes.
+
+### h.4) AXI UART Lite
+
+- `bool drivers_uart_enviar(uint8_t byte)`. Lee el registro de estado y, si el bit de FIFO de transmisión llena está en cero, escribe el byte en el registro de transmisión y devuelve uno. Si la FIFO está llena devuelve cero sin escribir. No se usa `XUartLite_SendByte` porque espera activamente a que haya espacio.
+
+La recepción no se usa, igual que en el nivel 2.
+
+### h.5) AXI Timer e interrupción del procesador
+
+- `void drivers_timer_preparar(uint32_t tlr)`, configura el contador 0 en modo de generación, cuenta descendente, recarga automática e interrupción. Carga el valor inicial, limpia la interrupción pendiente y deja el contador detenido. El período queda en `tlr + 2` ciclos de 100 MHz.
+- `void drivers_timer_arrancar(void)`, habilita la cuenta del Timer ya preparado después de observar la publicación del XADC y aplicar el margen de arranque.
+- `void drivers_timer_reconocer(void)`, escribe uno en el bit de interrupción del registro de control y estado del contador 0, que es como el AXI Timer limpia la interrupción, sin tocar los demás bits.
+- `void drivers_interrupciones_iniciar(void (*rutina)(void *))`, registra la rutina con las funciones de excepciones del BSP (`xil_exception.h`) y habilita las interrupciones del procesador. No hay AXI INTC, la salida del Timer va directo a la única entrada de interrupción del MicroBlaze V. Los nombres exactos de las funciones se toman del BSP cuando esté el `.xsa`.
+- `uint32_t drivers_interrupciones_guardar_y_deshabilitar(void)` devuelve el estado previo y enmascara las interrupciones. `void drivers_interrupciones_restaurar(uint32_t estado)` restaura ese estado al salir de la sección crítica.
+
+### h.6) Prueba en la PC
+
+Las funciones de `drivers` son las únicas que no se pueden compilar en la PC. Para probar con gcc los demás módulos, cada prueba define su propia versión de las funciones de `drivers` que necesita, que escriben en variables en vez de en registros. Así `drivers.h` es la frontera entre lo que se prueba en la PC y lo que solo corre en la placa.
+
+## i) Diagrama esquemático detallado del diseño
+
+No aplica, el módulo son funciones en C que leen y escriben registros, y la lógica de cada periférico está en su propio diseño o en la IP de Xilinx.
+
+## j) Diagrama completo de conexiones eléctricas del diseño
+
+No aplica, las conexiones eléctricas de los periféricos las fijan el Block Design y el `basys3.xdc`, el módulo solo usa sus direcciones.
