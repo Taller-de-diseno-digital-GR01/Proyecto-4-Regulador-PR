@@ -1,0 +1,132 @@
+\documentclass[spanish,10pt,a4paper,titlepage]{article}
+\usepackage[a4paper,left=2cm,right=2cm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{babel}
+\usepackage{amssymb,amsmath,amsthm,amsfonts}
+\usepackage{graphicx}
+\usepackage{float}
+\setlength{\parindent}{0pt}
+
+% ---------- Datos de la portada ----------
+\newcommand{\universidad}{Instituto Tecnológico de Costa Rica}
+\newcommand{\escuela}{Escuela de Ingeniería Electrónica}
+\newcommand{\curso}{EL-4201 Procesamiento Electrónico de Potencia}
+\newcommand{\profesor}{Yeiner Arias}
+\newcommand{\tarea}{Proyecto: Controlador PR de un Inversor Monofásico}
+\newcommand{\fechaEntrega}{\today}
+
+% Lista de estudiantes: agregar/quitar filas según corresponda
+\newcommand{\estudiantes}{
+	Jefferson Chinchilla Quesada  \hspace{1cm} 2023152266 \\
+	
+}
+
+% ------------------------------------------
+
+\begin{document}
+	\begin{titlepage}
+		\centering
+		{\large \universidad \par}
+		{\large \escuela \par}
+		\vspace{2cm}
+		
+		{\Large \curso \par}
+		\vspace{0.5cm}
+		{\huge \bfseries \tarea \par}
+		\vspace{2cm}
+		
+		{\large \textbf{Estudiantes:} \par}
+		\vspace{0.3cm}
+		\estudiantes
+		
+		\vspace{2cm}
+		{\large \textbf{Profesor:} \profesor \par}
+		
+		\vfill
+		
+		{\large \fechaEntrega \par}
+	\end{titlepage}
+	
+	\section{Diseño de la Carga RL}
+	Corresponde a una carga RL compuesta por una resistencia y una inductancia en serie.
+	\subsection{Requerimientos del sistema:}
+	El sistema debe cumplir con los siguientes requerimientos, el equipo acordó el valor de $V_{dc}$ dentro del rango de 12 a 24 V que permite el enunciado.
+	\vspace{0.3 cm}
+	\begin{itemize}
+		\item $V_{dc} = 18$ V
+		\item $I_{ref} = 0.2 / 0.5 / 1$ A pico
+		\item $f = 50 \text{ Hz}$
+		\item Inversor monofásico en puente H con modulación PWM unipolar
+		\item Error relativo de la amplitud de la componente fundamental de la corriente $\leq 10\ \%$ en régimen periódico, en una ventana de al menos cinco períodos de 50 Hz
+		\item Rizado de corriente de conmutación $\leq 0.20$ A pico a pico
+	\end{itemize}
+
+	La carga debe además cumplir con lo siguiente:
+	\vspace{0.3 cm}
+	\begin{itemize}
+		\item La tensión disponible debe permitir alcanzar las tres referencias de corriente
+		\item Los componentes deben soportar la corriente y la disipación previstas
+		\item Si se emplean resistencias de 5 W, se debe incluir un margen de disipación apropiado para el punto de 1 A pico
+		\item Se deben indicar la resistencia total, incluida la del devanado, y la inductancia utilizadas, determinadas mediante datos técnicos o mediciones sencillas
+		\item Si se utiliza un devanado de transformador, se debe documentar su conexión y la condición del otro devanado
+		\item La misma carga debe permitir los cambios de referencia de $0.2$ a $0.5$ A pico y de $0.5$ a $1$ A pico
+		\item La resistencia externa debe poder cambiar al menos un 25 \% respecto de su valor inicial, manteniendo la inductancia y una referencia de $0.5$ A pico, con ambos puntos de operación dentro de los límites eléctricos y térmicos del montaje
+	\end{itemize}
+	
+	\subsection{Marco Teórico}
+	\subsubsection{PWM - Unipolar}
+	
+	\noindent Se está trabajando con un PWM unipolar, lo que quiere decir que su salida estará entre dos estados $\left[V_{dc} , 0\right]$ o  $\left[0, -V_{dc}\right]$. El funcionamiento del PWM unipolar se observa en la imagen Fig.\ref{fig:unipolarpwm}. 
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.7\linewidth]{figs/unipolar_pwm}
+		\label{fig:unipolarpwm}
+	\end{figure}
+	
+	\noindent Además, en el caso de la configuración unipolar se sabe que el valor promedio de $V_{out}$ es aproximadamente igual al promedio de la tensión de control ($V_{ref}$), y su armónico principal se encuentra en $2f_{sw}$. 
+	\noindent Un concepto importante el \textit{Indice de Modulación de Amplitud} ($m_a$) el cual se obtiene con la Ec.\eqref{eq:ma}.
+	\vspace{0.2 cm}
+	\begin{equation}
+		m_a = \frac{Vm_{ref}}{Vm_{carrier}}
+		\label{eq:ma}
+	\end{equation}
+	\vspace{0.2 cm}
+	De esto se obtiene que si $m_a \leq 1$, entonces la amplitud de la fundamental $V_1$ es  aproximadamente: \[V_1 = 	m_a \cdot V_{dc}\] 
+	
+	\subsubsection{Análisis de Fourier}
+	\noindent Para modelar la carga se busca calcular la carga mediante las siguientes ecuaciones.
+	
+	\[i_o(t) = \sum_{n=1}^{\infty}I_n \sin(n\omega_o t + \phi_n)\]
+	\[I_{rms} = \sqrt{\sum_{n=1}^{\infty} \left(\frac{I_n}{\sqrt{2}}\right)^2}\]
+	\[I_n = \frac{V_n}{Z_n} = \frac{V_n}{|R + j\omega L|}\]
+	\[P = \sum_{n=1}^{\infty} {I_n,rms}^2	R\]
+	
+	\section{Diseño}
+	El primer cálculo es el margen de tensión que se obtiene de la siguiente manera:
+	
+	\[m_a = \frac{V_1}{V_{dc}}= \frac{I_{pico} \cdot |Z|}{V_{dc}}\]
+	
+	\noindent Esto nos permite establecer el indice de modulación que nos solicita cada referencia con la carga dada. Como parte de los diseños $m_a$ no puede llegar a $1$, ya que este valor es fijado por el puente completo y el PR, este último fija $m_{a,max} = 0.92$.\\
+	
+	Para evitar llegar a este valor límite se busca alcanzar un margen de $80\%$ del $0.92$, por lo tanto:
+	
+	\[m_a \leq 0.8 \cdot m_{a,max} = 0.736 \]
+	
+	Ahora se calcula el valor máximo de $|Z|$ de la siguiente forma (tomando $I_{pico} = 1$ A):
+	\begin{align*}
+		&|Z| \leq \frac{m_a \cdot V_{dc}}{I_{pico}}\\
+		&|Z| \leq 13.3\, \Omega
+	\end{align*}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+\end{document}
