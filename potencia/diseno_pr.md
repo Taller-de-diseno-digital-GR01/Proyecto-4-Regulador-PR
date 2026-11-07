@@ -2,7 +2,7 @@
 
 Este documento junta las decisiones de diseño del regulador proporcional-resonante (PR) del lazo de corriente, con la razón de cada una. La carga ya quedó en `R = 10 Ω` y `L = 2 mH`. `Vdc` y `fsw` siguen provisionales y están marcados como tales, y los valores reales de `L` y `R` salen de medir la carga montada. Todo lo que depende de ellos se rehace cambiando esos números, el procedimiento no cambia.
 
-Los márgenes y las curvas de error de este documento se calcularon en Python con el lazo discreto descrito en las secciones de sintonización, y cada cifra lleva sus condiciones. Los coeficientes finales los escribe `sw/generar_pr_params.m` en `pr_params.h`, y corre igual en Octave y en MATLAB.
+Los márgenes y las curvas de error de este documento se calcularon en Octave con el lazo discreto descrito en las secciones de sintonización, y cada cifra lleva sus condiciones. `potencia/verificar_pr.m` calcula los márgenes del lazo abierto y simula el lazo promedio, con los escalones, las esquinas de `L` y `R`, el cambio de `R` y la saturación. `potencia/aliasing_pr.m` simula el puente conmutado de la sección de aliasing. Los dos imprimen las cifras en el orden en que aparecen acá. Los coeficientes finales los escribe `sw/generar_pr_params.m` en `pr_params.h`, y los tres corren igual en Octave y en MATLAB.
 
 ## Objetivo del lazo
 
@@ -32,7 +32,7 @@ A ese `Td` todavía hay que sumarle el retardo del filtro analógico del sensor 
 
 ## Valores provisionales de partida
 
-- `Vdc = 18 V`, punto medio del rango de 12 a 24 V del enunciado. El rizado máximo es lineal en `Vdc`, así que con 24 V sube un tercio y con 12 V baja a dos tercios. A 1,0 A pico el control pide unos 10 V. Con 18 V eso es un índice de 0,56 y sobra margen, pero con 12 V sube a 0,84, apenas debajo de `PR_U_MAX = 0,92`, y el escalón de 0,2 a 1,0 A llega a pedir 1,24 y satura. Los ensayos con 1,0 A van entonces con 18 V o más.
+- `Vdc = 18 V`, punto medio del rango de 12 a 24 V del enunciado. El rizado máximo es lineal en `Vdc`, así que con 24 V sube un tercio y con 12 V baja a dos tercios. A 1,0 A pico el control pide unos 10 V. Con 18 V eso es un índice de 0,56 y sobra margen, pero con 12 V sube a 0,83, apenas debajo de `PR_U_MAX = 0,92`, y el escalón de 0,2 a 1,0 A llega a pedir 1,24 y satura. Los ensayos con 1,0 A van entonces con 18 V o más.
 - `fsw = fs = 20 kHz`, muestreando una vez por período. A 100 MHz son 5000 ciclos de reloj por iteración, de sobra para las seis multiplicaciones del PR incluso en flotante por software. Es una frecuencia habitual para MOSFET de baja tensión, pero Nicolás tiene que confirmar que su puente y su tiempo muerto la aguantan. La tabla de `nucleo_pwm.md` trae 10 y 40 kHz en las otras dos frecuencias y el código `11` satura a 20 kHz. Cada frecuencia pide regenerar los coeficientes.
 - `L = 2 mH` y `R = 10 Ω`, la carga que se va a montar. La `L` cumple con holgura el criterio de rizado de abajo, y el inductor no tiene que saturar a 1,5 A. Con 1,0 A pico la `R` disipa 5 W en promedio, así que tiene que ser de potencia, de al menos 10 W. Jefferson mide los valores reales (#31).
 
@@ -102,7 +102,7 @@ Con los valores provisionales y dividiendo entre `Vdc` para que la salida sea í
 
 El PR calcula un índice de modulación `u[k]` que se recorta a `±PR_U_MAX` antes de convertirlo a `duty_ref` en Q2.14. El tope absoluto es 1,0, el rango del periférico, y lo que lo baja son el tiempo muerto y el bootstrap. A 20 kHz, con `MAX = 2500`, hace falta `PR_U_MAX < 1 - (DEAD_TIME_CICLOS + 100)/MAX`, que con 100 ciclos de tiempo muerto da 0,92. Si hubo recorte, el estado que se guarda del resonante es el que habría hecho caer la suma justo en el límite, y así no acumula energía mientras el puente está saturado. La fórmula y las razones están en `pr_discreto.md`, sección h.5, que es la fuente de verdad de esa parte.
 
-Con 18 V no hay saturación ni en régimen ni en el escalón de 0,2 a 1,0 A, que en el peor instante del período llega a pedir 0,83 contra un tope de 0,92. Con 12 V el régimen de 1,0 A pide 0,84 y el escalón 1,24, así que ahí el anti-windup sí trabaja, y por eso 1,0 A se ensaya con 18 V o más.
+Con 18 V no hay saturación ni en régimen ni en el escalón de 0,2 a 1,0 A, que en el peor instante del período llega a pedir 0,83 contra un tope de 0,92. Con `R` un 25 % arriba el mismo escalón pide 0,85, todavía debajo del tope. Con 12 V el régimen de 1,0 A pide 0,83 y el escalón 1,24, así que ahí el anti-windup sí trabaja, y por eso 1,0 A se ensaya con 18 V o más.
 
 ## Aliasing y filtro del sensor
 
