@@ -11,6 +11,6 @@
 #define PR_B2 VALOR(-0.00138883177f)
 #define PR_A1 VALOR(-1.99975326f)
 #define PR_A2 VALOR(1.0f)
-#define PR_U_MAX VALOR(0.98f)
+#define PR_U_MAX VALOR(0.92f)
 
 #endif

@@ -1,7 +1,7 @@
 addpath(fullfile(fileparts(mfilename('fullpath')), '..')); % sw/, pa encontrar generar_pr_params
 
 ruta = [tempname() '.h']; % no pisa el pr_params.h de verdad
-generar_pr_params('estructura', 'ideal', 'metodo', 'tustin_prewarp', 'kp', 6.59, 'kr', 1000, 'vdc', 18, 'fs', 20000, 'u_max', 0.98, 'salida', ruta);
+generar_pr_params('estructura', 'ideal', 'metodo', 'tustin_prewarp', 'kp', 6.59, 'kr', 1000, 'vdc', 18, 'fs', 20000, 'u_max', 0.92, 'salida', ruta);
 texto = fileread(ruta);
 delete(ruta);
 leer = @(nombre) str2double(regexp(texto, ['#define ' nombre ' VALOR\(([^)]+)f\)'], 'tokens', 'once')); % saca el numero de adentro de VALOR(...f)
@@ -14,7 +14,7 @@ casos = {
   leer('PR_B2') == -leer('PR_B0'), 'B2 no es -B0';
   abs(leer('PR_A1') + 1.99975) < 5e-6, 'A1 no es el de diseno_pr.md';
   leer('PR_A2') == 1, 'A2 no es uno';
-  leer('PR_U_MAX') == 0.98, 'U_MAX no pasó tal cual';
+  leer('PR_U_MAX') == 0.92, 'U_MAX no pasó tal cual';
   abs(max(angle(roots([1, leer('PR_A1'), leer('PR_A2')]))) * 20000 / (2 * pi) - 50) < 0.01, 'el polo no quedó en 50 Hz'; %ojo, ya con A1 redondeado
   ~isempty(strfind(texto, '#define PR_FRECUENCIA_MUESTREO_HZ 20000u')), 'la frecuencia de muestreo no quedó como entero';
 };
