@@ -28,6 +28,7 @@ void buffer_muestras_guardar(const registro_t *registro)
 void buffer_muestras_congelar(void)
 {
   congelado = 1;
+  __asm__ volatile("" ::: "memory"); // volatile no ordena las lecturas de registros, que no lo son, y sin esto el compilador podría adelantarlas a congelado = 1
 }
 
 void buffer_muestras_liberar(void)
