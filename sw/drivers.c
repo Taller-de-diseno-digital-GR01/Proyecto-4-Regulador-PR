@@ -1,5 +1,6 @@
 // docs/diseño/modulos/drivers.md
 #include "drivers.h"
+#include "xil_exception.h"
 #include "xil_io.h"
 #include "xparameters.h"
 
@@ -9,6 +10,7 @@
 #define GPIO_BASE XPAR_AXI_GPIO_0_BASEADDR
 #define GPIO_DEPURACION_BASE XPAR_AXI_GPIO_1_BASEADDR
 #define UART_BASE XPAR_AXI_UARTLITE_0_BASEADDR
+#define TIMER_BASE XPAR_AXI_TIMER_0_BASEADDR
 
 #define PWM_CONTROL 0x00u
 #define PWM_DUTY 0x04u
@@ -33,6 +35,16 @@
 #define UART_TX 0x04u
 #define UART_ESTADO 0x08u
 #define UART_TX_LLENA (1u << 3)
+
+#define TIMER_CONTROL 0x00u
+#define TIMER_RECARGA 0x04u
+#define TIMER_GENERACION (1u << 0)
+#define TIMER_CUENTA_ABAJO (1u << 1)
+#define TIMER_AUTORRECARGA (1u << 4)
+#define TIMER_CARGAR (1u << 5)
+#define TIMER_INTERRUPCION_HAB (1u << 6)
+#define TIMER_ARRANCAR (1u << 7)
+#define TIMER_INTERRUPCION (1u << 8)
 
 static uint16_t adc_muestra;
 static uint32_t adc_contador_anterior; // la envoltura arranca el contador en 0
@@ -119,4 +131,33 @@ bool drivers_uart_enviar(uint8_t byte)
   if(Xil_In32(UART_BASE + UART_ESTADO) & UART_TX_LLENA) return false;
   Xil_Out32(UART_BASE + UART_TX, byte);
   return true;
+}
+
+void drivers_timer_iniciar(uint32_t tlr)
+{
+  const uint32_t modo = TIMER_GENERACION | TIMER_CUENTA_ABAJO | TIMER_AUTORRECARGA;
+  Xil_Out32(TIMER_BASE + TIMER_RECARGA, tlr);
+  Xil_Out32(TIMER_BASE + TIMER_CONTROL, modo | TIMER_CARGAR); // el contador toma tlr antes de arrancar
+  Xil_Out32(TIMER_BASE + TIMER_CONTROL, modo | TIMER_INTERRUPCION_HAB | TIMER_ARRANCAR);
+}
+
+void drivers_timer_reconocer(void)
+{ // el bit se limpia escribiéndole uno, se lee antes para no apagar los demás bits
+  Xil_Out32(TIMER_BASE + TIMER_CONTROL, Xil_In32(TIMER_BASE + TIMER_CONTROL) | TIMER_INTERRUPCION);
+}
+
+void drivers_interrupciones_iniciar(void (*rutina)(void *))
+{ // TODO: Revisar los nombres de xil_exception.h del BSP de MicroBlaze V cuando esté el .xsa
+  Xil_ExceptionRegisterHandler(XIL_EXCEPTION_ID_INT, rutina, NULL);
+  Xil_ExceptionEnable();
+}
+
+void drivers_interrupciones_deshabilitar(void)
+{
+  Xil_ExceptionDisable();
+}
+
+void drivers_interrupciones_habilitar(void)
+{
+  Xil_ExceptionEnable();
 }
