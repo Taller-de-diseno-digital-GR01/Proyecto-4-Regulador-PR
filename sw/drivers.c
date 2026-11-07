@@ -6,6 +6,9 @@
 // TODO: Revisar los nombres contra el xparameters.h generado cuando esté el .xsa, solo se ajustan acá
 #define PWM_BASE XPAR_PERIFERICO_PWM_0_BASEADDR
 #define ADC_BASE XPAR_ENVOLTURA_XADC_0_BASEADDR
+#define GPIO_BASE XPAR_AXI_GPIO_0_BASEADDR
+#define GPIO_DEPURACION_BASE XPAR_AXI_GPIO_1_BASEADDR
+#define UART_BASE XPAR_AXI_UARTLITE_0_BASEADDR
 
 #define PWM_CONTROL 0x00u
 #define PWM_DUTY 0x04u
@@ -21,6 +24,15 @@
 #define ADC_MUESTRA_MASCARA 0xFFFu
 #define ADC_CONTADOR_DESPL 12u
 #define ADC_CONTADOR_MASCARA 0x3u
+
+#define GPIO_DATO_CANAL1 0x00u
+#define GPIO_DATO_CANAL2 0x08u
+#define GPIO_ENTRADAS_MASCARA 0xFu
+#define GPIO_LEDS_MASCARA 0x3u
+
+#define UART_TX 0x04u
+#define UART_ESTADO 0x08u
+#define UART_TX_LLENA (1u << 3)
 
 static uint16_t adc_muestra;
 static uint32_t adc_contador_anterior; // la envoltura arranca el contador en 0
@@ -85,4 +97,26 @@ void drivers_adc_iniciar_por_software(void)
 void drivers_adc_configurar(void)
 {
   Xil_Out32(ADC_BASE + ADC_CONTROL, ADC_FUENTE_TRIGGER);
+}
+
+uint32_t drivers_gpio_entradas(void)
+{
+  return Xil_In32(GPIO_BASE + GPIO_DATO_CANAL1) & GPIO_ENTRADAS_MASCARA;
+}
+
+void drivers_gpio_leds(uint32_t leds)
+{
+  Xil_Out32(GPIO_BASE + GPIO_DATO_CANAL2, leds & GPIO_LEDS_MASCARA);
+}
+
+void drivers_depuracion(bool nivel)
+{ // la escribe solo la ISR, sin leer antes porque el registro tiene un solo bit
+  Xil_Out32(GPIO_DEPURACION_BASE + GPIO_DATO_CANAL1, nivel ? 1u : 0u);
+}
+
+bool drivers_uart_enviar(uint8_t byte)
+{ // XUartLite_SendByte espera a que haya lugar, acá se devuelve falso y el lazo principal reintenta
+  if(Xil_In32(UART_BASE + UART_ESTADO) & UART_TX_LLENA) return false;
+  Xil_Out32(UART_BASE + UART_TX, byte);
+  return true;
 }
