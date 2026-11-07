@@ -45,6 +45,7 @@
 #define TIMER_INTERRUPCION_HAB (1u << 6)
 #define TIMER_ARRANCAR (1u << 7)
 #define TIMER_INTERRUPCION (1u << 8)
+#define TIMER_MODO (TIMER_GENERACION | TIMER_CUENTA_ABAJO | TIMER_AUTORRECARGA | TIMER_INTERRUPCION_HAB)
 
 #define MSTATUS_MIE (1u << 3) // habilitación global de interrupciones en modo máquina de RISC-V
 
@@ -133,12 +134,16 @@ bool drivers_uart_enviar(uint8_t byte)
   return true;
 }
 
-void drivers_timer_iniciar(uint32_t tlr)
+void drivers_timer_preparar(uint32_t tlr)
 {
-  const uint32_t modo = TIMER_GENERACION | TIMER_CUENTA_ABAJO | TIMER_AUTORRECARGA;
   Xil_Out32(TIMER_BASE + TIMER_RECARGA, tlr);
-  Xil_Out32(TIMER_BASE + TIMER_CONTROL, modo | TIMER_CARGAR); // el contador toma tlr antes de arrancar
-  Xil_Out32(TIMER_BASE + TIMER_CONTROL, modo | TIMER_INTERRUPCION_HAB | TIMER_ARRANCAR);
+  Xil_Out32(TIMER_BASE + TIMER_CONTROL, TIMER_MODO | TIMER_CARGAR | TIMER_INTERRUPCION); // carga tlr y limpia una interrupción vieja que quedara pendiente
+  Xil_Out32(TIMER_BASE + TIMER_CONTROL, TIMER_MODO); // CARGAR tiene que bajar antes de arrancar, si no el contador se queda en tlr
+}
+
+void drivers_timer_arrancar(void)
+{
+  Xil_Out32(TIMER_BASE + TIMER_CONTROL, TIMER_MODO | TIMER_ARRANCAR);
 }
 
 void drivers_timer_reconocer(void)

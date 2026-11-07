@@ -22,7 +22,8 @@ void drivers_depuracion(bool nivel);
 
 bool drivers_uart_enviar(uint8_t byte);
 
-void drivers_timer_iniciar(uint32_t tlr);
+void drivers_timer_preparar(uint32_t tlr);
+void drivers_timer_arrancar(void);
 void drivers_timer_reconocer(void);
 void drivers_interrupciones_iniciar(void (*rutina)(void *));
 uint32_t drivers_interrupciones_guardar_y_deshabilitar(void);
