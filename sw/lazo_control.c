@@ -18,6 +18,8 @@ static bool saturado;
 void lazo_control_isr(void *ref)
 {
   (void)ref; // la firma la pide el registro de excepciones del BSP, no hay nada que pasarle
+  drivers_depuracion(true); // lo primero, para que el ancho del pulso en el osciloscopio sea todo el servicio
+  drivers_timer_reconocer(); // al principio, si un día la ISR dura más que el período la siguiente queda pendiente en vez de perderse
 
   uint32_t habilitado = control_habilitado; // una sola lectura, así toda la iteración ve lo mismo aunque control_principal la cambie a la mitad
   valor_t amplitud = amplitud_ref;
@@ -51,4 +53,6 @@ void lazo_control_isr(void *ref)
   registro.duty_ref = duty_ref;
   registro.i_ref_ma = (int16_t)valor_a_entero(valor_mul(i_ref, VALOR(1000.0f)));
   buffer_muestras_guardar(&registro); // lo copia, así que registro puede vivir en la pila de la ISR
+
+  drivers_depuracion(false);
 }
