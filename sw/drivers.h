@@ -10,6 +10,7 @@ void drivers_pwm_habilitar(bool habilitar);
 void drivers_pwm_apagar(void);
 void drivers_pwm_escribir_duty(uint16_t duty_ref);
 bool drivers_pwm_running(void);
+uint32_t drivers_pwm_freq_sel(void);
 
 bool drivers_adc_dato_nuevo(void);
 uint16_t drivers_adc_leer(void);
