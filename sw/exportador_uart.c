@@ -10,6 +10,8 @@
 #define REGISTRO_BYTES 6u // lo que mide registro_t
 #define SUMA_BYTES 2u // uint16 al final
 
+_Static_assert(sizeof(registro_t) == REGISTRO_BYTES, "byte_en lee registro_t byte por byte, con relleno la trama sale corrida"); // C11, el gcc de Vitis lo acepta también en c99
+
 static uint8_t cabecera[CABECERA_BYTES];
 static uint32_t posicion; // siguiente byte a mandar
 static uint32_t total; // 22 + 6N
