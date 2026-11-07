@@ -80,6 +80,8 @@ con `inicio = (llenos < BUFFER_REGISTROS) ? 0 : indice`.
 
 `indice`, `llenos` y `congelado` son de 32 bits y `volatile`, igual que las del nivel 3. El arreglo no necesita `volatile`, porque el lazo principal solo lo lee con el buffer congelado, y para entonces la interrupción ya no lo toca.
 
+`volatile` solo ordena los accesos `volatile` entre sí, y el compilador podría adelantar una lectura del arreglo antes de la escritura de `congelado`. Por eso `buffer_muestras_congelar` termina con una barrera del compilador, un `asm` vacío que declara que toca memoria. No genera instrucciones.
+
 ### h.5) Interfaz en C
 
 - `void buffer_muestras_iniciar(void)`, vacía el histórico y lo deja libre.
