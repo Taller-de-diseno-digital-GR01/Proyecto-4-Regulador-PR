@@ -25,7 +25,7 @@ bool drivers_uart_enviar(uint8_t byte);
 void drivers_timer_iniciar(uint32_t tlr);
 void drivers_timer_reconocer(void);
 void drivers_interrupciones_iniciar(void (*rutina)(void *));
-void drivers_interrupciones_deshabilitar(void);
-void drivers_interrupciones_habilitar(void);
+uint32_t drivers_interrupciones_guardar_y_deshabilitar(void);
+void drivers_interrupciones_restaurar(uint32_t estado);
 
 #endif

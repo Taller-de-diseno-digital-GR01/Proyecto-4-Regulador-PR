@@ -46,6 +46,8 @@
 #define TIMER_ARRANCAR (1u << 7)
 #define TIMER_INTERRUPCION (1u << 8)
 
+#define MSTATUS_MIE (1u << 3) // habilitación global de interrupciones en modo máquina de RISC-V
+
 static uint16_t adc_muestra;
 static uint32_t adc_contador_anterior; // la envoltura arranca el contador en 0
 
@@ -62,10 +64,8 @@ void drivers_pwm_configurar(uint32_t freq_sel)
 }
 
 void drivers_pwm_habilitar(bool habilitar)
-{ // la ISR puede apagar enable a mitad de la lectura-escritura y esta lo volvería a subir
-  drivers_interrupciones_deshabilitar();
+{ // solo dentro de la sección crítica de control_principal, si no la ISR puede apagar enable a mitad de la lectura-escritura y esta lo volvería a subir
   pwm_cambiar_enable(habilitar);
-  drivers_interrupciones_habilitar();
 }
 
 void drivers_pwm_apagar(void)
@@ -152,12 +152,14 @@ void drivers_interrupciones_iniciar(void (*rutina)(void *))
   Xil_ExceptionEnable();
 }
 
-void drivers_interrupciones_deshabilitar(void)
-{
-  Xil_ExceptionDisable();
+uint32_t drivers_interrupciones_guardar_y_deshabilitar(void)
+{ // csrrci lee y limpia MIE en una sola instrucción, y el "memory" impide que el compilador saque lecturas o escrituras de la sección crítica
+  uint32_t mstatus;
+  __asm__ volatile("csrrci %0, mstatus, %1" : "=r"(mstatus) : "i"(MSTATUS_MIE) : "memory");
+  return mstatus & MSTATUS_MIE;
 }
 
-void drivers_interrupciones_habilitar(void)
-{
-  Xil_ExceptionEnable();
+void drivers_interrupciones_restaurar(uint32_t estado)
+{ // csrs con 0 no cambia nada, así que si ya estaban enmascaradas al entrar siguen así
+  __asm__ volatile("csrs mstatus, %0" : : "r"(estado & MSTATUS_MIE) : "memory");
 }
