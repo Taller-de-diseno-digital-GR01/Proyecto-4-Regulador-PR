@@ -34,7 +34,7 @@ static int maximo_en_periodo(float frecuencia_hz, float amplitud, uint32_t desde
 int main(void)
 {
   const uint32_t por_periodo = PR_FRECUENCIA_MUESTREO_HZ / 50; // 400 muestras a 20 kHz
-  const int16_t tope = (int16_t)lroundf((float)PR_U_MAX / DUTY_ESCALA); // 0.98 * 16384 = 16056
+  const int16_t tope = (int16_t)lroundf((float)PR_U_MAX / DUTY_ESCALA); // 0.92 * 16384 = 15073
   bool saturado;
 
   pr_discreto_reiniciar();
