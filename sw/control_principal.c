@@ -54,6 +54,26 @@ void control_principal_arrancar(void)
   drivers_timer_arrancar();
 }
 
+static void habilitar(void)
+{ // el reinicio va con control_habilitado en 0, así la ISR no usa estados a medio reiniciar
+  pr_discreto_reiniciar();
+  ref_senoidal_reiniciar_fase();
+  uint32_t estado = drivers_interrupciones_guardar_y_deshabilitar();
+  if(!falla) { // se vuelve a leer adentro, la ISR pudo enclavarla después de la lectura de esta vuelta
+    drivers_pwm_habilitar(true);
+    control_habilitado = 1;
+  }
+  drivers_interrupciones_restaurar(estado);
+}
+
+static void deshabilitar(void)
+{ // enable y control_habilitado juntos, si no la ISR podría correr el PR con el puente ya apagado o al revés
+  uint32_t estado = drivers_interrupciones_guardar_y_deshabilitar();
+  drivers_pwm_habilitar(false);
+  control_habilitado = 0;
+  drivers_interrupciones_restaurar(estado);
+}
+
 void control_principal_vuelta(void)
 {
   uint32_t entradas = drivers_gpio_entradas();
@@ -64,6 +84,11 @@ void control_principal_vuelta(void)
   amplitud_ref = amplitudes[(entradas >> SW_DESPL) & SW_MASCARA];
 
   if(en_falla && control_habilitado) control_habilitado = 0; // enable ya lo bajó la ISR
+
+  if(flancos & BTN_HABILITAR) {
+    if(control_habilitado) deshabilitar();
+    else if(arranque_correcto && !en_falla && drivers_pwm_freq_sel() == FREQ_SEL_INICIAL) habilitar(); // en falla o error de arranque se ignora, h.1
+  }
 
   if(flancos & BTN_EXPORTAR) exportador_uart_pedir();
   exportador_uart_avanzar();
