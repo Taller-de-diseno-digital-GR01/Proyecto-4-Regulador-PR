@@ -62,6 +62,7 @@ Funciones.
 - `void drivers_pwm_apagar(void)`, desde la interrupción ante falla. La misma lectura, modificación y escritura, sin deshabilitar nada porque la interrupción no se interrumpe.
 - `void drivers_pwm_escribir_duty(uint16_t duty_ref)`, una escritura al offset `0x04`. El argumento es el patrón de 16 bits en Q2.14 que devuelve `pr_discreto_calcular`, sin conversión.
 - `bool drivers_pwm_running(void)`, lee el bit 3. Sube y baja en un valle, así que se retrasa entre un ciclo de `clk` y un período completo respecto a `enable`.
+- `uint32_t drivers_pwm_freq_sel(void)`, lee los bits `[2:1]` del offset `0x00` y los devuelve de 0 a 3. Devuelve lo que quedó escrito en el registro, que es lo que el núcleo copia en el valle siguiente. `control_principal` lo usa para exigir `01` antes de habilitar.
 
 Hacen falta dos versiones del apagado porque la del lazo principal tiene que protegerse de la interrupción y la de la interrupción no puede tocar la habilitación global de interrupciones, ya que al salir la volvería a dejar en uno a destiempo.
 
