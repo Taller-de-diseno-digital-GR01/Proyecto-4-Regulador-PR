@@ -70,6 +70,7 @@ static void deshabilitar(void)
 { // enable y control_habilitado juntos, si no la ISR podría correr el PR con el puente ya apagado o al revés
   uint32_t estado = drivers_interrupciones_guardar_y_deshabilitar();
   drivers_pwm_habilitar(false);
+  drivers_pwm_escribir_duty(0u); // el núcleo carga la sombra en cada valle aunque enable esté en 0, sin esto la próxima habilitación arranca con la orden vieja
   control_habilitado = 0;
   drivers_interrupciones_restaurar(estado);
 }
