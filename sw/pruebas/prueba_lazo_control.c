@@ -112,6 +112,14 @@ int main(void)
   r = iterar(true, ADC_OFFSET_CUENTAS);
   revisar(r.i_ref_ma == 999, "a un cuarto de período la referencia no está en el pico"); // el incremento redondeado deja la fase 24 cuentas antes de 2^30, índice 255 y no 256
 
+  r = iterar(true, ADC_OFFSET_CUENTAS - 1500u); // -1,22 A contra 1 A de referencia, el proporcional solo ya pasa PR_U_MAX
+  revisar((r.cuenta_banderas & BANDERA_SATURADO) != 0, "con 2,2 A de error el PR no saturó");
+  control_habilitado = 0;
+  r = iterar(true, ADC_OFFSET_CUENTAS);
+  revisar(r.duty_ref == 0, "deshabilitado y el registro arrastra el duty_ref de la sesión anterior");
+  revisar((r.cuenta_banderas & BANDERA_SATURADO) == 0, "deshabilitado y el registro arrastra la saturación de la sesión anterior");
+  control_habilitado = 1; // lo de abajo espera el control andando
+
   for(uint32_t k = 0; k < ITERACIONES_SIN_DATO_MAX; k++) iterar(false, 0u);
   revisar(falla == 0, "falla antes de pasar ITERACIONES_SIN_DATO_MAX");
   antes = escrituras;
