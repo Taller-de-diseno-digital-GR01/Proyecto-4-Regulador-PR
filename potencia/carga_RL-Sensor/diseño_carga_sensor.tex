@@ -246,9 +246,29 @@
 	\end{align*}
 
 	Los dos puntos del ensayo quedan dentro de los límites de tensión y de disipación.
+	\section{Sensor de Corriente}
+	Para esta sección se plantea el uso de un Sensor de corriente basado en efecto de Hall, ACS712. Este sensor permite medir la corriente de forma directa a diferencia de los sensores de efecto de Hall convencionales. Este sensor permite la medición bi-dirección, adecuado para esta aplicación ya que se trabaja con una corriente AC. Además, este modelo cuenta aislamiento entre sus terminales de entrada por lo que simplifica las etapas a diseñar para este módulo.
+	
+	\subsection{Características del ACS712 - Consideraciones de Interés}
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.8\linewidth]{figs/caracteristicas_sensor_de_Corriente}
+		\caption{Caracteristicas Electricas}
+		\label{fig:caracteristicassensordecorriente}
+	\end{figure}
+	
+	Debido a las características de este sensor se deberá implementar una fuente de tensión adicional de $5$ V, ya que no se podrá alimentar por la FPGA. Esto se debe a que las salidas de la Basys 3 son de $3.3$ V y el sensor necesita los $5$ V. Otro inconveniente del sensor es su voltaje de salida, ya que si la corriente es de $0$ A, la tensión de salida es $V_{cc}/2$, lo cual tendrá que ser adecuado para conectarse al JXADC, debido a que supera el umbral de los $1.8$ V para indicar el estado.
+	
+	 
+	\subsubsection{Circuito de Referencia}
 	
 	
-	
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.6\linewidth]{figs/circuito_medidor_de_corriente}
+		\caption{Circuito de medición de corriente}
+		\label{fig:circuitomedidordecorriente}
+	\end{figure}
 	
 	
 	
