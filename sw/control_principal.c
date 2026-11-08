@@ -30,6 +30,7 @@ static bool esperar_avance(void)
 
 void control_principal_arrancar(void)
 {
+  entradas_anterior = drivers_gpio_entradas(); // un botón apretado desde el reset no cuenta como flanco
   drivers_pwm_configurar(FREQ_SEL_INICIAL); // deja enable en 0
   drivers_adc_configurar();
   drivers_gpio_leds(0u);
