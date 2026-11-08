@@ -30,7 +30,9 @@ static void revisar(int condicion, const char *que)
 void drivers_pwm_configurar(uint32_t freq_sel) { pwm_freq = freq_sel; pwm_enable = 0; }
 uint32_t drivers_pwm_freq_sel(void) { return pwm_freq; }
 void drivers_pwm_apagar(void) { pwm_enable = 0; }
-void drivers_pwm_escribir_duty(uint16_t duty_ref) { (void)duty_ref; }
+static uint16_t duty;
+static bool duty_en_seccion;
+void drivers_pwm_escribir_duty(uint16_t duty_ref) { duty = duty_ref; duty_en_seccion = en_seccion; }
 void drivers_adc_configurar(void) { adc_trigger = 1; }
 uint16_t drivers_adc_leer(void) { return 2048u; }
 void drivers_gpio_leds(uint32_t l) { leds = l; }
@@ -128,8 +130,10 @@ int main(void)
   revisar(control_habilitado == 1 && pwm_encendidas == 1, "el botón sostenido dio otro flanco");
   entradas = 0;
   control_principal_vuelta();
+  duty = 12000u; // la última orden que habría escrito la ISR
   pulsar(1u);
   revisar(control_habilitado == 0 && pwm_enable == 0 && leds == 0u, "el segundo flanco no deshabilitó");
+  revisar(duty == 0u && duty_en_seccion, "deshabilitar no dejó duty_ref en 0 dentro de la sección crítica");
 
   pwm_freq = 2u; // como si se hubiera cambiado a 40 kHz desde el depurador
   pulsar(1u);
@@ -151,6 +155,13 @@ int main(void)
   antes = pwm_encendidas;
   pulsar(1u);
   revisar(control_habilitado == 0 && pwm_encendidas == antes, "en falla el botón volvió a habilitar");
+
+  entradas = 1u; // BTN_HABILITAR apretado desde antes del reset
+  control_principal_arrancar();
+  control_principal_vuelta();
+  revisar(control_habilitado == 0 && pwm_encendidas == antes, "un botón apretado desde el arranque habilitó solo");
+  entradas = 0;
+  control_principal_vuelta();
 
   pulsar(2u);
   revisar(exportador_uart_ocupado(), "BTN_EXPORTAR no arrancó la exportación");
