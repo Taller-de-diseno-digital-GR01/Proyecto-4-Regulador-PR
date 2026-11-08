@@ -119,7 +119,7 @@ stateDiagram-v2
     LEYENDO --> LIBRE : xadc_drdy = 1
 ```
 
-- `LIBRE`, `xadc_convst` en 0. Atiende el disparo de h.4.
+- `LIBRE`, `xadc_convst` en 0. Atiende el disparo de h.4 si `xadc_busy` está en 0. Con `xadc_busy` en 1 el XADC está ocupado, por ejemplo calibrando al salir del reinicio [2, p. 13], y un disparo en ese momento dejaría a la máquina esperando un `xadc_eoc` que no corresponde a ningún `CONVST` propio. El disparo se ignora igual que uno que llega durante una conversión.
 - `DISPARANDO`, `xadc_convst` en 1. Se sostiene hasta que `xadc_busy` sube, que según UG480 pasa en el flanco de `DCLK` siguiente al instante de muestreo [1, Event-Driven Sampling]. Así el ancho del pulso no depende de un mínimo que haya que adivinar.
 - `CONVIRTIENDO`, `xadc_convst` en 0. Espera el pulso de `xadc_eoc`. En ese ciclo `xadc_den` sube durante un ciclo con `xadc_daddr = {2'b00, xadc_channel}` y `xadc_dwe` en 0, que es una lectura [1, DRP Timing].
 - `LEYENDO`, espera `xadc_drdy`. En ese ciclo guarda `muestra <= xadc_do[15:4]` y `contador <= contador + 1`, y vuelve a `LIBRE`.
