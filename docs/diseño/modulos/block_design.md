@@ -41,7 +41,7 @@ Fija cómo se arman e interconectan las instancias de la plataforma, con su conf
 
 ## f) Explicación de la relación con otros módulos
 
-El Block Design contiene a [`periferico_pwm`](periferico_pwm.md) y a [`envoltura_xadc`](envoltura_xadc.md) como IP empaquetadas, y a los dos `debounce` como módulos RTL. Fija los parámetros de `periferico_pwm` y conecta su `pwm_trigger_o` a la envoltura.
+El Block Design contiene a [`periferico_pwm`](periferico_pwm.md), a [`envoltura_xadc`](envoltura_xadc.md) y a los dos `debounce` como módulos RTL de referencia, que Vivado toma directo de `src/design/`. Fija los parámetros de `periferico_pwm` y conecta su `pwm_trigger_o` a la envoltura.
 
 Del lado del software, el `.xsa` le entrega a Vitis la configuración del procesador y el mapa de direcciones. [`drivers`](drivers.md) toma las direcciones base de `xparameters.h`, donde cada macro lleva el nombre de su instancia, y el orden de los bits de los GPIO de h.6.
 
@@ -57,7 +57,7 @@ El procesador busca instrucciones y datos en la memoria local de 32 KB por los d
 
 ### h.1) Instancias y configuración
 
-- `microblaze_riscv_0`, MicroBlaze V a 100 MHz, sin caché, con el puerto AXI de periféricos (`M_AXI_DP`) habilitado. La razón de ir sin caché está en el bloque 3 del [nivel 2](../diagramas/nivel02.md).
+- `microblaze_riscv_0`, MicroBlaze V a 100 MHz, sin caché, con el puerto AXI de periféricos (`M_AXI_DP`) habilitado. La razón de ir sin caché está en el bloque 3 del [nivel 2](../diagramas/nivel02.md). Lleva la unidad de punto flotante de precisión simple, la multiplicación y división entera y las instrucciones atómicas. El PR de [`pr_discreto`](pr_discreto.md) trabaja en `float`, y sin esas unidades cada suma o multiplicación pasa a una rutina de software dentro de los 50 µs de la rutina periódica.
 - `microblaze_riscv_0_local_memory`, memoria local de 32 KB con un LMB de instrucciones y otro de datos, como el bloque 3 de `nivel03.md`.
 - `mdm_1`, módulo de depuración en modo Enabled, solo depuración. La salida serie del sistema va por la UART Lite, así que el MDM no lleva UART por JTAG.
 - Processor System Reset, con `ext_reset_in` activo en alto (External Reset Logic Level en 1 [1, p. 16]).
@@ -67,9 +67,9 @@ El procesador busca instrucciones y datos en la memoria local de 32 KB por los d
 - `axi_uartlite_0`, AXI UART Lite a 115200 baudios, 8 bits de datos y sin paridad.
 - `axi_gpio_0`, AXI GPIO de dos canales. El canal 1 tiene 4 bits de entrada y el canal 2 tiene 2 bits de salida.
 - `axi_gpio_1`, AXI GPIO de un canal con 1 bit de salida.
-- `periferico_pwm`, con `DEAD_TIME_CICLOS = 100` y `PRECARGA_CICLOS = 7000` de `potencia/diseno_puente_h.md`, y `MAX_FREQ_00 = 5000`, `MAX_FREQ_01 = 2500`, `MAX_FREQ_10 = 1250` y `MAX_FREQ_11 = 2500` de la tabla de `freq_sel` de [`nucleo_pwm`](nucleo_pwm.md).
-- `envoltura_xadc`.
-- XADC Wizard sin interfaz AXI, con interfaz DRP, modo por eventos, canal único en VAUX6, entrada unipolar, `DCLK` de 100 MHz y divisor del reloj del ADC en 4, como fija h.6 de [`envoltura_xadc`](envoltura_xadc.md).
+- `periferico_pwm_0`, instancia de `periferico_pwm`, con `DEAD_TIME_CICLOS = 100` y `PRECARGA_CICLOS = 7000` de `potencia/diseno_puente_h.md`, y `MAX_FREQ_00 = 5000`, `MAX_FREQ_01 = 2500`, `MAX_FREQ_10 = 1250` y `MAX_FREQ_11 = 2500` de la tabla de `freq_sel` de [`nucleo_pwm`](nucleo_pwm.md).
+- `envoltura_xadc_0`, instancia de `envoltura_xadc`. Su DRP es la interfaz maestra `m_drp`, conectada al `s_drp` del wizard.
+- XADC Wizard sin interfaz AXI, con interfaz DRP, modo por eventos, canal único en VAUX6, entrada unipolar, `DCLK` de 100 MHz y divisor del reloj del ADC en 4, como fija h.6 de [`envoltura_xadc`](envoltura_xadc.md). El wizard no recibe el divisor directo, lo calcula de la tasa de conversión, y con 1000 kSPS escribe el divisor 4 en el registro de configuración 2 (`INIT_42 = 0x0400`).
 - Dos instancias de `debounce` (`src/design/debounce.sv`, `N = 21`), una para `BTN_HABILITAR` y otra para `BTN_EXPORTAR`.
 - Un Concat que arma el bus de 4 bits del canal 1 de `axi_gpio_0` (h.6).
 
@@ -84,14 +84,14 @@ El MicroBlaze V tiene dos espacios de 32 bits, uno de datos y otro de instruccio
 | `axi_gpio_1` | `0x4001_0000` | 64K | `0x4001_FFFF` |
 | `axi_uartlite_0` | `0x4060_0000` | 64K | `0x4060_FFFF` |
 | `axi_timer_0` | `0x41C0_0000` | 64K | `0x41C0_FFFF` |
-| `periferico_pwm` | la del Address Editor | 4K | base + `0xFFF` |
-| `envoltura_xadc` | la del Address Editor | 4K | base + `0xFFF` |
+| `periferico_pwm_0` | `0x44A0_0000` | 4K | `0x44A0_0FFF` |
+| `envoltura_xadc_0` | `0x44A1_0000` | 4K | `0x44A1_0FFF` |
 
-Las bases de los periféricos de Xilinx son las que asigna el Address Editor. Las de `periferico_pwm` y `envoltura_xadc` también las asigna el Address Editor al agregarlas, alineadas a su rango. El software no escribe ninguna dirección a mano, sino que las toma de `xparameters.h`, así que el valor de cada base solo tiene que quedar fijo en `src/bd/sistema.tcl`.
+Las bases de los periféricos de Xilinx son las que asigna el Address Editor. Las de `periferico_pwm_0` y `envoltura_xadc_0` se fijan a mano en `0x44A0_0000` y `0x44A1_0000`, lejos de la memoria local. El MicroBlaze V manda por `M_AXI_DP` todo acceso de datos que cae fuera de la memoria local, así que con el PWM justo después de la BRAM una escritura del software que se pase del final de la memoria llegaría a su registro de control y podría cambiar `enable` o `freq_sel`. El software no escribe ninguna dirección a mano, sino que las toma de `xparameters.h`, y el valor de cada base queda fijo en `src/bd/sistema.tcl`.
 
-Cada IP propia usa 8 bytes, con dos registros en `0x00` y `0x04`, y se le da un segmento de 4K. Con AXI Interconnect un esclavo AXI4-Lite puede tener un rango menor a 4K solo si todos los esclavos de esa interconexión son AXI4-Lite, y con 4K o más no hay restricción [3]. SmartConnect no fija un rango mínimo por segmento [2, Features]. Con 4K el segmento sirve con cualquiera de las dos.
+Cada periférico propio usa 8 bytes, con dos registros en `0x00` y `0x04`, y se le da un segmento de 4K. Con AXI Interconnect un esclavo AXI4-Lite puede tener un rango menor a 4K solo si todos los esclavos de esa interconexión son AXI4-Lite, y con 4K o más no hay restricción [3]. SmartConnect no fija un rango mínimo por segmento [2, Features]. Con 4K el segmento sirve con cualquiera de las dos.
 
-Las dos IP decodifican 4 bits de dirección y eligen el registro con los bits `[3:2]`, así que dentro de su segmento los dos registros se repiten cada 16 bytes, y un acceso a `base + 0x10` llega al registro de `0x00`. Un acceso fuera de todos los segmentos no llega a ningún esclavo, y el SmartConnect responde con DECERR [2, Address Decode].
+Los dos periféricos decodifican 4 bits de dirección, así que dentro de su segmento los dos registros se repiten cada 16 bytes, y un acceso a `base + 0x10` llega al registro de `0x00`. `envoltura_xadc` elige el registro con los bits `[3:2]`, mientras que `interfaz_axi_pwm` compara los 4 bits, y en el PWM `0x08` y `0x0C` se leen en 0. Un acceso fuera de todos los segmentos no llega a ningún esclavo, y el SmartConnect responde con DECERR [2, Address Decode].
 
 ### h.3) Interrupción
 
@@ -167,8 +167,8 @@ flowchart TD
         G1["axi_gpio_1<br/>0x4001_0000"]
         UA["axi_uartlite_0<br/>0x4060_0000"]
         TM["axi_timer_0<br/>0x41C0_0000"]
-        PWM["periferico_pwm<br/>4K"]
-        ENV["envoltura_xadc<br/>4K"]
+        PWM["periferico_pwm_0<br/>0x44A0_0000"]
+        ENV["envoltura_xadc_0<br/>0x44A1_0000"]
     end
     CLK(["clk"]) --> RST
     BRST(["BTN_RST"]) -->|"ext_reset_in"| RST["Processor System Reset"]
