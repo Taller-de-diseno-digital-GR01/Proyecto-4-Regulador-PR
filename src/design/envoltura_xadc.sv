@@ -2,9 +2,9 @@
 `timescale 1ns/1ps
 
 module envoltura_xadc (
-    // Los atributos asocian clk y rst_n al bus S_AXI al empaquetar, porque sus nombres no son los de AXI
+    // Los atributos asocian clk y rst_n a las interfaces s_axi y m_drp, porque sus nombres no son los de AXI
     (* X_INTERFACE_INFO = "xilinx.com:signal:clock:1.0 clk CLK",
-       X_INTERFACE_PARAMETER = "XIL_INTERFACENAME clk, ASSOCIATED_BUSIF S_AXI:m_drp, ASSOCIATED_RESET rst_n, FREQ_HZ 100000000" *)
+       X_INTERFACE_PARAMETER = "XIL_INTERFACENAME clk, ASSOCIATED_BUSIF s_axi:m_drp, ASSOCIATED_RESET rst_n, FREQ_HZ 100000000" *)
     input logic clk,
     (* X_INTERFACE_INFO = "xilinx.com:signal:reset:1.0 rst_n RST",
        X_INTERFACE_PARAMETER = "XIL_INTERFACENAME rst_n, POLARITY ACTIVE_LOW" *)
