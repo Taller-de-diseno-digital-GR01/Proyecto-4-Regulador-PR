@@ -86,7 +86,7 @@ Una escritura a `0x04` o a una dirección sin registro no hace nada y responde `
 
 ### h.2) Interfaz AXI4-Lite
 
-Los nombres siguen la convención `s_axi_*` para que Vivado infiera la interfaz al empaquetar la IP. La dirección tiene 4 bits y se decodifica con `s_axi_awaddr[3:2]` y `s_axi_araddr[3:2]`. Las respuestas son siempre `OKAY` (`2'b00`).
+Los nombres siguen la convención `s_axi_*` para que Vivado infiera la interfaz `s_axi` al agregar el módulo al Block Design. Los puertos del DRP llevan atributos `X_INTERFACE_INFO` que los agrupan en la interfaz maestra `m_drp`, y `clk` y `rst_n` llevan los que los asocian a las dos interfaces. La dirección tiene 4 bits y se decodifica con `s_axi_awaddr[3:2]` y `s_axi_araddr[3:2]`. Las respuestas son siempre `OKAY` (`2'b00`).
 
 - Escritura. `s_axi_awready` y `s_axi_wready` suben juntos durante un ciclo cuando `s_axi_awvalid` y `s_axi_wvalid` están en 1 y no hay una respuesta pendiente. El esclavo puede esperar las dos validaciones antes de dar cualquiera de los dos `ready`, y el maestro puede presentarlas en cualquier orden [5]. `s_axi_bvalid` sube al ciclo siguiente y se sostiene hasta `s_axi_bready`.
 - Lectura. `s_axi_arready` sube durante un ciclo con `s_axi_arvalid` y sin un dato pendiente. `s_axi_rdata` se carga en ese mismo ciclo y `s_axi_rvalid` se sostiene hasta `s_axi_rready`.
@@ -119,7 +119,7 @@ stateDiagram-v2
     LEYENDO --> LIBRE : xadc_drdy = 1
 ```
 
-- `LIBRE`, `xadc_convst` en 0. Atiende el disparo de h.4.
+- `LIBRE`, `xadc_convst` en 0. Atiende el disparo de h.4 si `xadc_busy` está en 0. Con `xadc_busy` en 1 el XADC está ocupado, por ejemplo calibrando al salir del reinicio [2, p. 13], y un disparo en ese momento dejaría a la máquina esperando un `xadc_eoc` que no corresponde a ningún `CONVST` propio. El disparo se ignora igual que uno que llega durante una conversión.
 - `DISPARANDO`, `xadc_convst` en 1. Se sostiene hasta que `xadc_busy` sube, que según UG480 pasa en el flanco de `DCLK` siguiente al instante de muestreo [1, Event-Driven Sampling]. Así el ancho del pulso no depende de un mínimo que haya que adivinar.
 - `CONVIRTIENDO`, `xadc_convst` en 0. Espera el pulso de `xadc_eoc`. En ese ciclo `xadc_den` sube durante un ciclo con `xadc_daddr = {2'b00, xadc_channel}` y `xadc_dwe` en 0, que es una lectura [1, DRP Timing].
 - `LEYENDO`, espera `xadc_drdy`. En ese ciclo guarda `muestra <= xadc_do[15:4]` y `contador <= contador + 1`, y vuelve a `LIBRE`.
