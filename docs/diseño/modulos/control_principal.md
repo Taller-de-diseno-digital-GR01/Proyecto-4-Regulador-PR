@@ -78,7 +78,7 @@ Ningún paso espera a un periférico, así que una vuelta dura pocos microsegund
 | --- | --- | --- | --- |
 | deshabilitado | flanco de `BTN_HABILITAR`, arranque correcto, `freq_sel = 01` y `falla = 0` | reinicia PR y fase, vuelve a comprobar `falla` en la sección crítica y habilita si sigue en cero | habilitado si se confirma la escritura |
 | deshabilitado | flanco de `BTN_HABILITAR` con `freq_sel` distinto de `01` | nada | deshabilitado |
-| habilitado | flanco de `BTN_HABILITAR` | `enable = 0`, `control_habilitado = 0` | deshabilitado |
+| habilitado | flanco de `BTN_HABILITAR` | `enable = 0`, `duty_ref = 0`, `control_habilitado = 0` | deshabilitado |
 | deshabilitado o habilitado | `falla = 1` | `control_habilitado = 0` | falla |
 | falla o error de arranque | flanco de `BTN_HABILITAR` | ignora la solicitud | falla o error de arranque |
 | falla o error de arranque | `BTN_RST` | reinicio de la plataforma | arranque |
@@ -89,7 +89,7 @@ El lazo principal determina el estado a partir de `control_habilitado`, `falla` 
 
 Al habilitar, reinicia el PR y la fase mientras `control_habilitado` permanece en cero. Luego guarda el estado previo de las interrupciones y las enmascara. Dentro de la misma sección crítica vuelve a leer `falla` y, si vale cero y el arranque fue correcto, escribe `enable = 1` preservando `freq_sel` y publica `control_habilitado = 1`. En cualquier salida restaura el estado previo de las interrupciones. Si la ISR enclavó una falla antes de entrar a la sección crítica, la habilitación se rechaza.
 
-Al deshabilitar por botón, baja `enable` y `control_habilitado` en una sección crítica. El núcleo aplica el apagado en el siguiente valle que capture la orden. El lazo principal y la ISR comparten la escritura del offset `0x00`, por lo que las funciones de acceso de [drivers](drivers.md#h1-periférico-pwm) preservan `freq_sel`.
+Al deshabilitar por botón, baja `enable` y `control_habilitado` en una sección crítica. El núcleo aplica el apagado en el siguiente valle que capture la orden. En la misma sección crítica escribe `duty_ref = 0`. El núcleo carga la sombra de `duty_ref` en cada valle aunque `enable` esté en cero, y `running` sube en un valle, así que sin esa escritura el primer período de la siguiente habilitación aplicaría la última orden de la sesión anterior, hasta ±0,92, con el PR recién reiniciado. Con 18 V y 2 mH eso es un escalón de unos 0,4 A en 50 µs. Al arrancar no hace falta, porque el reset del periférico deja `duty_ref` en cero. El lazo principal y la ISR comparten la escritura del offset `0x00`, por lo que las funciones de acceso de [drivers](drivers.md#h1-periférico-pwm) preservan `freq_sel`.
 
 ### h.3) Amplitud de la referencia
 
@@ -106,7 +106,7 @@ Los switches son `SW0` y `SW1` de la Basys 3.
 
 ### h.4) Detección de flancos
 
-Se guarda la lectura de los botones de la vuelta anterior, y el flanco de subida es `actual & ~anterior`. El antirrebote ya viene resuelto por el bloque 10, así que una pulsación da un solo flanco. Como el lazo principal da miles de vueltas por segundo, no hay forma de perder una pulsación humana.
+Se guarda la lectura de los botones de la vuelta anterior, y el flanco de subida es `actual & ~anterior`. El antirrebote ya viene resuelto por el bloque 10, así que una pulsación da un solo flanco. Como el lazo principal da miles de vueltas por segundo, no hay forma de perder una pulsación humana. La lectura anterior se inicializa al principio de `control_principal_arrancar` con la lectura real de los botones, así un botón que ya estaba apretado al salir del reset no cuenta como flanco y no habilita el puente solo.
 
 ### h.5) Cambio de `freq_sel`
 
@@ -136,7 +136,7 @@ Es el único escritor de `control_habilitado` y `amplitud_ref` y solo lee `falla
 
 ### h.8) Prueba en la PC
 
-`sw/pruebas/prueba_control_principal.c` se compila con gcc junto con los demás módulos reales y define sus propias funciones de `drivers`, que escriben en variables y simulan el contador del XADC, `freq_sel` y los botones. La ISR no corre, y la falla se simula escribiendo `falla`. Revisa que el Timer arranque solo después del segundo avance del contador y que con el sondeo vencido quede detenido, con el LED de falla y la habilitación bloqueada. También revisa que la habilitación se rechace con `falla` o con `freq_sel` distinto de `01`, que `enable` y `control_habilitado` cambien dentro de una sección crítica, que la falla baje `control_habilitado` y encienda `led[1]`, la amplitud de cada código de `SW[1:0]`, que un botón sostenido dé un solo flanco y que `BTN_EXPORTAR` arranque la exportación.
+`sw/pruebas/prueba_control_principal.c` se compila con gcc junto con los demás módulos reales y define sus propias funciones de `drivers`, que escriben en variables y simulan el contador del XADC, `freq_sel` y los botones. La ISR no corre, y la falla se simula escribiendo `falla`. Revisa que el Timer arranque solo después del segundo avance del contador y que con el sondeo vencido quede detenido, con el LED de falla y la habilitación bloqueada. También revisa que la habilitación se rechace con `falla` o con `freq_sel` distinto de `01`, que `enable` y `control_habilitado` cambien dentro de una sección crítica, que deshabilitar deje `duty_ref` en cero dentro de esa misma sección, que un botón apretado desde el arranque no habilite, que la falla baje `control_habilitado` y encienda `led[1]`, la amplitud de cada código de `SW[1:0]`, que un botón sostenido dé un solo flanco y que `BTN_EXPORTAR` arranque la exportación.
 
 ## i) Diagrama esquemático detallado del diseño
 

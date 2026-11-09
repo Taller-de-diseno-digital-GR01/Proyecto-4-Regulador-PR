@@ -1,15 +1,15 @@
 addpath(fullfile(fileparts(mfilename('fullpath')), '..')); % sw/, pa encontrar generar_pr_params
 
 ruta = [tempname() '.h']; % no pisa el pr_params.h de verdad
-generar_pr_params('estructura', 'ideal', 'metodo', 'tustin_prewarp', 'kp', 6.59, 'kr', 1000, 'vdc', 18, 'fs', 20000, 'u_max', 0.92, 'salida', ruta);
+generar_pr_params('estructura', 'ideal', 'metodo', 'tustin_prewarp', 'kp', 16.06, 'kr', 3000, 'vdc', 18, 'fs', 20000, 'u_max', 0.92, 'salida', ruta);
 texto = fileread(ruta);
 delete(ruta);
 leer = @(nombre) str2double(regexp(texto, ['#define ' nombre ' VALOR\(([^)]+)f\)'], 'tokens', 'once')); % saca el numero de adentro de VALOR(...f)
 
 errores = 0;
 casos = {
-  abs(leer('PR_KP') - 0.3661) < 5e-5, 'KP no es el de diseno_pr.md'; % 6.59/18, tolerancia por los 4 decimales del doc
-  abs(leer('PR_B0') - 1.3888e-3) < 1e-7, 'B0 no es el de diseno_pr.md';
+  abs(leer('PR_KP') - 0.8922) < 5e-5, 'KP no es el de diseno_pr.md'; % 16.06/18, tolerancia por los 4 decimales del doc
+  abs(leer('PR_B0') - 4.1665e-3) < 1e-7, 'B0 no es el de diseno_pr.md';
   leer('PR_B1') == 0, 'B1 no es cero';
   leer('PR_B2') == -leer('PR_B0'), 'B2 no es -B0';
   abs(leer('PR_A1') + 1.99975) < 5e-6, 'A1 no es el de diseno_pr.md';

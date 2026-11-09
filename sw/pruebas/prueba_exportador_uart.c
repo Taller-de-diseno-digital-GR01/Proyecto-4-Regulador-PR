@@ -1,4 +1,4 @@
-// gcc -std=c99 -Wall -I sw/pruebas/sustitutos -I sw sw/buffer_muestras.c sw/exportador_uart.c sw/pruebas/prueba_exportador_uart.c -lm -o sw/build/prueba_exportador_uart
+// gcc -std=c99 -Wall -I sw sw/buffer_muestras.c sw/exportador_uart.c sw/pruebas/prueba_exportador_uart.c -lm -o sw/build/prueba_exportador_uart
 // con una ruta de argumento guarda la trama ahí, sirve para probar receptor_pc sin placa
 #include <math.h>
 #include <stdio.h>

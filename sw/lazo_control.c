@@ -48,6 +48,10 @@ void lazo_control_isr(void *ref)
       drivers_pwm_escribir_duty(duty_ref);
     } // sin dato el PR no avanza y el PWM se queda con el duty_ref anterior
   }
+  else { // el puente no aplica ninguna orden, así el histórico no arrastra la de la sesión anterior
+    duty_ref = 0;
+    saturado = false;
+  }
 
   registro.cuenta_banderas = (uint16_t)((cuenta & CUENTA_MASCARA) | (saturado ? BANDERA_SATURADO : 0u) | (hay_dato ? 0u : BANDERA_DATO_AUSENTE) | (habilitado ? BANDERA_HABILITADO : 0u) | (en_falla ? BANDERA_FALLA : 0u));
   registro.duty_ref = duty_ref;

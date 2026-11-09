@@ -83,6 +83,11 @@ bool drivers_pwm_running(void)
   return (Xil_In32(PWM_BASE + PWM_CONTROL) & PWM_RUNNING) != 0;
 }
 
+uint32_t drivers_pwm_freq_sel(void)
+{
+  return (Xil_In32(PWM_BASE + PWM_CONTROL) >> PWM_FREQ_SEL_DESPL) & PWM_FREQ_SEL_MASCARA;
+}
+
 bool drivers_adc_dato_nuevo(void)
 { // una sola lectura, muestra y contador tienen que salir del mismo dato
   uint32_t dato = Xil_In32(ADC_BASE + ADC_DATO);
