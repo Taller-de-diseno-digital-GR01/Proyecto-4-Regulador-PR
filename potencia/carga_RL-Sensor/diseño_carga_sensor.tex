@@ -270,8 +270,151 @@
 		\label{fig:circuitomedidordecorriente}
 	\end{figure}
 	
+	\section{Circuito de acondicionamiento}
 	
+	Como se mencionó en la sección anterior, la señal de salida del sensor supera los $3.3$ V de los pines de la Basys3, por lo que se debe acondicionar la señal del sensor con el fin de obtener una señal entre $0$ y $1$. Este rango de amplitud es el que puede leer el \textit{JXADC} en la FPGA.\\
 	
+	Para solucionar este problema se utiliza un amplificador restador, el cual permite 'atenuar' la amplitud de la señal y así proteger la FPGA. Este circuito se muestra en la Fig. \ref{fig:circuitoacondicionador}.
+	
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.7\linewidth]{figs/circuito_acondicionador}
+		\caption{Circuito acondicionador Sensor - JXADC}
+		\label{fig:circuitoacondicionador}
+	\end{figure}
+	
+	El circuito acondicionador tiene 3 funciones principales:
+	\begin{itemize}
+		\item Quitar el cero del sensor ($2.5$ V)
+		\item Amplificar la señal ($A_v = 2.4$)
+		\item Insertar un nuevo cero que permita representar números negativos. ($0.5$ V)
+	\end{itemize}
+	 
+	 La ganancia de este circuito se obtiene de la siguiente ecuación:
+	 
+	 \[A_v = \frac{R_1}{R2 || R3} = 2.4\]
+	 
+	 Se seleccionó dicha ganancia con el fin de centrar la onda cerca de los $2.5$ V, ya que al eliminar el cero del sensor la onda queda centrada a $0.1$ por lo que se necesita cierto offset.
+
+	\subsection{Ecuación general del circuito}
+	En la entrada no inversora, el divisor formado por $R_5$ y $R_6$ se reemplaza por su equivalente de Thévenin:
+
+	\begin{align*}
+		&V_{off} = V_{cc} \cdot \frac{R_6}{R_5 + R_6}\\
+		&R_+ = R_5 || R_6
+	\end{align*}
+
+	Por superposición entre la salida del sensor y $V_{off}$, la tensión en esa entrada es:
+
+	\[V_+ = \frac{V_{sensor} \cdot R_+ + V_{off} \cdot R_7}{R_+ + R_7}\]
+
+	En la entrada inversora se hace lo mismo con el divisor formado por $R_2$ y $R_3$:
+
+	\begin{align*}
+		&V_m = V_{cc} \cdot \frac{R_3}{R_2 + R_3}\\
+		&R_- = R_2 || R_3
+	\end{align*}
+
+	Como el amplificador operacional hace que $V_- = V_+$, al sumar las corrientes en la entrada inversora se obtiene la tensión de salida del amplificador:
+
+	\[V_o = V_+ \left(1 + \frac{R_1}{R_-}\right) - V_m \cdot \frac{R_1}{R_-}\]
+
+	Al sustituir $V_+$, el término que multiplica a $V_{sensor}$ corresponde a la ganancia:
+
+	\[A_v = \left(1 + \frac{R_1}{R_-}\right) \cdot \frac{R_+}{R_+ + R_7}\]
+
+	Si las dos ramas están balanceadas, se cumple la condición:
+
+	\[\frac{R_+}{R_7} = \frac{R_1}{R_-} = k\]
+
+	Con esta condición la ganancia se reduce a $A_v = k$ y la salida queda:
+
+	\[V_o = A_v \left(V_{sensor} - V_m\right) + V_{off}\]
+
+	\subsection{Selección de la ganancia}
+	Con $R = 10\ \Omega$ la corriente máxima de la carga es:
+
+	\[I_{max} = \frac{0.92 \cdot 18 \text{ V}}{10\ \Omega} = 1.66 \text{ A}\]
+
+	Se deja un margen de $0.10$ V en cada extremo del rango de $0$ a $1$ V, por lo que la excursión permitida alrededor de $0.5$ V es de $\pm 0.40$ V. Con la sensibilidad del sensor de $100$ mV/A:
+
+	\begin{align*}
+		&A_v \cdot 0.100 \text{ V/A} \cdot 1.66 \text{ A} \leq 0.40 \text{ V}\\
+		&A_v \leq 2.41
+	\end{align*}
+
+	Por lo tanto se selecciona $A_v = 2.4$.
+
+	\subsection{Resistencias de la entrada no inversora}
+	A $0$ A la salida debe ser igual a $V_{off}$, por lo que se busca $V_{off} = 0.5$ V a partir de $V_{cc} = 5$ V:
+
+	\begin{align*}
+		&5 \text{ V} \cdot \frac{R_6}{R_5 + R_6} = 0.5 \text{ V}\\
+		&R_5 = 9 \cdot R_6
+	\end{align*}
+
+	Se selecciona $R_6 = 20\ \text{k}\Omega$, con lo que $R_5 = 180\ \text{k}\Omega$. El equivalente de Thévenin es:
+
+	\[R_+ = \frac{180\ \text{k}\Omega \cdot 20\ \text{k}\Omega}{180\ \text{k}\Omega + 20\ \text{k}\Omega} = 18\ \text{k}\Omega\]
+
+	De la condición de balance se obtiene $R_7$:
+
+	\[R_7 = \frac{R_+}{A_v} = \frac{18\ \text{k}\Omega}{2.4} = 7.5\ \text{k}\Omega\]
+
+	Para comprobar los valores, con $V_{sensor} = 2.5$ V se tiene:
+
+	\begin{align*}
+		&V_+ = \frac{2.5 \text{ V} \cdot 18\ \text{k}\Omega + 0.5 \text{ V} \cdot 7.5\ \text{k}\Omega}{18\ \text{k}\Omega + 7.5\ \text{k}\Omega} = 1.912 \text{ V}\\
+		&V_o = 1.912 \text{ V} \cdot 3.4 - 2.5 \text{ V} \cdot 2.4 = 0.50 \text{ V}
+	\end{align*}
+
+	\subsection{Filtro antialias}
+	El filtro antialias es el RC formado por $R_4$ y $C_1$ a la salida del amplificador operacional. Su frecuencia de corte debe quedar entre $2$ y $5$ kHz, rango aceptado para el diseño del controlador PR. Una frecuencia menor atenúa más el ruido, pero agrega más retardo al lazo. El cálculo se muestra para $R_4 = 1\ \text{k}\Omega$ y $C_1 = 33$ nF, con frecuencia de muestreo de $20$ kHz:
+
+	\begin{align*}
+		&f_c = \frac{1}{2\pi \cdot R_4 \cdot C_1} = \frac{1}{2\pi \cdot 1\ \text{k}\Omega \cdot 33 \text{ nF}} = 4823 \text{ Hz}\\
+		&t_d = R_4 \cdot C_1 = 33\ \mu\text{s}
+	\end{align*}
+
+	El atraso de fase sobre la señal de $50$ Hz es:
+
+	\[\phi = \arctan\left(\frac{50 \text{ Hz}}{4823 \text{ Hz}}\right) = 0.59^\circ\]
+
+	La hoja de datos del sensor indica un ruido de $11$ mV pico a pico con $2$ kHz de ancho de banda. Tomando ruido blanco, su valor crece con la raíz del ancho de banda:
+
+	\begin{align*}
+		&\frac{V_{n}(f_c)}{V_{n}(2 \text{ kHz})} = \sqrt{\frac{f_c}{2 \text{ kHz}}} = \sqrt{\frac{4823 \text{ Hz}}{2000 \text{ Hz}}} = 1.55\\
+		&V_{n}(f_c) = 1.55 \cdot 11 \text{ mV} = 17 \text{ mV}
+	\end{align*}
+
+	Con la sensibilidad de $100$ mV/A esto equivale a $0.17$ A pico a pico. El Cuadro \ref{tab:antialias} compara las opciones dentro del rango, con $R_4 = 1\ \text{k}\Omega$. El valor final de $C_1$ debe definirse con el ruido medido.
+
+	\begin{table}[H]
+		\centering
+		\caption{Opciones del filtro antialias con $R_4 = 1\ \text{k}\Omega$}
+		\label{tab:antialias}
+		\begin{tabular}{ccccc}
+			\hline
+			$C_1$ (nF) & $f_c$ (Hz) & $t_d$ ($\mu$s) & $\phi$ a $50$ Hz ($^\circ$) & Ruido (A pico a pico) \\
+			\hline
+			$80$ & $1989$ & $80$ & $0.195$ & $0.11$ \\
+			$53$ & $3003$ & $53$ & $0.288$ & $0.13$ \\
+			$33$ & $4823$ & $33$ & $0.434$ & $0.17$ \\
+			\hline
+		\end{tabular}
+	\end{table}
+
+	\section{simulación}
+	El circuito fue simulado mediante la herramienta LTspice, con la cual se obtienen las ondas mostradas en la Fig.\ref{fig:circuitoacondicionadorsim}.
+	\begin{figure}[H]
+		\centering
+		\includegraphics[width=0.7\linewidth]{figs/circuito_acondicionador_sim}
+		\caption{Simulación del circuito acondicionador. Vout: Onda Verde - Vsensor: Onda Azul}
+		\label{fig:circuitoacondicionadorsim}
+	\end{figure}
+		
+		
+	En la Fig.\ref{fig:circuitoacondicionadorsim} se observa el comportamiento esperado del circuito, donde la señal de salida del sensor es acondicionada a un rango menor entre los $0$ y $1$ V, para ser recibido por el ADC de la FPGA.
 	
 	
 	
