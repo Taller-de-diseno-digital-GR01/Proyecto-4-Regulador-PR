@@ -2,7 +2,7 @@
 
 ## a) Nombre del módulo
 
-`ref_senoidal`, en `sw/ref_senoidal.c` y `sw/ref_senoidal.h`. Es parte del software del MicroBlaze V del [nivel 3](../diagramas/nivel03.md).
+`ref_senoidal`, en `sw/ref_senoidal.c` y `sw/ref_senoidal.h`, con la tabla en `sw/tabla_seno.h`, que genera `sw/generar_tabla_seno.m`. Es parte del software del MicroBlaze V del [nivel 3](../diagramas/nivel03.md).
 
 ## b) Diagrama modular
 
@@ -48,7 +48,13 @@ El incremento por iteración es
 
 `incremento = round(50 · 2^32 / frecuencia_muestreo_hz)`
 
-y se calcula una vez en `ref_senoidal_iniciar` con aritmética entera de 64 bits. El error de frecuencia que deja el redondeo es como mucho `frecuencia_muestreo_hz / 2^33`, del orden de microhertz para cualquier frecuencia de muestreo razonable, y la fase no acumula error porque el acumulador desborda solo al completar la vuelta.
+y se calcula una vez en `ref_senoidal_iniciar`. El cálculo directo necesita una división de 64 bits, y en el MicroBlaze V eso enlaza `__udivdi3` de libgcc, que ocupa 1,2 KB. Por eso se parte en dos divisiones de 32 bits, que el procesador hace en hardware. Se escribe `2^32 = frecuencia_muestreo_hz · q + r`, con `q = (2^32 - 1) / frecuencia_muestreo_hz` y `r` entre 1 y `frecuencia_muestreo_hz`, y queda
+
+`incremento = 50 · q + (50 · r + frecuencia_muestreo_hz / 2) / frecuencia_muestreo_hz`
+
+que da el mismo resultado exacto que la división de 64 bits mientras `50 · r` quepa en 32 bits, o sea para cualquier frecuencia de muestreo por debajo de unos 85 MHz. Se comparó contra la versión de 64 bits para todas las frecuencias entre 51 Hz y 5 MHz, sin una sola diferencia.
+
+El error de frecuencia que deja el redondeo es como mucho `frecuencia_muestreo_hz / 2^33`, del orden de microhertz para cualquier frecuencia de muestreo razonable, y la fase no acumula error porque el acumulador desborda solo al completar la vuelta.
 
 ### h.2) Tabla de un cuarto de onda
 
@@ -68,19 +74,21 @@ La fase se corta en sus 10 bits altos, lo que da 1024 posiciones por período.
 
 Cortar la fase a 1024 posiciones produce un error de amplitud de a lo sumo 2π/1024, un 0,6 % del pico, que aparece como armónicos de alto orden y no como error de la fundamental. Si en el nivel de pruebas resulta poco, se agrega interpolación lineal entre dos entradas vecinas sin cambiar la interfaz.
 
-La tabla se llena en `ref_senoidal_iniciar` con `sinf`. Así no hace falta generar un arreglo constante aparte, y el costo de `sinf` queda en el arranque y nunca en la interrupción. Con `valor_t` en punto flotante ocupa 257 · 4 = 1028 bytes.
+La tabla es un arreglo constante, `tabla_seno` en `sw/tabla_seno.h`, que genera `sw/generar_tabla_seno.m` en Octave con `sin` en doble precisión y cada valor escrito con 9 cifras, lo que alcanza para el `float`. Al principio se llenaba en `ref_senoidal_iniciar` con `sinf`, pero `sinf` arrastra de libm la reducción de argumento para ángulos grandes, unos 5 KB que nunca se usan porque el ángulo siempre está entre 0 y π/2. Con eso y la división de 64 bits de h.1, el programa no cabía en los 32 KB. Los valores nuevos difieren de los que daba `sinf` en menos de 6·10^-8.
+
+Con `valor_t` en punto flotante ocupa 257 · 4 = 1028 bytes, ahora en memoria de solo lectura en vez de datos. `ref_senoidal.c` revisa con `_Static_assert` que el cuarto tenga 256 entradas, porque el índice sale de 8 bits de la fase. Si se cambia la tabla, se regenera el header corriendo `generar_tabla_seno` desde `sw/`, nunca a mano.
 
 ### h.3) Formato numérico
 
-La amplitud, la tabla y la salida son `valor_t`, el tipo único que define `sw/numerico.h`. Hoy es `float` porque todavía no se sabe si el MicroBlaze V lleva FPU. Si se pasa a punto fijo, el cambio queda en `numerico.h` y en las dos líneas de este módulo que multiplican y llenan la tabla, porque usan `valor_mul` y `VALOR` en vez de operar directo sobre `float`.
+La amplitud, la tabla y la salida son `valor_t`, el tipo único que define `sw/numerico.h`. Hoy es `float`, y el MicroBlaze V del Block Design lleva FPU de precisión simple (#44). Si se pasa a punto fijo, el cambio queda en `numerico.h`, en la multiplicación de este módulo, que usa `valor_mul`, y en el generador de la tabla, cuyos valores salen envueltos en `VALOR`.
 
 ### h.4) Interfaz en C
 
-- `void ref_senoidal_iniciar(uint32_t frecuencia_muestreo_hz)`, llena la tabla, calcula el incremento y deja la fase en cero.
+- `void ref_senoidal_iniciar(uint32_t frecuencia_muestreo_hz)`, calcula el incremento y deja la fase en cero.
 - `void ref_senoidal_reiniciar_fase(void)`, deja la fase en cero.
 - `valor_t ref_senoidal_siguiente(valor_t amplitud_ref)`, devuelve la muestra de la fase actual y avanza la fase.
 
-El estado es la fase, el incremento y la tabla, todos `static` dentro de `ref_senoidal.c`. La fase la escribe solo la interrupción, salvo en el reinicio, que `control_principal` hace con el control deshabilitado.
+El estado es la fase y el incremento, los dos `static` dentro de `ref_senoidal.c`. La tabla es `static const` en `tabla_seno.h`, que solo incluye `ref_senoidal.c`. La fase la escribe solo la interrupción, salvo en el reinicio, que `control_principal` hace con el control deshabilitado.
 
 ### h.5) Prueba en la PC
 

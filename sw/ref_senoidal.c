@@ -1,19 +1,20 @@
-#include <math.h>
 #include "ref_senoidal.h"
+#include "tabla_seno.h" // constante y generada en Octave, calcularla con sinf al arrancar metía unos 5 KB de libm en los 32 KB
 
 #define FRECUENCIA_REF_HZ 50u
-#define MUESTRAS_CUARTO 256u // un cuarto de onda, el resto sale por simetría
+#define MUESTRAS_CUARTO TABLA_SENO_CUARTO // un cuarto de onda, el resto sale por simetría
 
-static valor_t tabla[MUESTRAS_CUARTO + 1]; // +1 porque la 256 es sin(pi/2), el segundo cuadrante empieza ahí al revés
+_Static_assert(MUESTRAS_CUARTO == 256u, "ref_senoidal_siguiente saca el índice con 8 bits de la fase");
+
 static uint32_t fase; // 32 bits = una vuelta completa, se desborda solo
 static uint32_t incremento;
 
 void ref_senoidal_iniciar(uint32_t frecuencia_muestreo_hz)
-{
-  for(uint32_t i = 0; i <= MUESTRAS_CUARTO; i++) // <= pa incluir el pico
-    tabla[i] = VALOR(sinf((float)i * 1.57079632679f / (float)MUESTRAS_CUARTO)); // 1.5707... = pi/2
-
-  incremento = (uint32_t)((((uint64_t)FRECUENCIA_REF_HZ << 32) + frecuencia_muestreo_hz / 2) / frecuencia_muestreo_hz); // 50 * 2^32 / fs, el + fs/2 es pa redondear
+{ // 50 * 2^32 / fs partido en dos divisiones de 32 bits, con una de 64 se enlazaba __udivdi3 de libgcc
+  uint32_t fs = frecuencia_muestreo_hz;
+  uint32_t q = 0xFFFFFFFFu / fs;
+  uint32_t r = 0xFFFFFFFFu - q * fs + 1u; // 2^32 = fs * q + r, con r entre 1 y fs
+  incremento = FRECUENCIA_REF_HZ * q + (FRECUENCIA_REF_HZ * r + fs / 2u) / fs; // el + fs/2 es pa redondear
   fase = 0;
 }
 
@@ -29,10 +30,10 @@ valor_t ref_senoidal_siguiente(valor_t amplitud_ref)
   valor_t seno;
 
   switch(cuadrante) {
-    case 0: seno = tabla[i]; break;
-    case 1: seno = tabla[MUESTRAS_CUARTO - i]; break; // bajando
-    case 2: seno = -tabla[i]; break; // negativo
-    default: seno = -tabla[MUESTRAS_CUARTO - i]; break;
+    case 0: seno = tabla_seno[i]; break;
+    case 1: seno = tabla_seno[MUESTRAS_CUARTO - i]; break; // bajando, la 256 es sin(pi/2) y el segundo cuadrante empieza ahí al revés
+    case 2: seno = -tabla_seno[i]; break; // negativo
+    default: seno = -tabla_seno[MUESTRAS_CUARTO - i]; break;
   }
 
   fase += incremento; // el desborde es la vuelta, no hay que restar nada
