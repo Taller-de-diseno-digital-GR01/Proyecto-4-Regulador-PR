@@ -68,6 +68,8 @@ La suma deja afuera el `0xAA` porque ese byte solo marca el inicio. Una suma de 
 
 Los cuatro campos de calibración y de escala van en la cabecera para que `receptor_pc` no tenga una copia propia que se pueda desincronizar del firmware. La escala de `duty_ref` sale del formato que fijó Jefferson, Q2.14 con signo, así que `DUTY_ESCALA` vale 1/16384 y `DUTY_CON_SIGNO` vale 1, los dos en `pr_discreto.h`.
 
+Los registros se mandan leyendo `registro_t` byte por byte, así que el formato depende de que el struct mida exactamente 6 bytes, sin relleno. Un `_Static_assert` en `exportador_uart.c` lo comprueba al compilar, y si alguien agrega un campo la compilación falla en vez de mandar una trama corrida.
+
 ### h.2) Avance por posición
 
 En vez de una máquina con un estado por sección de la trama, el módulo guarda solo la posición del siguiente byte y la suma acumulada. El byte de la posición `p` sale de
