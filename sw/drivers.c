@@ -38,14 +38,13 @@
 
 #define TIMER_CONTROL 0x00u
 #define TIMER_RECARGA 0x04u
-#define TIMER_GENERACION (1u << 0)
 #define TIMER_CUENTA_ABAJO (1u << 1)
 #define TIMER_AUTORRECARGA (1u << 4)
 #define TIMER_CARGAR (1u << 5)
 #define TIMER_INTERRUPCION_HAB (1u << 6)
 #define TIMER_ARRANCAR (1u << 7)
 #define TIMER_INTERRUPCION (1u << 8)
-#define TIMER_MODO (TIMER_GENERACION | TIMER_CUENTA_ABAJO | TIMER_AUTORRECARGA | TIMER_INTERRUPCION_HAB)
+#define TIMER_MODO (TIMER_CUENTA_ABAJO | TIMER_AUTORRECARGA | TIMER_INTERRUPCION_HAB) // el bit 0 (MDT0) va en 0, que es generación, en 1 sería captura y sin flanco externo el Timer nunca interrumpe
 
 #define MSTATUS_MIE (1u << 3) // habilitación global de interrupciones en modo máquina de RISC-V
 
