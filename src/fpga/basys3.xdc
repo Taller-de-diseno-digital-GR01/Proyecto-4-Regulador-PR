@@ -58,8 +58,9 @@ set_property PACKAGE_PIN E19 [get_ports {led[1]}]
 	#set_property IOSTANDARD LVCMOS33 [get_ports {led[5]}]
 #set_property PACKAGE_PIN U14 [get_ports {led[6]}]
 	#set_property IOSTANDARD LVCMOS33 [get_ports {led[6]}]
-#set_property PACKAGE_PIN V14 [get_ports {led[7]}]
-	#set_property IOSTANDARD LVCMOS33 [get_ports {led[7]}]
+## LD7, el brillo es lo que dura la ISR sobre los 50 us del período
+set_property PACKAGE_PIN V14 [get_ports {depuracion[0]}]
+	set_property IOSTANDARD LVCMOS33 [get_ports {depuracion[0]}]
 #set_property PACKAGE_PIN V13 [get_ports {led[8]}]
 	#set_property IOSTANDARD LVCMOS33 [get_ports {led[8]}]
 #set_property PACKAGE_PIN V3 [get_ports {led[9]}]
@@ -68,14 +69,15 @@ set_property PACKAGE_PIN E19 [get_ports {led[1]}]
 	#set_property IOSTANDARD LVCMOS33 [get_ports {led[10]}]
 #set_property PACKAGE_PIN U3 [get_ports {led[11]}]
 	#set_property IOSTANDARD LVCMOS33 [get_ports {led[11]}]
-#set_property PACKAGE_PIN P3 [get_ports {led[12]}]
-	#set_property IOSTANDARD LVCMOS33 [get_ports {led[12]}]
-#set_property PACKAGE_PIN N3 [get_ports {led[13]}]
-	#set_property IOSTANDARD LVCMOS33 [get_ports {led[13]}]
-#set_property PACKAGE_PIN P1 [get_ports {led[14]}]
-	#set_property IOSTANDARD LVCMOS33 [get_ports {led[14]}]
-#set_property PACKAGE_PIN L1 [get_ports {led[15]}]
-	#set_property IOSTANDARD LVCMOS33 [get_ports {led[15]}]
+## Compuertas en LD12 a LD15 solo para la prueba con los LEDs de la placa, a 20 kHz el brillo es el ciclo de trabajo
+set_property PACKAGE_PIN P3 [get_ports compuerta_b_baja]
+	set_property IOSTANDARD LVCMOS33 [get_ports compuerta_b_baja]
+set_property PACKAGE_PIN N3 [get_ports compuerta_b_alta]
+	set_property IOSTANDARD LVCMOS33 [get_ports compuerta_b_alta]
+set_property PACKAGE_PIN P1 [get_ports compuerta_a_baja]
+	set_property IOSTANDARD LVCMOS33 [get_ports compuerta_a_baja]
+set_property PACKAGE_PIN L1 [get_ports compuerta_a_alta]
+	set_property IOSTANDARD LVCMOS33 [get_ports compuerta_a_alta]
 
 
 #7 segment display
@@ -122,7 +124,7 @@ set_property PACKAGE_PIN U17 [get_ports BTN_EXPORTAR]
 
 
 ##Pmod Header JA
-## Compuertas movidas a JB solo para la prueba con el analizador lógico, en develop siguen acá
+## Compuertas movidas a los LEDs solo para la prueba sin instrumentos, en develop siguen acá
 ##Sch name = JA1
 #set_property PACKAGE_PIN J1 [get_ports {JA[0]}]
 	#set_property IOSTANDARD LVCMOS33 [get_ports {JA[0]}]
@@ -152,20 +154,20 @@ set_property PACKAGE_PIN U17 [get_ports BTN_EXPORTAR]
 
 ##Pmod Header JB
 ##Sch name = JB1
-set_property PACKAGE_PIN A14 [get_ports {depuracion[0]}]
-	set_property IOSTANDARD LVCMOS33 [get_ports {depuracion[0]}]
+#set_property PACKAGE_PIN A14 [get_ports {depuracion[0]}]
+	#set_property IOSTANDARD LVCMOS33 [get_ports {depuracion[0]}]
 ##Sch name = JB2
-set_property PACKAGE_PIN A16 [get_ports compuerta_a_alta]
-	set_property IOSTANDARD LVCMOS33 [get_ports compuerta_a_alta]
+#set_property PACKAGE_PIN A16 [get_ports compuerta_a_alta]
+	#set_property IOSTANDARD LVCMOS33 [get_ports compuerta_a_alta]
 ##Sch name = JB3
-set_property PACKAGE_PIN B15 [get_ports compuerta_a_baja]
-	set_property IOSTANDARD LVCMOS33 [get_ports compuerta_a_baja]
+#set_property PACKAGE_PIN B15 [get_ports compuerta_a_baja]
+	#set_property IOSTANDARD LVCMOS33 [get_ports compuerta_a_baja]
 ##Sch name = JB4
-set_property PACKAGE_PIN B16 [get_ports compuerta_b_alta]
-	set_property IOSTANDARD LVCMOS33 [get_ports compuerta_b_alta]
+#set_property PACKAGE_PIN B16 [get_ports compuerta_b_alta]
+	#set_property IOSTANDARD LVCMOS33 [get_ports compuerta_b_alta]
 ##Sch name = JB7
-set_property PACKAGE_PIN A15 [get_ports compuerta_b_baja]
-	set_property IOSTANDARD LVCMOS33 [get_ports compuerta_b_baja]
+#set_property PACKAGE_PIN A15 [get_ports compuerta_b_baja]
+	#set_property IOSTANDARD LVCMOS33 [get_ports compuerta_b_baja]
 ##Sch name = JB8
 #set_property PACKAGE_PIN A17 [get_ports {JB[5]}]
 	#set_property IOSTANDARD LVCMOS33 [get_ports {JB[5]}]
