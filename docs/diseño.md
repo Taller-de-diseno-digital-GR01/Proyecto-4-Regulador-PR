@@ -3041,7 +3041,7 @@ Del lado de la Basys 3 ([block_design](#block_design), h.7).
 Del lado del puente.
 
 - 15 V de un canal aparte de la fuente de banco, con el negativo en la tierra de potencia, para la salida de los VO3120 y para `VCC` y `VDD` de los IR2110.
-- Vdc, de 12 a 24 V, de otro canal, solo para el puente.
+- Vdc de 18 V, de otro canal, solo para el puente. Las protecciones se dimensionan con 24 V, el máximo del enunciado.
 
 La cadena de las compuertas funciona entera con Vdc apagado, y por eso las compuertas y el tiempo muerto se revisan sin energizar el bus.
 
@@ -3053,7 +3053,7 @@ Cada compuerta tiene su propia cadena.
 2. El PN2222A enciende el LED del VO3120, alimentado de los 3,3 V del Pmod por 160 Ω. La corriente del LED queda entre 8,3 y 15,1 mA, dentro de los 7 a 16 mA de la hoja [1, p. 2].
 3. El VO3120 aísla y entrega en su salida 15 V o 0 V referidos a la tierra de potencia. Su inmunidad a modo común es de 25 kV/µs como mínimo [1, p. 5], contra unos 2 kV/µs del nodo de cada pierna.
 4. Un IR2110 por pierna maneja la compuerta baja y la alta. La alta se alimenta de un bootstrap con 470 nF, un 1N4148 y 22 Ω en serie [2], así que el lado del puente no necesita fuentes flotantes.
-5. Cada salida del IR2110 llega a su IRF520N por 10 Ω [3].
+5. Cada salida del IR2110 llega a su IRF520N por 10 Ω [3], con 100 kΩ entre compuerta y source para que la compuerta no quede flotando con el IR2110 sin alimentación.
 
 El pin es activo en alto y LED apagado es compuerta apagada. Con esa polaridad, una falla del lado de la Basys 3 (placa apagada, cable suelto o FPGA sin configurar) deja las cuatro compuertas apagadas. Con la polaridad contraria las encendería todas y cortocircuitaría las dos piernas, porque el IR2110 maneja `HIN` y `LIN` por separado y no impide que estén en alto a la vez [2].
 
@@ -3073,7 +3073,7 @@ Las cuatro compuertas quedan apagadas desde que la Basys 3 está sin energía ha
 
 - Basys 3 apagada o cable del Pmod suelto. El LED queda sin alimentación y la salida del VO3120 queda en bajo (tabla de verdad, [1, p. 2]).
 - FPGA configurándose. Los pines quedan en alta impedancia sin pull-ups, porque `PUDC_B` (E18) va a 3,3 V por 1 kΩ [5, hoja 5], [6]. Con la fuga del pin, de 15 µA como máximo [7, Tabla 3, p. 3], el pull-down de 10 kΩ deja la base en 0,25 V como mucho y el transistor no conduce.
-- Alimentación de 15 V subiendo. La salida del VO3120 se queda en bajo aunque el LED esté encendido, hasta que `VCC − VEE` pasa de 11 a 13,5 V [1, p. 2].
+- Alimentación de 15 V subiendo. La salida del VO3120 se queda en bajo aunque el LED esté encendido, hasta que `VCC − VEE` pasa de 11 a 13,5 V [1, p. 2]. El IR2110 se habilita antes, entre 7,4 y 9,6 V, con sus entradas en bajo, y al bajar la alimentación el VO3120 apaga primero [2, p. 3].
 - Reinicio. `peripheral_aresetn` deja el núcleo en `DETENIDO`, con las cuatro compuertas apagadas ([nucleo_pwm](#nucleo_pwm)). Cargar un programa por el MDM también reinicia el PWM, por `mb_debug_sys_rst` ([block_design](#block_design), h.4).
 - Después del arranque. `enable` queda en cero hasta el flanco de `BTN_HABILITAR`, y el control solo se habilita con `freq_sel = 01` y sin falla ([control_principal](#control_principal)).
 
@@ -3093,12 +3093,15 @@ El AXI Timer cuenta los mismos 5000 ciclos que la portadora a 20 kHz y arranca a
 
 ## Limitación de corriente y desconexión ante falla
 
-La corriente queda limitada en dos niveles.
+La corriente queda limitada en tres niveles.
 
-- La fuente de Vdc trabaja con su límite de corriente activo en todas las pruebas energizadas, y la primera energización es con 12 V.
+- La fuente de Vdc trabaja con el límite de corriente en 0,52 A en todas las pruebas energizadas, y el canal de 15 V con 50 mA. En la primera energización Vdc sube desde 0 hasta 18 V con el límite en 0,1 A, para que un error de cableado que deje una pierna en corto haga entrar la fuente en limitación antes de cargar el electrolítico del bus.
+- Un fusible rápido de 630 mA o 1 A a la entrada de Vdc corta una falla sostenida si el límite de la fuente queda por encima de su nominal, y la fuente conectada con la polaridad invertida.
 - El software declara falla en la misma iteración en que la muestra pasa del umbral de sobrecorriente de 1,3 A, sale de la escala útil del ADC o falta más de `ITERACIONES_SIN_DATO_MAX` iteraciones seguidas ([supervisor_falla](#supervisor_falla)). La rutina del Timer escribe `enable = 0`, `control_principal` enciende el LED de falla y deja de aceptar `BTN_HABILITAR`, y la falla queda enclavada hasta `BTN_RST`.
 
-Desde que la corriente cruza el umbral hasta que las compuertas quedan apagadas pasan hasta dos períodos, 100 µs a 20 kHz. Uno es la espera a la siguiente muestra y el otro la espera al valle en que el núcleo toma `enable`. Con el PR saturado en 0,92 la corriente sube entre 14 y 28 A/ms según Vdc, R y L, y llega a entre 2,7 y 4,1 A antes del corte. El IRF520N da 9,7 A continuos a 25 °C, 6,8 A a 100 °C y 38 A pulsados [3, p. 1], así que el puente aguanta ese pico.
+Desde que la corriente cruza el umbral hasta que las compuertas quedan apagadas pasan hasta dos períodos, 100 µs a 20 kHz. Uno es la espera a la siguiente muestra y el otro la espera al valle en que el núcleo toma `enable`. Con el PR saturado en 0,92 la carga ve en promedio `0,92 · Vdc`, y con 10 Ω y 2 mH la corriente se acerca en exponencial a `0,92 · Vdc / R` con τ = 0,2 ms. En los 100 µs llega a 1,44 A con 18 V y a 1,66 A con 24 V, y el techo con la carga conectada es de 2,21 A. El IRF520N da 9,7 A continuos a 25 °C, 6,8 A a 100 °C y 38 A pulsados [3, p. 1], así que el puente aguanta ese pico.
+
+Con la carga en cortocircuito no hay techo. El electrolítico del bus se descarga por dos MOSFET con un pico de unos 60 A, y ni el software ni el fusible llegan a cortar antes de que pase de los 38 A pulsados, así que ese caso no queda cubierto para los MOSFET ([`potencia/diseno_puente_h.md`](../potencia/diseno_puente_h.md), sección "Protecciones"). El pin SD de los IR2110 va a `VSS`, y la desconexión ante falla la hace el software.
 
 Para cortar a mano hay dos caminos que no dependen del programa. `BTN_RST` deja el núcleo en `DETENIDO`, y la salida de Vdc se apaga en la fuente.
 
@@ -3107,9 +3110,9 @@ Para cortar a mano hay dos caminos que no dependen del programa. `BTN_RST` deja 
 La integración con el puente sigue el plan de pruebas de `potencia/diseno_pr.md`, en pasos que descartan una causa antes de sumar la siguiente. Se energiza primero la Basys 3, programada y con `enable` en cero, después los 15 V y al final Vdc. Se apaga en el orden inverso.
 
 1. Potencia desenergizada, con los 15 V encendidos y Vdc apagado. En el osciloscopio, y con capturas, se revisan las cuatro compuertas en las patas de los MOSFET, la precarga al habilitar y las tres frecuencias de `freq_sel`. En cada pierna, el hueco entre la bajada de una compuerta y la subida de la otra tiene que quedar sobre los 138 ns que tarda en apagarse el IRF520N, con margen, y si no alcanza se sube `DEAD_TIME_CICLOS`. Se mide el retardo de cada flanco de la cadena, que entra en el retardo del lazo. La falla se prueba con un umbral bajo, para ver que baja `enable`, enciende el LED y no se rearma sola. Con 0 A en la carga, el ADC tiene que dar el offset del acondicionamiento.
-2. Vdc en 12 V con el límite de corriente bajo, en lazo abierto con un `duty_ref` senoidal fijo de 50 Hz y sin PR, desde 0,2 A. La amplitud y el desfase de la corriente confirman la ganancia y el signo del sensor y los valores de R y L.
+2. Con la polaridad de Vdc verificada, Vdc sube desde 0 hasta 18 V con el límite en 0,1 A, y el límite pasa a 0,52 A si la fuente no entró en limitación. Primero en lazo abierto con un `duty_ref` senoidal fijo de 50 Hz y sin PR, desde 0,2 A. La amplitud y el desfase de la corriente confirman la ganancia y el signo del sensor y los valores de R y L.
 3. Solo la parte proporcional del PR, con `Kr = 0`.
-4. PR completo con 0,2, 0,5 y 1,0 A pico, los cambios de amplitud con `SW[1:0]` y el cambio de carga de al menos 25 %. Vdc sube a 18 V cuando el paso anterior sale bien.
+4. PR completo con 0,2, 0,5 y 1,0 A pico, los cambios de amplitud con `SW[1:0]` y el cambio de carga de al menos 25 %.
 
 La salida de depuración en JB1 acompaña todos los pasos, para medir el período y el jitter del lazo con la potencia conectada. En cada sesión energizada los roles quedan fijos y anotados. Una persona se encarga de la seguridad, con la salida de Vdc al alcance, otra opera la fuente y otra toma los datos.
 

@@ -1,6 +1,6 @@
 # Diseño del puente H, decisiones y justificación
 
-Este documento reúne las decisiones de diseño del puente H de la etapa de potencia (#16) y la razón de cada una. Cubre el aislamiento entre la Basys 3 y el puente (#21), el MOSFET, el driver y el bootstrap de las compuertas (#17) y el tiempo muerto (#18).
+Este documento reúne las decisiones de diseño del puente H de la etapa de potencia (#16) y la razón de cada una. Cubre el aislamiento entre la Basys 3 y el puente (#21), el MOSFET, el driver y el bootstrap de las compuertas (#17), el tiempo muerto (#18) y las protecciones (#19).
 
 ## Qué cruza el aislamiento
 
@@ -61,15 +61,15 @@ El capacitor de bootstrap de cada pierna se carga desde `VCC` a través de un di
 
 ### Capacitor
 
-Mientras la compuerta alta está encendida el diodo queda en inversa y el capacitor es la única fuente del lado flotante. Entrega la carga de la compuerta y alimenta todo ese tiempo la corriente quiescente del lado flotante (`IQBS`, 230 µA máximos) y la fuga del desplazador de nivel (`ILK`, 50 µA máximos) [4, p. 3]. El peor caso es 10 kHz con la compuerta alta encendida casi todo el período de 100 µs.
+Mientras la compuerta alta está encendida el diodo queda en inversa y el capacitor es la única fuente del lado flotante. Entrega la carga de la compuerta y alimenta todo ese tiempo la corriente quiescente del lado flotante (`IQBS`, 230 µA máximos) y la fuga del desplazador de nivel (`ILK`, 50 µA máximos) [4, p. 3], más los 15 V / 100 kΩ = 150 µA (`IRGS`) de la resistencia entre compuerta y source (sección "Estado sin señal"). El peor caso es 10 kHz con la compuerta alta encendida casi todo el período de 100 µs.
 
 La hoja del IRF520N da `Qg` de 25 nC máximos con `VGS` = 10 V [8, p. 2]. La compuerta llega a unos 15 V, y en la Fig. 6 [8, p. 4] pasar de 10 a 15 V suma unos 6 nC típicos. Con ese tramo escalado por la relación entre el máximo y el típico a 10 V, se toman 35 nC.
 
 ```
-Q = Qg + (IQBS + ILK) · t_on = 35 nC + 280 µA · 100 µs = 63 nC
+Q = Qg + (IQBS + ILK + IRGS) · t_on = 35 nC + 430 µA · 100 µs = 78 nC
 ```
 
-Con una caída de 0,5 V, `C ≥ Q / ΔV` = 126 nF. El capacitor es de 470 nF, unas 3,7 veces el mínimo, cerámico X7R o de película para que conserve la capacitancia con la tensión continua encima y entregue el pico de corriente de la compuerta con baja ESR. Como flota con `VS`, entre sus terminales solo ve `VCC` menos la caída del diodo, unos 14 a 15 V, así que basta con 25 V nominales.
+Con una caída de 0,5 V, `C ≥ Q / ΔV` = 156 nF. El capacitor es de 470 nF, unas 3 veces el mínimo, cerámico X7R o de película para que conserve la capacitancia con la tensión continua encima y entregue el pico de corriente de la compuerta con baja ESR. Como flota con `VS`, entre sus terminales solo ve `VCC` menos la caída del diodo, unos 14 a 15 V, así que basta con 25 V nominales.
 
 ### Diodo y resistencia
 
@@ -91,9 +91,9 @@ El capacitor no necesita recuperarse entero en cada período. En un tiempo `t` d
 D · (1 − e^(−t/τ)) = Q / C
 ```
 
-A 20 kHz la carga por período es 35 nC + 280 µA · 50 µs = 49 nC, y `Q / C` = 0,10 V. Con `duty_ref = 0,9` la compuerta baja conduce 150 ciclos (1,5 µs), `D` da 0,77 V y la compuerta alta arranca cerca de 13,5 V y termina cerca de 13,4 V.
+A 20 kHz la carga por período es 35 nC + 430 µA · 50 µs ≈ 57 nC, y `Q / C` = 0,12 V. Con `duty_ref = 0,9` la compuerta baja conduce 150 ciclos (1,5 µs), `D` da 0,89 V y la compuerta alta arranca cerca de 13,4 V y termina cerca de 13,3 V.
 
-El mínimo aceptado al final del encendido es 10 V, la tensión a la que el IRF520N tiene especificada la `RDS(on)` [8, p. 2] y el mínimo de `VB − VS` del IR2110 [4, p. 2]. Partiendo de unos 14,3 V, eso deja `D ≤ 14,3 − 10 − 0,10` = 4,2 V, que pide `1 − e^(−t/τ) ≥ 0,025` y `t ≥ 0,26 µs`. Con margen por la tolerancia de R, C y la caída del diodo, la compuerta baja tiene que conducir al menos 100 ciclos por período.
+El mínimo aceptado al final del encendido es 10 V, la tensión a la que el IRF520N tiene especificada la `RDS(on)` [8, p. 2] y el mínimo de `VB − VS` del IR2110 [4, p. 2]. Partiendo de unos 14,3 V, eso deja `D ≤ 14,3 − 10 − 0,12` = 4,2 V, que pide `1 − e^(−t/τ) ≥ 0,029` y `t ≥ 0,30 µs`. Con margen por la tolerancia de R, C y la caída del diodo, la compuerta baja tiene que conducir al menos 100 ciclos por período.
 
 En operación normal el límite no aparece, porque 1 A pico pide `duty_ref` cerca de 0,11 con los valores de `diseno_pr.md`. Sí aparece si el PR satura. Por eso `PR_U_MAX` de `pr_discreto.md` queda por debajo de
 
@@ -109,7 +109,7 @@ Por eso el núcleo del PWM lleva un estado de precarga. Al pasar `running` a 1, 
 
 Partiendo de 0 V, el capacitor pasa del 99 % de su carga final en 5τ, unos 52 µs con los valores nominales. El peor caso de τ sale con los 22 Ω en +5 % (banda dorada), 1 Ω más en serie por el diodo, la `RDS(on)` del MOSFET bajo y el cableado, y el capacitor en +20 %, la tolerancia más amplia de un cerámico. Eso da τ = 24,1 Ω · 564 nF ≈ 13,6 µs y 5τ ≈ 68 µs, así que `PRECARGA_CICLOS` = 7000, 70 µs. La caída de capacitancia de un X7R con la tensión continua encima acorta τ, así que no empeora el caso. Como se cuenta en ciclos de `clk`, el valor sirve en las tres frecuencias.
 
-`VCC` no cambia τ, solo la tensión final, unos 0,7 V por debajo de `VCC` por la caída del diodo. Con 70 µs y τ en el peor caso el capacitor queda sobre el 99,4 % de esa tensión, unos 14,2 V, y la compuerta alta termina su primer encendido sobre 14 V aun a 10 kHz (`Q / C` = 63 nC / 470 nF ≈ 0,13 V).
+`VCC` no cambia τ, solo la tensión final, unos 0,7 V por debajo de `VCC` por la caída del diodo. Con 70 µs y τ en el peor caso el capacitor queda sobre el 99,4 % de esa tensión, unos 14,2 V, y la compuerta alta termina su primer encendido sobre 14 V aun a 10 kHz (`Q / C` = 78 nC / 470 nF ≈ 0,17 V).
 
 En cada arranque la carga ve 0 V durante esos 70 µs, 1,4 períodos a 20 kHz y un 0,35 % de un ciclo de 50 Hz.
 
@@ -124,7 +124,7 @@ flowchart LR
     end
     subgraph potencia["Lado del puente"]
         opto["Salida del VO3120"] --> drv["IR2110<br/>VDD = VCC = 15 V, bootstrap"]
-        drv --> mos["IRF520N<br/>10 Ω de compuerta"]
+        drv --> mos["IRF520N<br/>10 Ω de compuerta<br/>100 kΩ entre compuerta y source"]
         v15["Fuente de 15 V<br/>canal aparte"] --> opto
         v15 --> drv
     end
@@ -135,7 +135,7 @@ flowchart LR
 2. PN2222A como interruptor bajo del LED. La base lleva 2,7 kΩ con un capacitor de aceleración en paralelo y un pull-down de 10 kΩ entre base y emisor. El LED se alimenta de los 3,3 V del Pmod (pines 6 y 12, con tierra en 5 y 11) a través de 160 Ω. Esos pines entregan hasta 1 A [5], y los cuatro LED piden 60 mA como mucho.
 3. VO3120, con el LED entre los pines 2 (ánodo) y 3 (cátodo) e `IF` de 7 a 16 mA [1, p. 2]. Los pines 1 y 4 van al común del LED, la tierra de la Basys 3, como en la prueba de inmunidad a modo común [1, p. 5]. Del lado del puente, `VCC` (pin 8) va a 15 V y `VEE` (pin 5) a la tierra de potencia, con un cerámico de 0,1 µF entre los pines 8 y 5 como en los circuitos de prueba [1, p. 4]. La salida (pines 6 y 7) va directo a la entrada del IR2110.
 4. IR2110 con `VDD` y `VCC` en los mismos 15 V (`VDD` acepta de 3 a 20 V sobre `VSS` y `VCC` de 10 a 20 V, [4, p. 2]), con `VSS` y `COM` en la tierra de potencia. Con 15 V lee un bajo por debajo de 6,0 V y un alto desde 9,5 V [4, p. 3]. El VO3120 da 0,5 V máximos en bajo y al menos `VCC − 4` = 11 V en alto, los dos con 100 mA [1, p. 3], y con los 40 µA que pide la entrada del IR2110 (`IIN+`, [4, p. 3]) el alto queda cerca de `VCC` [1, p. 3]. Como la salida del VO3120 y `VDD` salen de la misma tensión, la entrada no pasa el máximo de `VDD + 0,3 V` [4, p. 2]. El consumo es bajo, con 340 µA máximos de `IQCC` y 30 µA de `IQDD` [4, p. 3] más la carga de compuerta de dos MOSFET, unos 3 mA a 40 kHz.
-5. IRF520N, con 10 Ω entre cada salida del IR2110 y su compuerta.
+5. IRF520N, con 10 Ω entre cada salida del IR2110 y su compuerta y 100 kΩ entre compuerta y source.
 6. Los 15 V del lado del puente salen de un canal aparte de la fuente de banco, con el negativo en la tierra de potencia. Es el mínimo de la alimentación recomendada del VO3120, de 15 a 32 V [1, p. 2], y queda 1,5 V sobre su umbral de subtensión al subir, de 13,5 V como máximo [1, p. 3]. Vdc no sirve como alimentación porque va de 12 a 24 V. Cada VO3120 consume 2,5 mA como máximo [1, p. 3], así que el canal entrega unos 17 mA con los dos IR2110. Toda la cadena funciona con Vdc apagado, así que las compuertas y el tiempo muerto se revisan en el osciloscopio sin energizar el bus.
 
 ### Entrada del aislamiento
@@ -158,6 +158,8 @@ Cada eslabón tiene que dejar la compuerta apagada cuando no recibe señal. Mien
 - Pin en 1. El transistor conduce, el LED se enciende, la salida del VO3120 sube a `VCC` y la compuerta se enciende.
 - Mientras se configura la FPGA, el pull-down de la base mantiene el transistor cortado.
 - Mientras sube la alimentación de 15 V, la salida del VO3120 queda en bajo aunque el LED esté encendido, hasta que `VCC − VEE` pasa de 11 a 13,5 V. Al bajar vuelve a bajo entre 12 y 9,5 V [1, p. 2].
+- El IR2110 se habilita al subir entre 7,4 y 9,6 V (`VCCUV+`) y se deshabilita al bajar entre 7,0 y 9,4 V (`VCCUV−`) [4, p. 3]. Al subir se habilita antes que el VO3120, así que entre 9,6 y 11 V obedece entradas que el VO3120 sostiene en bajo, con el pull-down propio de sus entradas [4, p. 1]. Al bajar, el VO3120 vuelve a bajo desde 9,5 V, antes de que el IR2110 se deshabilite.
+- Con el IR2110 sin alimentación sus salidas no sostienen la compuerta, y con Vdc aplicado un flanco del drenador la cargaría a través de `Cgd`. Una resistencia de 100 kΩ entre compuerta y source de cada MOSFET la mantiene descargada. En las compuertas altas toma 0,15 mA del bootstrap mientras conducen, 15 nC en 100 µs, y entra en el cálculo del capacitor.
 
 La polaridad importa porque el IR2110 maneja `HIN` y `LIN` por separado y no impide que estén en alto a la vez. Si LED apagado fuera compuerta encendida, una falla del lado de la Basys 3 encendería las cuatro compuertas y cortocircuitaría las dos piernas.
 
@@ -191,6 +193,59 @@ t_off − t_on = 250 + 300 + 125 + 138 ≈ 813 ns
 
 El flanco más lento de la cadena es el apagado, con unos 250 + 400 + 125 + 138 ≈ 0,91 µs entre el pin y el corte del MOSFET, dentro de los 2 µs de `diseno_pr.md`.
 
+## Protecciones
+
+El puente opera con Vdc = 18 V. Las protecciones se dimensionan con 24 V, el máximo del rango del enunciado, para que un ajuste equivocado de la fuente no las deje cortas.
+
+Cada falla tiene su escala de tiempo, y la cubre la protección que alcanza a actuar antes del daño.
+
+- Conducción simultánea en una pierna, en nanosegundos. La evitan el tiempo muerto y la polaridad de la cadena, con las compuertas apagadas cuando falta la señal o la alimentación (secciones "Tiempo muerto" y "Estado sin señal").
+- Sobrecorriente con la carga conectada, en cientos de microsegundos. La corta el software en hasta dos períodos, y la R pone el techo de 2,21 A (sección "Tensión y corriente").
+- Falla sostenida, de milisegundos en adelante. La cortan el límite de corriente de la fuente y el fusible de la entrada.
+
+### Capacitores del bus
+
+Entre el fusible y las piernas va un electrolítico de 470 µF y 63 V, 2,6 veces los 24 V. La fuente de banco entrega la corriente promedio y no recibe corriente de vuelta, así que el capacitor da los pulsos de cada conmutación y absorbe la energía que devuelve la carga.
+
+La energía devuelta tiene su peor caso en el corte por falla. Con las cuatro compuertas apagadas la corriente de la carga sigue por los diodos de cuerpo de la diagonal opuesta hacia el bus, y la carga ve −Vdc hasta que la corriente llega a cero. Lo que llega al capacitor está acotado por la energía del inductor con el techo de 2,21 A, `½ · L · I²` = ½ · 2 mH · (2,21 A)² ≈ 4,9 mJ, porque parte de esa energía la disipa la R. El bus sube de 24 V a `√(Vdc² + 2E / C)` ≈ 24,4 V. En régimen también vuelve energía después de cada cruce por cero de la tensión, durante el desfase de unos 3,6° de la carga, pero con la corriente cerca de cero.
+
+En unipolar el bus ve pulsos a `2 · f_sw`, cada 25 µs a 20 kHz. Con un índice `m`, en cada intervalo el puente toma la corriente de la carga `I` durante `m · 25 µs` y nada en el resto, y la fuente entrega el promedio `m · I`. El capacitor entrega la diferencia, `I · (1 − m)`, durante la parte activa, y el rizado por capacidad es
+
+```
+ΔV = I · m · (1 − m) · 25 µs / C
+```
+
+con máximo en `m = 0,5`. Con 1 A da 13 mV. En cada flanco la corriente del capacitor cambia en `I`, y la caída `I · ESR` en un electrolítico domina sobre ese término. La corriente eficaz por el capacitor es `I · √(m · (1 − m))`, que da 0,5 A con 1 A y `m = 0,5` como cota.
+
+Junto a cada pierna, entre el drenador del MOSFET alto y el source del bajo y con conexiones cortas, va un capacitor de película de poliéster de 100 nF y 100 V. La inductancia serie del electrolítico y del cableado de la protoboard no deja pasar los flancos de unos 100 ns, y sin un capacitor cerca el sobrepico `L · di/dt` se suma a Vdc en cada apagado (con 100 nH y 1 A en 100 ns, 1 V). El de película entrega la corriente del flanco. Si el electrolítico no aportara nada en ese tiempo, la tensión de la película bajaría `I · t / C` = 1 A · 100 ns / 100 nF = 1 V.
+
+En los 15 V, junto a los IR2110, va un electrolítico de 47 µF y 25 V, que repone los cerámicos de 100 nF de cada VO3120 y cada IR2110 entre los picos de corriente de compuerta.
+
+### Fusible
+
+A la entrada de Vdc, entre la fuente y el electrolítico, va un fusible rápido de vidrio de 5×20 mm, de 630 mA o 1 A, en un portafusible en línea. Corta una falla sostenida que la fuente no limite, por ejemplo un MOSFET que quedó en corto con el límite de la fuente por encima de la nominal del fusible. También corta la fuente conectada con la polaridad invertida, porque los diodos de cuerpo de una diagonal ponen el bus en corto con unos −1,5 V.
+
+La corriente normal sale de la potencia de la carga. Con 1 A pico en 10 Ω, `P = I_rms² · R` = (1 A / √2)² · 10 Ω = 5 W. Con unos 2 W de pérdidas de los cuatro transistores como cota (sección "Pérdidas"), la fuente entrega 7 W / 18 V ≈ 0,39 A en promedio. Littelfuse recomienda operar un fusible a no más del 75 % de su nominal a 25 °C [12], así que la nominal tiene que ser de 0,52 A o más. 630 mA queda al 62 % y 1 A al 39 %. En la entrada el fusible ve solo el promedio, porque el electrolítico toma los pulsos del puente. La inductancia y la resistencia del fusible quedan fuera del camino entre el electrolítico y las piernas.
+
+El fusible es rápido porque no hay corriente de arranque que esquivar. Vdc se aplica último y con la fuente limitada, así que el electrolítico se carga a la corriente del límite.
+
+### Cortocircuito de la carga
+
+Con la carga en corto no hay R que ponga techo. El electrolítico se descarga por los dos MOSFET que conducen, con un pico de 24 V / (2 · 0,20 Ω) = 60 A, sobre los 38 A pulsados del IRF520N [8, p. 1], y una constante de tiempo de 0,4 Ω · 470 µF ≈ 188 µs. El sensor satura y el XADC lee el tope, que queda sobre el umbral de 1,3 A, así que el software corta en 100 µs, cuando la corriente todavía vale unos 35 A. La descarga entera suma
+
+```
+I²t = ∫ (I₀ · e^(−t/τ))² dt = I₀² · τ / 2 = (60 A)² · 94 µs ≈ 0,34 A²s
+```
+
+y un fusible, que se funde por calentamiento, se abre después de que los MOSFET recibieron el pulso. Este caso no queda cubierto para los MOSFET. El límite de la fuente y el fusible evitan que la falla siga después de la descarga.
+
+El pin SD de los dos IR2110 va a `VSS`. La desconexión ante falla la hace el software, que deja `enable` en 0, y no hay un apagado por hardware a partir de una medición de corriente.
+
+### Límite de corriente de la fuente
+
+- Vdc. 0,52 A en todos los ensayos energizados, 1,33 veces los 0,39 A de operación y por debajo de la nominal del fusible, para que en una falla sostenida limite primero la fuente. En la primera energización Vdc sube desde 0 hasta 18 V con el límite en 0,1 A. Si un error de cableado deja una pierna en corto, la fuente entra en limitación con pocos voltios y el electrolítico no llega a cargarse.
+- 15 V. 50 mA, más del doble del peor caso de unos 23 mA, los 17 mA de los VO3120 y los IR2110 (sección "Cadena de cada compuerta") más la carga de compuerta `4 · Qg · f_sw`, 2,8 mA a 20 kHz y 5,6 mA a 40 kHz. Si este canal entra en limitación su tensión baja y los VO3120 apagan las compuertas por subtensión.
+
 ## Referencias
 
 [1] Vishay Semiconductors, "VO3120 2.5 A Output Current IGBT and MOSFET Driver", hoja de datos 81314 rev. 1.5, 9 dic. 2025.
@@ -214,3 +269,5 @@ El flanco más lento de la cadena es el apagado, con unos 250 + 400 + 125 + 138 
 [10] Digilent, "Basys 3", esquemático, documento 500-183, rev. D.1, 2021.
 
 [11] AMD, "Artix 7 FPGAs Data Sheet: DC and AC Switching Characteristics", DS181 v1.27.1, 3 jul. 2024.
+
+[12] Littelfuse, "Fuseology Selection Guide", p. 4. <https://electronicscatalogs.littelfuse.com/Fuseology-Selection-Guide/4/>
