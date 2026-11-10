@@ -1,7 +1,9 @@
 #include "ref_senoidal.h"
 #include "tabla_seno.h" // constante y generada en Octave, calcularla con sinf al arrancar metía unos 5 KB de libm en los 32 KB
 
+#ifndef FRECUENCIA_REF_HZ // el build de prueba con LEDs la baja a 1 Hz desde UserConfig.cmake, a 50 Hz el ojo no ve nada
 #define FRECUENCIA_REF_HZ 50u
+#endif
 #define MUESTRAS_CUARTO TABLA_SENO_CUARTO // un cuarto de onda, el resto sale por simetría
 
 _Static_assert(MUESTRAS_CUARTO == 256u, "ref_senoidal_siguiente saca el índice con 8 bits de la fase");
