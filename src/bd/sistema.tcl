@@ -396,6 +396,7 @@ proc create_root_design { parentCell } {
     CONFIG.C_ALL_OUTPUTS_2 {1} \
     CONFIG.C_GPIO2_WIDTH {2} \
     CONFIG.C_GPIO_WIDTH {4} \
+    CONFIG.C_IS_DUAL {1} \
     CONFIG.GPIO2_BOARD_INTERFACE {Custom} \
     CONFIG.GPIO_BOARD_INTERFACE {Custom} \
     CONFIG.USE_BOARD_FLOW {true} \
