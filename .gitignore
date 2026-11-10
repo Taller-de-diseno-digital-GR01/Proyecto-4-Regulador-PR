@@ -32,3 +32,12 @@ sw/build/
 vivado/
 vitis/
 *.str
+
+# Proyecto de Vivado local fuera de vivado/
+project_4_PR/
+
+# Mapa de memoria que genera Vivado al implementar
+*.mmi
+
+# Netlist local del acondicionador
+potencia/carga_RL-Sensor/circuito_acondicionador.net
