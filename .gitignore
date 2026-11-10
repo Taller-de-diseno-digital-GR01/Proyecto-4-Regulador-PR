@@ -40,3 +40,9 @@ vitis/
 # Intermedios de LaTeX
 *.aux
 *.synctex.gz
+
+# Proyecto de Vivado local fuera de vivado/
+project_4_PR/
+
+# Mapa de memoria que genera Vivado al implementar
+*.mmi
