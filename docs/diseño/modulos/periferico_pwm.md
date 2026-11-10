@@ -2,9 +2,9 @@
 
 ## a) Nombre del módulo
 
-`periferico_pwm`, previsto en `src/design/periferico_pwm.sv`. Es el módulo superior del PWM personalizado y la entidad que se empaquetará como IP para el Block Design.
+`periferico_pwm`, en `src/design/periferico_pwm.sv`. Es el módulo superior del PWM personalizado y entra al Block Design como módulo RTL de referencia, con la instancia `periferico_pwm_0`.
 
-Integra [`interfaz_axi_pwm`](interfaz_axi_pwm.md), desarrollada como parte de la Persona B, y [`nucleo_pwm`](nucleo_pwm.md), cuya generación de PWM corresponde a la Persona A. La ficha define la integración para la entrega de diseño; el empaquetado real y su comprobación se realizarán durante la implementación.
+Integra [`interfaz_axi_pwm`](interfaz_axi_pwm.md), desarrollada como parte de la Persona B, y [`nucleo_pwm`](nucleo_pwm.md), cuya generación de PWM corresponde a la Persona A.
 
 ## b) Diagrama modular
 
@@ -125,15 +125,11 @@ La interfaz ofrece la orden registrada al núcleo. La tubería del núcleo calcu
 
 La orden `enable=0` se aplica en el valle siguiente según el diseño actual. El apagado por falla y las protecciones deben tener en cuenta esa demora; la envoltura no añade una desconexión inmediata que el núcleo no tenga.
 
-### h.5 Contrato de empaquetado previsto
+### h.5 Integración en el Block Design
 
-La IP se denominará `periferico_pwm`, con una interfaz esclava `S_AXI`, datos de 32 bits y direcciones locales de 4 bits. Reloj y reset se asociarán explícitamente a esa interfaz; el reset se declarará activo en bajo y el reloj nominal será 100 MHz.
+`periferico_pwm` entra al Block Design como módulo RTL de referencia. Vivado infiere la interfaz esclava `S_AXI`, con datos de 32 bits y direcciones de 4 bits, por los atributos `X_INTERFACE_INFO` de los puertos, y le asocia `s_axi_aclk` y `s_axi_aresetn`, con el reset activo en bajo y el reloj de 100 MHz. Las fuentes de síntesis son la envoltura, la interfaz y el núcleo, en `src/design/`, y el banco de prueba queda en `src/sim/`, fuera de la lógica sintetizable. Los seis parámetros de la tabla anterior se fijan en la instancia `periferico_pwm_0`.
 
-Se incluirán como fuentes de síntesis la envoltura, la interfaz y el núcleo. Los bancos de prueba pertenecen al grupo de simulación y no a la lógica sintetizable. Los seis parámetros de la tabla anterior se publicarán con descripción y restricciones coherentes con el núcleo.
-
-El Address Editor asignará una base alineada al segmento de 4 KiB, que abarca desde la base hasta `base + 0xFFF`, según la [sección h.2 del Block Design](block_design.md#h2-mapa-de-direcciones). El software usa esa base desde `xparameters.h` y accede a los registros en `0x00` y `0x04`. Como la interfaz decodifica los cuatro bits bajos del offset, los dos registros se repiten cada 16 bytes dentro del segmento.
-
-Durante la implementación se comprobará que Vivado reconoce todos los canales AXI y las asociaciones de reloj/reset. En la entrega actual se presenta este contrato de integración; no se afirma que exista ya un paquete `component.xml`, un `.xsa` o un Block Design validado.
+El segmento de la instancia es de 4 KiB, con la base que fija la [sección h.2 del Block Design](block_design.md#h2-mapa-de-direcciones). El software usa esa base desde `xparameters.h` y accede a los registros en `0x00` y `0x04`. Como la interfaz decodifica los cuatro bits bajos del offset, los dos registros se repiten cada 16 bytes dentro del segmento.
 
 ### h.6 Estrategia de verificación
 
@@ -178,4 +174,4 @@ La asignación de pines está en la [sección h.7 del Block Design](block_design
 
 - [Nivel 3 del sistema](../diagramas/nivel03.md), [`nucleo_pwm`](nucleo_pwm.md) y [`interfaz_axi_pwm`](interfaz_axi_pwm.md).
 - Instructivo del proyecto, secciones 4.2.2, 4.2.3 y 7.
-- AMD, [Vivado Creating and Packaging Custom IP UG1118](https://docs.amd.com/r/en-US/ug1118-vivado-creating-packaging-custom-ip/Packaging-Your-Current-Project), empaquetado y asociaciones de interfaces. Aplicar el flujo de la versión Vivado 2025.1 utilizada por el proyecto.
+- AMD, *Vivado Design Suite User Guide: Designing IP Subsystems Using IP Integrator*, UG994, sección Referencing RTL Modules.

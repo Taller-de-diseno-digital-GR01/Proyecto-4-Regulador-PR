@@ -451,7 +451,7 @@ Los dos contextos comparten pocas variables, cada una de 32 bits y declarada `vo
 
 ## Periférico PWM
 
-El bloque 6 del nivel 2 se abre en dos módulos de SystemVerilog dentro de `periferico_pwm`, que es el módulo superior que se empaqueta como IP. `interfaz_axi_pwm` atiende el bus y guarda los registros, y `nucleo_pwm` genera la portadora, las compuertas y el disparo del ADC. Van en archivos separados para que cada uno se trabaje en su rama sin pisarse.
+El bloque 6 del nivel 2 se abre en dos módulos de SystemVerilog dentro de `periferico_pwm`, que es el módulo superior que entra al Block Design como módulo RTL de referencia. `interfaz_axi_pwm` atiende el bus y guarda los registros, y `nucleo_pwm` genera la portadora, las compuertas y el disparo del ADC. Van en archivos separados para que cada uno se trabaje en su rama sin pisarse.
 
 ```mermaid
 flowchart LR
@@ -749,7 +749,7 @@ Fija cómo se arman e interconectan las instancias de la plataforma, con su conf
 
 ## f) Explicación de la relación con otros módulos
 
-El Block Design contiene a [`periferico_pwm`](modulos/periferico_pwm.md) y a [`envoltura_xadc`](modulos/envoltura_xadc.md) como IP empaquetadas, y a los dos `debounce` como módulos RTL. Fija los parámetros de `periferico_pwm` y conecta su `pwm_trigger_o` a la envoltura.
+El Block Design contiene a [`periferico_pwm`](modulos/periferico_pwm.md), a [`envoltura_xadc`](modulos/envoltura_xadc.md) y a los dos `debounce` como módulos RTL de referencia, que Vivado toma directo de `src/design/`. Fija los parámetros de `periferico_pwm` y conecta su `pwm_trigger_o` a la envoltura.
 
 Del lado del software, el `.xsa` le entrega a Vitis la configuración del procesador y el mapa de direcciones. [`drivers`](modulos/drivers.md) toma las direcciones base de `xparameters.h`, donde cada macro lleva el nombre de su instancia, y el orden de los bits de los GPIO de h.6.
 
@@ -765,7 +765,7 @@ El procesador busca instrucciones y datos en la memoria local de 32 KB por los d
 
 ### h.1) Instancias y configuración
 
-- `microblaze_riscv_0`, MicroBlaze V a 100 MHz, sin caché, con el puerto AXI de periféricos (`M_AXI_DP`) habilitado. La razón de ir sin caché está en el bloque 3 del [nivel 2](diagramas/nivel02.md).
+- `microblaze_riscv_0`, MicroBlaze V a 100 MHz, sin caché, con el puerto AXI de periféricos (`M_AXI_DP`) habilitado. La razón de ir sin caché está en el bloque 3 del [nivel 2](diagramas/nivel02.md). Lleva la unidad de punto flotante de precisión simple, la multiplicación y división entera y las instrucciones atómicas. El PR de [`pr_discreto`](modulos/pr_discreto.md) trabaja en `float`, y sin esas unidades cada suma o multiplicación pasa a una rutina de software dentro de los 50 µs de la rutina periódica.
 - `microblaze_riscv_0_local_memory`, memoria local de 32 KB con un LMB de instrucciones y otro de datos, como el bloque 3 de `nivel03.md`.
 - `mdm_1`, módulo de depuración en modo Enabled, solo depuración. La salida serie del sistema va por la UART Lite, así que el MDM no lleva UART por JTAG.
 - Processor System Reset, con `ext_reset_in` activo en alto (External Reset Logic Level en 1 [1, p. 16]).
@@ -775,9 +775,9 @@ El procesador busca instrucciones y datos en la memoria local de 32 KB por los d
 - `axi_uartlite_0`, AXI UART Lite a 115200 baudios, 8 bits de datos y sin paridad.
 - `axi_gpio_0`, AXI GPIO de dos canales. El canal 1 tiene 4 bits de entrada y el canal 2 tiene 2 bits de salida.
 - `axi_gpio_1`, AXI GPIO de un canal con 1 bit de salida.
-- `periferico_pwm`, con `DEAD_TIME_CICLOS = 100` y `PRECARGA_CICLOS = 7000` de `potencia/diseno_puente_h.md`, y `MAX_FREQ_00 = 5000`, `MAX_FREQ_01 = 2500`, `MAX_FREQ_10 = 1250` y `MAX_FREQ_11 = 2500` de la tabla de `freq_sel` de [`nucleo_pwm`](modulos/nucleo_pwm.md).
-- `envoltura_xadc`.
-- XADC Wizard sin interfaz AXI, con interfaz DRP, modo por eventos, canal único en VAUX6, entrada unipolar, `DCLK` de 100 MHz y divisor del reloj del ADC en 4, como fija h.6 de [`envoltura_xadc`](modulos/envoltura_xadc.md).
+- `periferico_pwm_0`, instancia de `periferico_pwm`, con `DEAD_TIME_CICLOS = 100` y `PRECARGA_CICLOS = 7000` de `potencia/diseno_puente_h.md`, y `MAX_FREQ_00 = 5000`, `MAX_FREQ_01 = 2500`, `MAX_FREQ_10 = 1250` y `MAX_FREQ_11 = 2500` de la tabla de `freq_sel` de [`nucleo_pwm`](modulos/nucleo_pwm.md).
+- `envoltura_xadc_0`, instancia de `envoltura_xadc`. Su DRP es la interfaz maestra `m_drp`, conectada al `s_drp` del wizard.
+- XADC Wizard sin interfaz AXI, con interfaz DRP, modo por eventos, canal único en VAUX6, entrada unipolar, `DCLK` de 100 MHz y divisor del reloj del ADC en 4, como fija h.6 de [`envoltura_xadc`](modulos/envoltura_xadc.md). El wizard no recibe el divisor directo, lo calcula de la tasa de conversión, y con 1000 kSPS escribe el divisor 4 en el registro de configuración 2 (`INIT_42 = 0x0400`).
 - Dos instancias de `debounce` (`src/design/debounce.sv`, `N = 21`), una para `BTN_HABILITAR` y otra para `BTN_EXPORTAR`.
 - Un Concat que arma el bus de 4 bits del canal 1 de `axi_gpio_0` (h.6).
 
@@ -792,14 +792,14 @@ El MicroBlaze V tiene dos espacios de 32 bits, uno de datos y otro de instruccio
 | `axi_gpio_1` | `0x4001_0000` | 64K | `0x4001_FFFF` |
 | `axi_uartlite_0` | `0x4060_0000` | 64K | `0x4060_FFFF` |
 | `axi_timer_0` | `0x41C0_0000` | 64K | `0x41C0_FFFF` |
-| `periferico_pwm` | la del Address Editor | 4K | base + `0xFFF` |
-| `envoltura_xadc` | la del Address Editor | 4K | base + `0xFFF` |
+| `periferico_pwm_0` | `0x44A0_0000` | 4K | `0x44A0_0FFF` |
+| `envoltura_xadc_0` | `0x44A1_0000` | 4K | `0x44A1_0FFF` |
 
-Las bases de los periféricos de Xilinx son las que asigna el Address Editor. Las de `periferico_pwm` y `envoltura_xadc` también las asigna el Address Editor al agregarlas, alineadas a su rango. El software no escribe ninguna dirección a mano, sino que las toma de `xparameters.h`, así que el valor de cada base solo tiene que quedar fijo en `src/bd/sistema.tcl`.
+Las bases de los periféricos de Xilinx son las que asigna el Address Editor. Las de `periferico_pwm_0` y `envoltura_xadc_0` se fijan a mano en `0x44A0_0000` y `0x44A1_0000`, lejos de la memoria local. El MicroBlaze V manda por `M_AXI_DP` todo acceso de datos que cae fuera de la memoria local, así que con el PWM justo después de la BRAM una escritura del software que se pase del final de la memoria llegaría a su registro de control y podría cambiar `enable` o `freq_sel`. El software no escribe ninguna dirección a mano, sino que las toma de `xparameters.h`, y el valor de cada base queda fijo en `src/bd/sistema.tcl`.
 
-Cada IP propia usa 8 bytes, con dos registros en `0x00` y `0x04`, y se le da un segmento de 4K. Con AXI Interconnect un esclavo AXI4-Lite puede tener un rango menor a 4K solo si todos los esclavos de esa interconexión son AXI4-Lite, y con 4K o más no hay restricción [3]. SmartConnect no fija un rango mínimo por segmento [2, Features]. Con 4K el segmento sirve con cualquiera de las dos.
+Cada periférico propio usa 8 bytes, con dos registros en `0x00` y `0x04`, y se le da un segmento de 4K. Con AXI Interconnect un esclavo AXI4-Lite puede tener un rango menor a 4K solo si todos los esclavos de esa interconexión son AXI4-Lite, y con 4K o más no hay restricción [3]. SmartConnect no fija un rango mínimo por segmento [2, Features]. Con 4K el segmento sirve con cualquiera de las dos.
 
-Las dos IP decodifican 4 bits de dirección y eligen el registro con los bits `[3:2]`, así que dentro de su segmento los dos registros se repiten cada 16 bytes, y un acceso a `base + 0x10` llega al registro de `0x00`. Un acceso fuera de todos los segmentos no llega a ningún esclavo, y el SmartConnect responde con DECERR [2, Address Decode].
+Los dos periféricos decodifican 4 bits de dirección, así que dentro de su segmento los dos registros se repiten cada 16 bytes, y un acceso a `base + 0x10` llega al registro de `0x00`. `envoltura_xadc` elige el registro con los bits `[3:2]`, mientras que `interfaz_axi_pwm` compara los 4 bits, y en el PWM `0x08` y `0x0C` se leen en 0. Un acceso fuera de todos los segmentos no llega a ningún esclavo, y el SmartConnect responde con DECERR [2, Address Decode].
 
 ### h.3) Interrupción
 
@@ -875,8 +875,8 @@ flowchart TD
         G1["axi_gpio_1<br/>0x4001_0000"]
         UA["axi_uartlite_0<br/>0x4060_0000"]
         TM["axi_timer_0<br/>0x41C0_0000"]
-        PWM["periferico_pwm<br/>4K"]
-        ENV["envoltura_xadc<br/>4K"]
+        PWM["periferico_pwm_0<br/>0x44A0_0000"]
+        ENV["envoltura_xadc_0<br/>0x44A1_0000"]
     end
     CLK(["clk"]) --> RST
     BRST(["BTN_RST"]) -->|"ext_reset_in"| RST["Processor System Reset"]
@@ -956,9 +956,9 @@ flowchart LR
 
 ## a) Nombre del módulo
 
-`periferico_pwm`, previsto en `src/design/periferico_pwm.sv`. Es el módulo superior del PWM personalizado y la entidad que se empaquetará como IP para el Block Design.
+`periferico_pwm`, en `src/design/periferico_pwm.sv`. Es el módulo superior del PWM personalizado y entra al Block Design como módulo RTL de referencia, con la instancia `periferico_pwm_0`.
 
-Integra [`interfaz_axi_pwm`](modulos/interfaz_axi_pwm.md), desarrollada como parte de la Persona B, y [`nucleo_pwm`](modulos/nucleo_pwm.md), cuya generación de PWM corresponde a la Persona A. La ficha define la integración para la entrega de diseño; el empaquetado real y su comprobación se realizarán durante la implementación.
+Integra [`interfaz_axi_pwm`](modulos/interfaz_axi_pwm.md), desarrollada como parte de la Persona B, y [`nucleo_pwm`](modulos/nucleo_pwm.md), cuya generación de PWM corresponde a la Persona A.
 
 ## b) Diagrama modular
 
@@ -1079,15 +1079,11 @@ La interfaz ofrece la orden registrada al núcleo. La tubería del núcleo calcu
 
 La orden `enable=0` se aplica en el valle siguiente según el diseño actual. El apagado por falla y las protecciones deben tener en cuenta esa demora; la envoltura no añade una desconexión inmediata que el núcleo no tenga.
 
-### h.5 Contrato de empaquetado previsto
+### h.5 Integración en el Block Design
 
-La IP se denominará `periferico_pwm`, con una interfaz esclava `S_AXI`, datos de 32 bits y direcciones locales de 4 bits. Reloj y reset se asociarán explícitamente a esa interfaz; el reset se declarará activo en bajo y el reloj nominal será 100 MHz.
+`periferico_pwm` entra al Block Design como módulo RTL de referencia. Vivado infiere la interfaz esclava `S_AXI`, con datos de 32 bits y direcciones de 4 bits, por los atributos `X_INTERFACE_INFO` de los puertos, y le asocia `s_axi_aclk` y `s_axi_aresetn`, con el reset activo en bajo y el reloj de 100 MHz. Las fuentes de síntesis son la envoltura, la interfaz y el núcleo, en `src/design/`, y el banco de prueba queda en `src/sim/`, fuera de la lógica sintetizable. Los seis parámetros de la tabla anterior se fijan en la instancia `periferico_pwm_0`.
 
-Se incluirán como fuentes de síntesis la envoltura, la interfaz y el núcleo. Los bancos de prueba pertenecen al grupo de simulación y no a la lógica sintetizable. Los seis parámetros de la tabla anterior se publicarán con descripción y restricciones coherentes con el núcleo.
-
-El Address Editor asignará una base alineada al segmento de 4 KiB, que abarca desde la base hasta `base + 0xFFF`, según la [sección h.2 del Block Design](modulos/block_design.md#h2-mapa-de-direcciones). El software usa esa base desde `xparameters.h` y accede a los registros en `0x00` y `0x04`. Como la interfaz decodifica los cuatro bits bajos del offset, los dos registros se repiten cada 16 bytes dentro del segmento.
-
-Durante la implementación se comprobará que Vivado reconoce todos los canales AXI y las asociaciones de reloj/reset. En la entrega actual se presenta este contrato de integración; no se afirma que exista ya un paquete `component.xml`, un `.xsa` o un Block Design validado.
+El segmento de la instancia es de 4 KiB, con la base que fija la [sección h.2 del Block Design](modulos/block_design.md#h2-mapa-de-direcciones). El software usa esa base desde `xparameters.h` y accede a los registros en `0x00` y `0x04`. Como la interfaz decodifica los cuatro bits bajos del offset, los dos registros se repiten cada 16 bytes dentro del segmento.
 
 ### h.6 Estrategia de verificación
 
@@ -1132,7 +1128,7 @@ La asignación de pines está en la [sección h.7 del Block Design](modulos/bloc
 
 - [Nivel 3 del sistema](diagramas/nivel03.md), [`nucleo_pwm`](modulos/nucleo_pwm.md) y [`interfaz_axi_pwm`](modulos/interfaz_axi_pwm.md).
 - Instructivo del proyecto, secciones 4.2.2, 4.2.3 y 7.
-- AMD, [Vivado Creating and Packaging Custom IP UG1118](https://docs.amd.com/r/en-US/ug1118-vivado-creating-packaging-custom-ip/Packaging-Your-Current-Project), empaquetado y asociaciones de interfaces. Aplicar el flujo de la versión Vivado 2025.1 utilizada por el proyecto.
+- AMD, *Vivado Design Suite User Guide: Designing IP Subsystems Using IP Integrator*, UG994, sección Referencing RTL Modules.
 
 ---
 
@@ -1822,7 +1818,7 @@ Una escritura a `0x04` o a una dirección sin registro no hace nada y responde `
 
 ### h.2) Interfaz AXI4-Lite
 
-Los nombres siguen la convención `s_axi_*` para que Vivado infiera la interfaz al empaquetar la IP. La dirección tiene 4 bits y se decodifica con `s_axi_awaddr[3:2]` y `s_axi_araddr[3:2]`. Las respuestas son siempre `OKAY` (`2'b00`).
+Los nombres siguen la convención `s_axi_*` para que Vivado infiera la interfaz `s_axi` al agregar el módulo al Block Design. Los puertos del DRP llevan atributos `X_INTERFACE_INFO` que los agrupan en la interfaz maestra `m_drp`, y `clk` y `rst_n` llevan los que los asocian a las dos interfaces. La dirección tiene 4 bits y se decodifica con `s_axi_awaddr[3:2]` y `s_axi_araddr[3:2]`. Las respuestas son siempre `OKAY` (`2'b00`).
 
 - Escritura. `s_axi_awready` y `s_axi_wready` suben juntos durante un ciclo cuando `s_axi_awvalid` y `s_axi_wvalid` están en 1 y no hay una respuesta pendiente. El esclavo puede esperar las dos validaciones antes de dar cualquiera de los dos `ready`, y el maestro puede presentarlas en cualquier orden [5]. `s_axi_bvalid` sube al ciclo siguiente y se sostiene hasta `s_axi_bready`.
 - Lectura. `s_axi_arready` sube durante un ciclo con `s_axi_arvalid` y sin un dato pendiente. `s_axi_rdata` se carga en ese mismo ciclo y `s_axi_rvalid` se sostiene hasta `s_axi_rready`.
@@ -1855,7 +1851,7 @@ stateDiagram-v2
     LEYENDO --> LIBRE : xadc_drdy = 1
 ```
 
-- `LIBRE`, `xadc_convst` en 0. Atiende el disparo de h.4.
+- `LIBRE`, `xadc_convst` en 0. Atiende el disparo de h.4 si `xadc_busy` está en 0. Con `xadc_busy` en 1 el XADC está ocupado, por ejemplo calibrando al salir del reinicio [2, p. 13], y un disparo en ese momento dejaría a la máquina esperando un `xadc_eoc` que no corresponde a ningún `CONVST` propio. El disparo se ignora igual que uno que llega durante una conversión.
 - `DISPARANDO`, `xadc_convst` en 1. Se sostiene hasta que `xadc_busy` sube, que según UG480 pasa en el flanco de `DCLK` siguiente al instante de muestreo [1, Event-Driven Sampling]. Así el ancho del pulso no depende de un mínimo que haya que adivinar.
 - `CONVIRTIENDO`, `xadc_convst` en 0. Espera el pulso de `xadc_eoc`. En ese ciclo `xadc_den` sube durante un ciclo con `xadc_daddr = {2'b00, xadc_channel}` y `xadc_dwe` en 0, que es una lectura [1, DRP Timing].
 - `LEYENDO`, espera `xadc_drdy`. En ese ciclo guarda `muestra <= xadc_do[15:4]` y `contador <= contador + 1`, y vuelve a `LIBRE`.
@@ -3045,7 +3041,7 @@ Del lado de la Basys 3 ([block_design](#block_design), h.7).
 Del lado del puente.
 
 - 15 V de un canal aparte de la fuente de banco, con el negativo en la tierra de potencia, para la salida de los VO3120 y para `VCC` y `VDD` de los IR2110.
-- Vdc, de 12 a 24 V, de otro canal, solo para el puente.
+- Vdc de 18 V, de otro canal, solo para el puente. Las protecciones se dimensionan con 24 V, el máximo del enunciado.
 
 La cadena de las compuertas funciona entera con Vdc apagado, y por eso las compuertas y el tiempo muerto se revisan sin energizar el bus.
 
@@ -3057,7 +3053,7 @@ Cada compuerta tiene su propia cadena.
 2. El PN2222A enciende el LED del VO3120, alimentado de los 3,3 V del Pmod por 160 Ω. La corriente del LED queda entre 8,3 y 15,1 mA, dentro de los 7 a 16 mA de la hoja [1, p. 2].
 3. El VO3120 aísla y entrega en su salida 15 V o 0 V referidos a la tierra de potencia. Su inmunidad a modo común es de 25 kV/µs como mínimo [1, p. 5], contra unos 2 kV/µs del nodo de cada pierna.
 4. Un IR2110 por pierna maneja la compuerta baja y la alta. La alta se alimenta de un bootstrap con 470 nF, un 1N4148 y 22 Ω en serie [2], así que el lado del puente no necesita fuentes flotantes.
-5. Cada salida del IR2110 llega a su IRF520N por 10 Ω [3].
+5. Cada salida del IR2110 llega a su IRF520N por 10 Ω [3], con 100 kΩ entre compuerta y source para que la compuerta no quede flotando con el IR2110 sin alimentación.
 
 El pin es activo en alto y LED apagado es compuerta apagada. Con esa polaridad, una falla del lado de la Basys 3 (placa apagada, cable suelto o FPGA sin configurar) deja las cuatro compuertas apagadas. Con la polaridad contraria las encendería todas y cortocircuitaría las dos piernas, porque el IR2110 maneja `HIN` y `LIN` por separado y no impide que estén en alto a la vez [2].
 
@@ -3077,7 +3073,7 @@ Las cuatro compuertas quedan apagadas desde que la Basys 3 está sin energía ha
 
 - Basys 3 apagada o cable del Pmod suelto. El LED queda sin alimentación y la salida del VO3120 queda en bajo (tabla de verdad, [1, p. 2]).
 - FPGA configurándose. Los pines quedan en alta impedancia sin pull-ups, porque `PUDC_B` (E18) va a 3,3 V por 1 kΩ [5, hoja 5], [6]. Con la fuga del pin, de 15 µA como máximo [7, Tabla 3, p. 3], el pull-down de 10 kΩ deja la base en 0,25 V como mucho y el transistor no conduce.
-- Alimentación de 15 V subiendo. La salida del VO3120 se queda en bajo aunque el LED esté encendido, hasta que `VCC − VEE` pasa de 11 a 13,5 V [1, p. 2].
+- Alimentación de 15 V subiendo. La salida del VO3120 se queda en bajo aunque el LED esté encendido, hasta que `VCC − VEE` pasa de 11 a 13,5 V [1, p. 2]. El IR2110 se habilita antes, entre 7,4 y 9,6 V, con sus entradas en bajo, y al bajar la alimentación el VO3120 apaga primero [2, p. 3].
 - Reinicio. `peripheral_aresetn` deja el núcleo en `DETENIDO`, con las cuatro compuertas apagadas ([nucleo_pwm](#nucleo_pwm)). Cargar un programa por el MDM también reinicia el PWM, por `mb_debug_sys_rst` ([block_design](#block_design), h.4).
 - Después del arranque. `enable` queda en cero hasta el flanco de `BTN_HABILITAR`, y el control solo se habilita con `freq_sel = 01` y sin falla ([control_principal](#control_principal)).
 
@@ -3097,12 +3093,15 @@ El AXI Timer cuenta los mismos 5000 ciclos que la portadora a 20 kHz y arranca a
 
 ## Limitación de corriente y desconexión ante falla
 
-La corriente queda limitada en dos niveles.
+La corriente queda limitada en tres niveles.
 
-- La fuente de Vdc trabaja con su límite de corriente activo en todas las pruebas energizadas, y la primera energización es con 12 V.
+- La fuente de Vdc trabaja con el límite de corriente en 0,52 A en todas las pruebas energizadas, y el canal de 15 V con 50 mA. En la primera energización Vdc sube desde 0 hasta 18 V con el límite en 0,1 A, para que un error de cableado que deje una pierna en corto haga entrar la fuente en limitación antes de cargar el electrolítico del bus.
+- Un fusible rápido de 630 mA o 1 A a la entrada de Vdc corta una falla sostenida si el límite de la fuente queda por encima de su nominal, y la fuente conectada con la polaridad invertida.
 - El software declara falla en la misma iteración en que la muestra pasa del umbral de sobrecorriente de 1,3 A, sale de la escala útil del ADC o falta más de `ITERACIONES_SIN_DATO_MAX` iteraciones seguidas ([supervisor_falla](#supervisor_falla)). La rutina del Timer escribe `enable = 0`, `control_principal` enciende el LED de falla y deja de aceptar `BTN_HABILITAR`, y la falla queda enclavada hasta `BTN_RST`.
 
-Desde que la corriente cruza el umbral hasta que las compuertas quedan apagadas pasan hasta dos períodos, 100 µs a 20 kHz. Uno es la espera a la siguiente muestra y el otro la espera al valle en que el núcleo toma `enable`. Con el PR saturado en 0,92 la corriente sube entre 1,8 y 8,8 A/ms según Vdc, R y L, y llega a entre 1,44 y 1,98 A antes del corte. El IRF520N da 9,7 A continuos a 25 °C, 6,8 A a 100 °C y 38 A pulsados [3, p. 1], así que el puente aguanta ese pico.
+Desde que la corriente cruza el umbral hasta que las compuertas quedan apagadas pasan hasta dos períodos, 100 µs a 20 kHz. Uno es la espera a la siguiente muestra y el otro la espera al valle en que el núcleo toma `enable`. Con el PR saturado en 0,92 la carga ve en promedio `0,92 · Vdc`, y con 10 Ω y 2 mH la corriente se acerca en exponencial a `0,92 · Vdc / R` con τ = 0,2 ms. En los 100 µs llega a 1,44 A con 18 V y a 1,66 A con 24 V, y el techo con la carga conectada es de 2,21 A. El IRF520N da 9,7 A continuos a 25 °C, 6,8 A a 100 °C y 38 A pulsados [3, p. 1], así que el puente aguanta ese pico.
+
+Con la carga en cortocircuito no hay techo. El electrolítico del bus se descarga por dos MOSFET con un pico de unos 60 A, y ni el software ni el fusible llegan a cortar antes de que pase de los 38 A pulsados, así que ese caso no queda cubierto para los MOSFET ([`potencia/diseno_puente_h.md`](../potencia/diseno_puente_h.md), sección "Protecciones"). El pin SD de los IR2110 va a `VSS`, y la desconexión ante falla la hace el software.
 
 Para cortar a mano hay dos caminos que no dependen del programa. `BTN_RST` deja el núcleo en `DETENIDO`, y la salida de Vdc se apaga en la fuente.
 
@@ -3111,9 +3110,9 @@ Para cortar a mano hay dos caminos que no dependen del programa. `BTN_RST` deja 
 La integración con el puente sigue el plan de pruebas de `potencia/diseno_pr.md`, en pasos que descartan una causa antes de sumar la siguiente. Se energiza primero la Basys 3, programada y con `enable` en cero, después los 15 V y al final Vdc. Se apaga en el orden inverso.
 
 1. Potencia desenergizada, con los 15 V encendidos y Vdc apagado. En el osciloscopio, y con capturas, se revisan las cuatro compuertas en las patas de los MOSFET, la precarga al habilitar y las tres frecuencias de `freq_sel`. En cada pierna, el hueco entre la bajada de una compuerta y la subida de la otra tiene que quedar sobre los 138 ns que tarda en apagarse el IRF520N, con margen, y si no alcanza se sube `DEAD_TIME_CICLOS`. Se mide el retardo de cada flanco de la cadena, que entra en el retardo del lazo. La falla se prueba con un umbral bajo, para ver que baja `enable`, enciende el LED y no se rearma sola. Con 0 A en la carga, el ADC tiene que dar el offset del acondicionamiento.
-2. Vdc en 12 V con el límite de corriente bajo, en lazo abierto con un `duty_ref` senoidal fijo de 50 Hz y sin PR, desde 0,2 A. La amplitud y el desfase de la corriente confirman la ganancia y el signo del sensor y los valores de R y L.
+2. Con la polaridad de Vdc verificada, Vdc sube desde 0 hasta 18 V con el límite en 0,1 A, y el límite pasa a 0,52 A si la fuente no entró en limitación. Primero en lazo abierto con un `duty_ref` senoidal fijo de 50 Hz y sin PR, desde 0,2 A. La amplitud y el desfase de la corriente confirman la ganancia y el signo del sensor y los valores de R y L.
 3. Solo la parte proporcional del PR, con `Kr = 0`.
-4. PR completo con 0,2, 0,5 y 1,0 A pico, los cambios de amplitud con `SW[1:0]` y el cambio de carga de al menos 25 %. Vdc sube a 18 V cuando el paso anterior sale bien.
+4. PR completo con 0,2, 0,5 y 1,0 A pico, los cambios de amplitud con `SW[1:0]` y el cambio de carga de al menos 25 %.
 
 La salida de depuración en JB1 acompaña todos los pasos, para medir el período y el jitter del lazo con la potencia conectada. En cada sesión energizada los roles quedan fijos y anotados. Una persona se encarga de la seguridad, con la salida de Vdc al alcance, otra opera la fuente y otra toma los datos.
 

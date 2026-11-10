@@ -53,8 +53,8 @@ Cada interrupción sigue esta secuencia.
 2. Reconoce la interrupción del Timer.
 3. Lee una vez el registro del ADC por medio de `drivers`. Si hay muestra nueva, actualiza la cuenta y la corriente con `corriente = (cuenta - ADC_OFFSET_CUENTAS) · ADC_AMPERES_POR_CUENTA` y llama a `supervisor_falla_revisar`. Si falta la muestra, conserva la última cuenta válida, marca `dato_ausente` y llama a `supervisor_falla_sin_dato`.
 4. Con el resultado de cualquiera de las dos llamadas, detecta una transición a falla. Si aparece, escribe `enable = 0` mediante `drivers_pwm_apagar()`, preserva `freq_sel` y publica `falla = 1`.
-5. Si el control está habilitado y libre de falla, obtiene `i_ref` para esta iteración. Con muestra nueva, ejecuta el PR y escribe su `duty_ref`. Con muestra ausente dentro de la tolerancia, avanza la fase de la referencia, conserva los estados del PR y mantiene el último `duty_ref`. Con el control deshabilitado o en falla, registra `i_ref = 0` y omite el PR.
-6. Arma el registro con la cuenta, el último `duty_ref` escrito, `i_ref` y las cuatro banderas, y se lo pasa a `buffer_muestras`.
+5. Si el control está habilitado y libre de falla, obtiene `i_ref` para esta iteración. Con muestra nueva, ejecuta el PR y escribe su `duty_ref`. Con muestra ausente dentro de la tolerancia, avanza la fase de la referencia, conserva los estados del PR y mantiene el último `duty_ref`. Con el control deshabilitado o en falla, registra `i_ref = 0`, `duty_ref = 0` y `saturado` en cero, y omite el PR.
+6. Arma el registro con la cuenta, el `duty_ref` vigente, `i_ref` y las cuatro banderas, y se lo pasa a `buffer_muestras`.
 7. Baja la salida de depuración.
 
 Con el control deshabilitado la rutina sigue registrando la corriente cuando el Timer está en marcha. Esto permite revisar el offset del sensor con el puente deshabilitado.
@@ -81,13 +81,16 @@ La escribe solo esta rutina, y los LEDs solo `control_principal`. Por eso tienen
 
 El paso 4 es común a las rutas con y sin dato. En la primera iteración que declara falla, `drivers_pwm_apagar()` lee, modifica y escribe el offset `0x00`, baja solo `enable` y mantiene `freq_sel`. Las iteraciones posteriores conservan la falla enclavada y omiten escrituras del PR. El núcleo toma la orden de apagado en el siguiente valle que capture el nuevo `enable` y desactiva las compuertas con su latencia registrada.
 
+La transición se detecta comparando lo que devuelve `supervisor_falla` con la `falla` publicada. Como esta rutina es la única que la escribe y `BTN_RST` reinicia toda la plataforma, la variable publicada ya es el estado anterior y no hace falta guardar otro.
+
 La ISR publica `falla` y el lazo principal baja `control_habilitado` en su siguiente vuelta. La última comprobación de `falla` y la habilitación del PWM quedan en una misma sección crítica del [control principal](control_principal.md#h2-orden-al-habilitar-y-al-deshabilitar).
 
 ### h.5) Registro de la iteración
 
 - `cuenta_banderas` lleva la cuenta en `[11:0]`, `saturado` en el bit 15, `dato_ausente` en el 14, si el control estaba habilitado en el 13 y `falla` en el 12.
-- `duty_ref` es el último valor escrito en el PWM, aunque en esta iteración no se haya calculado.
-- `i_ref_ma` es `i_ref · 1000` truncado a entero. Vale cero con el control deshabilitado o en falla. Ante una ausencia tolerada se registra la referencia de esa iteración y la cuenta anterior se identifica con `dato_ausente`. La bandera `saturado` conserva el resultado del último cálculo del PR si la orden se mantiene.
+- `duty_ref` es el último valor escrito en el PWM, aunque en esta iteración no se haya calculado. Con el control deshabilitado o en falla vale cero, porque ahí el puente no aplica ninguna orden, y al deshabilitar `control_principal` también deja el registro del PWM en cero (`control_principal.md` h.2).
+- `i_ref_ma` es `i_ref · 1000` truncado a entero. Vale cero con el control deshabilitado o en falla. Ante una ausencia tolerada se registra la referencia de esa iteración y la cuenta anterior se identifica con `dato_ausente`. La bandera `saturado` conserva el resultado del último cálculo del PR si la orden se mantiene, y vale cero con el control deshabilitado o en falla, para que el histórico no muestre una saturación de la sesión anterior.
+- Hasta la primera muestra válida la cuenta vale `ADC_OFFSET_CUENTAS`, así que si la primera iteración no trae dato el registro marca 0 A y no una cuenta en cero, que se leería como -1,67 A.
 
 ### h.6) Calibración
 
@@ -107,6 +110,14 @@ El [plan de verificación](../plan_verificacion_pwm.md) mide estas condiciones t
 
 - `void lazo_control_isr(void *ref)`, la rutina que `control_principal` registra como manejador de la interrupción del procesador.
 - Las variables compartidas `volatile uint32_t control_habilitado`, `volatile valor_t amplitud_ref` y `volatile uint32_t falla`, declaradas en `lazo_control.h`.
+
+La rutina copia `control_habilitado` y `amplitud_ref` a variables locales al entrar y no las vuelve a leer. Así toda la iteración trabaja con los mismos valores aunque el lazo principal los cambie a la mitad. Cada una ocupa 32 bits, que el MicroBlaze V lee y escribe en una sola instrucción, así que alcanza con `volatile` y no hace falta sección crítica para leerlas.
+
+La cuenta, el último `duty_ref` y `saturado` pasan de una iteración a la siguiente como `static` sin `volatile`, porque solo los toca esta rutina. El registro se arma en la pila de la rutina y se pasa por puntero a `buffer_muestras_guardar`, que lo copia.
+
+### h.9) Prueba en la PC
+
+`sw/pruebas/prueba_lazo_control.c` se compila con gcc junto con `buffer_muestras`, `pr_discreto`, `ref_senoidal` y `supervisor_falla` reales, y define sus propias funciones de `drivers` que escriben en variables. Revisa que con el control deshabilitado no se escriba `duty_ref` y que la referencia, el `duty_ref` registrado y `saturado` valgan cero aunque la sesión anterior haya saturado, que una cuenta bajo el offset dé corriente negativa, que sin dato no se recalcule el PR pero la fase avance, las cuatro banderas en sus bits, que la falla por ausencias y por sobrecorriente apague el PWM una sola vez, y que la salida de depuración suba y baje y el Timer se reconozca una vez por iteración.
 
 ## i) Diagrama esquemático detallado del diseño
 

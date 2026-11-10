@@ -62,6 +62,7 @@ Funciones.
 - `void drivers_pwm_apagar(void)`, desde la interrupción ante falla. La misma lectura, modificación y escritura, sin deshabilitar nada porque la interrupción no se interrumpe.
 - `void drivers_pwm_escribir_duty(uint16_t duty_ref)`, una escritura al offset `0x04`. El argumento es el patrón de 16 bits en Q2.14 que devuelve `pr_discreto_calcular`, sin conversión.
 - `bool drivers_pwm_running(void)`, lee el bit 3. Sube y baja en un valle, así que se retrasa entre un ciclo de `clk` y un período completo respecto a `enable`.
+- `uint32_t drivers_pwm_freq_sel(void)`, lee los bits `[2:1]` del offset `0x00` y los devuelve de 0 a 3. Devuelve lo que quedó escrito en el registro, que es lo que el núcleo copia en el valle siguiente. `control_principal` lo usa para exigir `01` antes de habilitar.
 
 Hacen falta dos versiones del apagado porque la del lazo principal tiene que protegerse de la interrupción y la de la interrupción no puede tocar la habilitación global de interrupciones, ya que al salir la volvería a dejar en uno a destiempo.
 
@@ -110,6 +111,8 @@ La recepción no se usa, igual que en el nivel 2.
 - `void drivers_timer_reconocer(void)`, escribe uno en el bit de interrupción del registro de control y estado del contador 0, que es como el AXI Timer limpia la interrupción, sin tocar los demás bits.
 - `void drivers_interrupciones_iniciar(void (*rutina)(void *))`, registra la rutina con las funciones de excepciones del BSP (`xil_exception.h`) y habilita las interrupciones del procesador. No hay AXI INTC, la salida del Timer va directo a la única entrada de interrupción del MicroBlaze V. Los nombres exactos de las funciones se toman del BSP cuando esté el `.xsa`.
 - `uint32_t drivers_interrupciones_guardar_y_deshabilitar(void)` devuelve el estado previo y enmascara las interrupciones. `void drivers_interrupciones_restaurar(uint32_t estado)` restaura ese estado al salir de la sección crítica.
+
+Estas dos no usan el BSP. El MicroBlaze V es RISC-V y corre en modo máquina, así que la habilitación global es el bit `MIE` (bit 3) de `mstatus`. Guardar y deshabilitar es un solo `csrrci`, que lee y limpia el bit en la misma instrucción sin ventana para que entre una interrupción en medio, y restaurar es un `csrs` con el bit guardado, que no cambia nada si ya estaban enmascaradas al entrar. Las dos llevan una barrera del compilador, así que ninguna lectura ni escritura del código de alrededor se mueve hacia dentro o hacia fuera de la sección crítica. Con eso el reinicio del PR y de la fase en `control_principal` queda escrito antes de que se publique `control_habilitado`. Necesitan la extensión `zicsr`, que el compilador de Vitis para MicroBlaze V ya trae porque el propio BSP la usa.
 
 ### h.6) Prueba en la PC
 

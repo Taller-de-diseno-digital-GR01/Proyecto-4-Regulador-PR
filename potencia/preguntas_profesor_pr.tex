@@ -1,0 +1,119 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish]{babel}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{enumitem}
+\usepackage{parskip}
+
+\setlist[enumerate]{leftmargin=*, itemsep=0.9em}
+\newcommand{\ctx}[1]{\par\vspace{0.2em}\small\textit{Contexto. #1}\normalsize}
+
+\title{Preguntas sobre el regulador PR para el profesor de Procesamiento Electrónico de Potencia}
+\author{Proyecto 4, Control de corriente con regulador PR sobre MicroBlaze V}
+\date{}
+
+\begin{document}
+\maketitle
+
+Las preguntas salen de la lectura del enunciado EL3313 / EL4201 (secciones 4.3 y 8.2 y anexo B). Van agrupadas por tema, y cada una cita lo que dice el texto para que se vea dónde no queda claro.
+
+\section{Concepto y alcance}
+
+\begin{enumerate}
+  \item ¿Qué se espera que entendamos por regulador PR en este proyecto? ¿Basta con presentarlo como el equivalente en marco estacionario de un PI en ejes sincrónicos, con ganancia infinita en 50 Hz?
+  \ctx{La sección 4.3.4 pide investigar el principio de funcionamiento, pero no define el nivel de profundidad esperado ni qué se evalúa en el criterio de investigación (25\,\%).}
+
+  \item ¿Qué hace el PR dentro del lazo, en términos de lo que se debe poder explicar en la defensa? Por ejemplo, ¿se espera justificar por qué un PI no alcanza para una referencia de 50 Hz?
+  \ctx{El anexo B.2 evalúa el funcionamiento del PR y los parámetros justificados, sin decir qué argumentos cuentan como justificación.}
+
+  \item ¿El PR se construye físicamente, o solo se diseña y se ejecuta como una ecuación en diferencias dentro del procesador? Entendemos que lo físico es el puente H, la carga, el sensor y su acondicionamiento, y que el PR es software, pero queremos confirmarlo.
+  \ctx{La sección 4.3 dice que se ``diseñará, simulará e implementará un inversor'' con un PR discreto, y en 4.3.4 que ``el diseño del algoritmo y su especificación funcional corresponden a PEDP''. No dice explícitamente dónde corre el algoritmo.}
+
+  \item ¿Se espera la estructura ideal, la amortiguada, o es válido proponer otra (por ejemplo con compensación del retardo o un segundo resonante en un armónico)? ¿Con qué criterio se juzga la elección?
+  \ctx{El enunciado dice que no se suministra estructura, ganancias ni método, y que cada decisión se sustenta en la investigación.}
+
+  \item Elegimos la estructura ideal porque la referencia la genera el propio procesador a 50 Hz exactos, así que no hay una frecuencia que se corra. ¿Se acepta ese argumento, o se espera la versión amortiguada por robustez? Si se usa la amortiguada, ¿con qué criterio se elige el ancho del término resonante?
+  \ctx{La versión amortiguada cambia ganancia infinita en 50 Hz por tolerancia a que la frecuencia de la red o de la referencia se desvíe. En este proyecto la referencia es interna, y el anexo B.2 evalúa que los parámetros estén justificados sin decir qué estructura se prefiere.}
+\end{enumerate}
+
+\section{Orden de diseño y valores}
+
+\begin{enumerate}[resume]
+  \item ¿Cómo se supone que elijamos los valores de $K_p$, $K_r$, $L$, $R$ y la frecuencia de conmutación si todavía no se ha armado nada? ¿Se acepta diseñar con valores estimados y volver a sintonizar cuando la carga esté medida?
+  \ctx{La sección 4.3.1 pide dimensionar y caracterizar la carga, y 4.3.5 pide verificar simultáneamente margen de tensión, pérdidas y criterios, pero el documento de diseño (20\,\%) se entrega antes de la presentación funcional.}
+
+  \item ¿Cuál es el orden esperado de decisiones? ¿Primero $V_{dc}$ y $f_{sw}$, luego $L$ por el criterio de rizado, luego $R$ por la corriente, y al final las ganancias del PR? ¿O hay otro orden que se prefiera?
+
+  \item ¿Existen valores de referencia de $L$, $R$ y $V_{dc}$ que el curso considere razonables, o una lista de componentes disponibles en el laboratorio (inductores, resistencias de potencia, fuentes con límite de corriente)?
+  \ctx{El enunciado permite bobina comercial, construida o devanado de transformador, sin dar rangos.}
+
+  \item ¿Se pueden entregar en el documento de diseño valores marcados como provisionales, con el procedimiento de sintonización reproducible, y actualizarlos en el informe con las mediciones reales?
+  \ctx{El criterio de modelado y control (30\,\%) pide un ``procedimiento reproducible de sintonización PR'', lo que sugiere que el procedimiento pesa más que los números finales.}
+
+  \item ¿Dónde y a qué frecuencia debe medirse la inductancia efectiva? ¿A 50 Hz, a la frecuencia de conmutación, o a ambas?
+  \ctx{La sección 4.3.1 habla de ``inductancia efectiva bajo condiciones representativas de operación'' sin precisar la frecuencia ni la corriente de medición.}
+\end{enumerate}
+
+\section{Frecuencia de conmutación, muestreo y retardo}
+
+\begin{enumerate}[resume]
+  \item En PWM unipolar, ¿confirma que la frecuencia de las componentes de conmutación en la tensión de salida es el doble de la frecuencia de portadora, y que el límite de 0,20 A pico a pico se evalúa sobre esa componente? ¿La frecuencia de conmutación que justificamos es la de portadora o la de cada transistor?
+  \ctx{El enunciado dice ``sin confundirlas con la frecuencia de conmutación de cada transistor'' pero no dice cuál de las dos debe reportarse como $f_{sw}$.}
+
+  \item ¿El período de muestreo y el de actualización del control son cantidades distintas que debemos definir por separado? ¿Se espera muestrear una vez por período de portadora, o dos veces (pico y valle)?
+  \ctx{La sección 4.3.1 habla de ``períodos de muestreo y actualización del controlador'' en plural, a definir en coordinación con Taller.}
+
+  \item ¿Se espera un modelo específico del retardo (por ejemplo un período y medio entre muestreo y aplicación), o se acepta que lo supongamos y lo verifiquemos midiendo el período real de la interrupción? ¿Qué margen de fase y de ganancia se considera suficiente en el análisis de estabilidad?
+  \ctx{El criterio ``Control PR'' del anexo B.2 menciona el ``período real de control'' y el B.3 el ``diagnóstico de retardos'', pero ninguno da un umbral.}
+
+  \item ¿Debe hacerse el análisis de estabilidad en tiempo discreto (plano $z$), o es aceptable en tiempo continuo con el retardo incluido como aproximación?
+  \ctx{La sección 4.3.4 pide ``analizar la estabilidad y el efecto del muestreo y los retardos'' sin fijar el dominio.}
+\end{enumerate}
+
+\section{Discretización e implementación}
+
+\begin{enumerate}[resume]
+  \item ¿Se espera comparar varios métodos de discretización (Tustin con y sin precorrección, ZOH, invariante al impulso) o basta justificar uno con la bibliografía? ¿Es válido discretizar con Tustin precorregido en 50 Hz para que el polo caiga exactamente en la frecuencia de la referencia?
+  \ctx{El enunciado pide ``elegir un método de discretización y obtener la ecuación en diferencias correspondiente''.}
+
+  \item ¿Debe el regulador entregar tensión o índice de modulación? Si se entrega índice, ¿se acepta incorporar $1/V_{dc}$ en los coeficientes para que el procesador no divida?
+  \ctx{La sección 4.3.3 pide relacionar la modulación PWM con la tensión promedio en la carga, y el formato de lo que se escribe en el periférico se acuerda con Taller.}
+
+  \item ¿Es obligatorio documentar la saturación y el anti-windup? ¿Qué se considera una ``saturación explicada''?
+  \ctx{El anexo B.2 evalúa la ``ausencia de inestabilidad o saturación no explicada'' sin decir qué cuenta como explicación.}
+
+  \item ¿El tipo de aritmética (punto fijo o flotante) forma parte de lo que se evalúa en el control PR, o solo importa que el resultado sea correcto?
+\end{enumerate}
+
+\section{Medición, ensayos y criterios}
+
+\begin{enumerate}[resume]
+  \item ¿Con qué instrumento debe medirse la corriente para los criterios de error y rizado? ¿Se acepta el propio ADC del sistema, descargado por UART, o se exige una medición independiente con osciloscopio y sonda de corriente?
+  \ctx{La sección 4.3.5 pide ``mediciones experimentales verificables'' y un ``procedimiento documentado de extracción de la fundamental'', sin nombrar el instrumento.}
+
+  \item ¿Es válido extraer la fundamental offline, por correlación o DFT sobre una ventana de cinco períodos, a partir de las muestras exportadas? ¿Qué se espera como evidencia de que el procedimiento es correcto?
+
+  \item ¿Cuál es la ``ventana local representativa'' para medir el rizado? ¿Se mide cerca del pico de la senoidal, cerca del cruce por cero, o en el peor caso de los dos?
+  \ctx{El rizado depende del índice de modulación y no es el mismo en todos los puntos de la onda.}
+
+  \item En el ensayo de cambio de resistencia de al menos 25\,\% a 0,5 A pico, ¿el cambio se hace con el sistema en marcha (conmutando una resistencia en caliente) o se puede detener y reiniciar el lazo? ¿Cuál es el tiempo de establecimiento esperado después del cambio?
+  \ctx{El enunciado dice que se evaluará ``por separado la evolución transitoria, el establecimiento y el respeto de los límites eléctricos'' pero no da un criterio numérico de establecimiento.}
+
+  \item ¿Cómo se pondera la comparación entre PLECS y las mediciones? ¿Qué diferencia se considera aceptable y qué se espera que se escriba cuando no coinciden?
+  \ctx{El criterio de concordancia con simulación (15\,\%) pide ``análisis sustentado de diferencias'' sin umbral.}
+\end{enumerate}
+
+\section{Coordinación y entrega}
+
+\begin{enumerate}[resume]
+  \item El enunciado permite demostrar el lazo con una plataforma de control alternativa si ejecuta el PR discreto diseñado. ¿Se puede presentar primero con una plataforma alternativa y después integrar el MicroBlaze V? ¿Cómo se pondera cada demostración?
+  \ctx{El texto distingue la integración conjunta (20 puntos) de los cuatro rubros independientes, y dice que este rubro no condiciona los demás.}
+
+  \item ¿Quién diseña y quién implementa cada parte del PR cuando el equipo de PEDP y el de Taller son la misma persona o el mismo grupo? ¿Se espera documentación separada de la ecuación en diferencias para cada curso, o una sola?
+  \ctx{El anexo B.3 evalúa por separado la ejecución del PR en el MicroBlaze V, y el documento de diseño de PEDP incluye la ecuación discreta.}
+
+  \item ¿Hay un formato preferido para presentar el procedimiento de sintonización, como una función de transferencia en lazo abierto con márgenes, lugar de raíces o diagrama de Bode?
+\end{enumerate}
+
+\end{document}
