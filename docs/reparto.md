@@ -153,7 +153,7 @@ D lleva el PR completo, desde la estructura hasta los coeficientes que corre el 
 La sintonización con la planta real genera iteraciones entre D y quienes arman la carga y el puente. Para que cada ajuste no sea una negociación se acuerda lo siguiente.
 
 - Un script de Octave, de D y compatible con MATLAB, que recibe Kp, Kr, la frecuencia de muestreo y el método de discretización, y genera un `pr_params.h` con los coeficientes ya en el formato correcto. Retocar las ganancias es cambiar dos números, correr el script y recompilar. Cambiar las ganancias por UART en caliente queda como mejora si sobra tiempo.
-- Un modelo de referencia del controlador discreto, con la misma aritmética del MicroBlaze, corriendo en Python o en C con gcc contra un modelo de la planta. Con vectores de prueba, D comprueba que la ISR da la misma salida que el modelo. Si después falla en hardware, ya se descartó el código del PR como sospechoso.
+- Un modelo de referencia del controlador discreto, con la misma aritmética del MicroBlaze, corriendo en C con gcc contra un modelo de la planta. Los márgenes y las simulaciones del lazo con las que se sintoniza van en Octave, en `potencia/verificar_pr.m` y `potencia/aliasing_pr.m`. Con vectores de prueba, D comprueba que la ISR da la misma salida que el modelo. Si después falla en hardware, ya se descartó el código del PR como sospechoso.
 - Las primeras pruebas energizadas las hacen D junto con A y C, en el mismo lugar y en orden. Primero lazo abierto con un duty sinusoidal fijo, para ver la planta sola, luego solo la parte proporcional, y recién entonces se enciende el resonante.
 
 ## Trabajo de todos

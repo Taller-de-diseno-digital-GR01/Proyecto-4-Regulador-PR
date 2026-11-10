@@ -60,10 +60,10 @@ Si más adelante se agrega compensación del retardo de cómputo o un segundo re
 
 ### h.3) Coeficientes de partida
 
-Con `Vdc = 18 V`, `fs = 20 kHz`, `Kp = 6,59 V/A` y `Kr = 1000`, ya divididos entre `Vdc`.
+Con `Vdc = 18 V`, `fs = 20 kHz`, `Kp = 16,06 V/A` y `Kr = 3000`, ya divididos entre `Vdc`, para la carga de 10 Ω y 2 mH.
 
-- `PR_KP = 0,3661`
-- `PR_B0 = 1,3888e-3`, `PR_B1 = 0`, `PR_B2 = -1,3888e-3`
+- `PR_KP = 0,8922`
+- `PR_B0 = 4,1665e-3`, `PR_B1 = 0`, `PR_B2 = -4,1665e-3`
 - `PR_A1 = -1,99975`, `PR_A2 = 1`
 
 Son provisionales hasta medir `L` y `R` reales y confirmar `Vdc` y la frecuencia de muestreo. Si cambian, se regeneran con el script y este módulo no se toca.
