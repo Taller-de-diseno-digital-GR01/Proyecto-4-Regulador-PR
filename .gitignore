@@ -32,3 +32,11 @@ sw/build/
 vivado/
 vitis/
 *.str
+
+# Salidas de simulación de LTspice, se regeneran desde el .asc
+*.raw
+*.net
+
+# Intermedios de LaTeX
+*.aux
+*.synctex.gz
