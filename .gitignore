@@ -25,8 +25,9 @@ sw/.venv/
 # Intermedios del ensamblado (sw/ensamblar.sh). El .hex de la ROM si se versiona.
 sw/build/
 
-# El Block Design exportado si se versiona, es lo que regenera el proyecto
+# El Block Design exportado y el script que crea el proyecto sí se versionan
 !src/bd/*.tcl
+!src/crear_proyecto.tcl
 
 # Proyecto de Vivado y workspace de Vitis, se regeneran desde src/bd y sw
 vivado/
