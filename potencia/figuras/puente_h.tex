@@ -1,0 +1,45 @@
+% Esquemático de la etapa de potencia, puente H con la carga RL y los capacitores del bus
+% Se compila solo (standalone) y el PDF se puede incluir en el informe con \includegraphics
+\documentclass[border=6pt]{standalone}
+\usepackage[american]{circuitikz}
+\usepackage{amsmath}
+
+\begin{document}
+\begin{circuitikz}
+  % Fuente, fusible y electrolítico del bus
+  \draw (0,0) to[battery1, l={$V_{dc}$}, invert] (0,6)
+    to[fuse, l=fusible] (3,6);
+  \draw (3,6) to[eC, l={$470\,\mu\text{F}$}] (3,0);
+
+  % Pierna A, la alta arriba y la baja abajo, con su película al lado
+  \draw (5,6) to[C, l={$100\,\text{nF}$}] (5,0);
+  \draw (7.5,6) node[nmos, anchor=D, bodydiode] (TAp) {};
+  \draw (7.5,0) node[nmos, anchor=S, bodydiode] (TAn) {};
+  \node[left=4pt] at (TAp.G) {$T_{A+}$};
+  \node[left=4pt] at (TAn.G) {$T_{A-}$};
+  \draw (TAp.S) -- (TAn.D);
+
+  % Pierna B, espejada
+  \draw (14,6) to[C, l_={$100\,\text{nF}$}] (14,0);
+  \draw (11.5,6) node[nmos, anchor=D, bodydiode, xscale=-1] (TBp) {};
+  \draw (11.5,0) node[nmos, anchor=S, bodydiode, xscale=-1] (TBn) {};
+  \node[right=4pt] at (TBp.G) {$T_{B+}$};
+  \node[right=4pt] at (TBn.G) {$T_{B-}$};
+  \draw (TBp.S) -- (TBn.D);
+
+  % Carga RL entre los dos puntos medios, i_o positiva de A hacia B
+  \draw (7.5,3) node[circ] (A) {} node[left] {$A$};
+  \draw (11.5,3) node[circ] (B) {} node[right] {$B$};
+  \draw (A) to[short, i=$i_o$] (8.3,3) to[R, l=$R$] (9.9,3) to[L, l=$L$] (B);
+  \draw (7.9,2.2) to[open, v^>=$v_o$] (11.1,2.2);
+
+  % Rieles del bus
+  \draw (3,6) -- (14,6);
+  \draw (0,0) -- (14,0);
+  \foreach \x in {3,5,7.5,11.5} {
+    \node[circ] at (\x,6) {};
+    \node[circ] at (\x,0) {};
+  }
+  \draw (1.5,0) node[ground] {} node[below=12pt] {$N$};
+\end{circuitikz}
+\end{document}

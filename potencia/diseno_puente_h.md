@@ -1,6 +1,6 @@
 # Diseño del puente H, decisiones y justificación
 
-Este documento reúne las decisiones de diseño del puente H de la etapa de potencia y la razón de cada una. Cubre el aislamiento entre la Basys 3 y el puente, el MOSFET, el driver y el bootstrap de las compuertas, el tiempo muerto y las protecciones.
+Este documento reúne las decisiones de diseño del puente H de la etapa de potencia y la razón de cada una. Cubre el aislamiento entre la Basys 3 y el puente, el MOSFET, el circuito del inversor con sus estados de conmutación y los caminos de la corriente, el driver y el bootstrap de las compuertas, el tiempo muerto y las protecciones.
 
 ## Qué cruza el aislamiento
 
@@ -50,6 +50,49 @@ apagado:    t ≈ Qgd · Rg / V_plateau        = 11 nC · 10 Ω / 5 V  ≈ 22 ns
 ```
 
 Una resistencia menor acorta el cruce pero sube `di/dt` y `dv/dt`, con más sobrepico sobre la inductancia parásita y más acople al resto del circuito. Una mayor alarga el cruce, las pérdidas y el retardo que se come el tiempo muerto.
+
+## Circuito del inversor y estados de conmutación
+
+![Puente H con la carga RL y los capacitores del bus](figuras/puente_h.png)
+
+El inversor es un puente completo de dos piernas, A y B [13, Sec. 8-3-2]. Cada pierna lleva un IRF520N arriba y otro abajo, cada uno con su diodo de cuerpo en antiparalelo, y la carga RL va entre los dos puntos medios. La tensión sobre la carga es `v_o = v_AN − v_BN`, con las tensiones de pierna medidas contra el riel negativo `N`, y la corriente `i_o` es positiva cuando sale de A hacia B. El bus lleva el fusible a la entrada, el electrolítico de 470 µF y una película de 100 nF junto a cada pierna (sección "Protecciones").
+
+Con una de sus compuertas encendida, el punto medio de la pierna queda pegado a un riel sin importar el sentido de la corriente. Si el MOSFET no la puede llevar en ese sentido, la lleva su diodo [13, p. 216]. Con la alta encendida la pierna vale `Vdc`, y con la baja vale 0. En el esquemático cada MOSFET conduce hacia abajo, de drenador a source, y su diodo hacia arriba.
+
+### Estados
+
+Con modulación unipolar cada pierna se controla por separado, A con `d` y B con `−d` (núcleo del PWM), así que hay cuatro combinaciones y tres niveles de tensión [13, ec. 8-29 a 8-31]. `i_d` es la corriente que entrega el bus.
+
+- Estado 1, `TA+` y `TB−`. `v_o = +Vdc` e `i_d = i_o`. Con `i_o > 0` conducen `TA+` y `TB−` y el bus entrega potencia. Con `i_o < 0` conducen `DA+` y `DB−`, e `i_d` negativa es energía que la carga devuelve al bus.
+- Estado 2, `TA−` y `TB+`. `v_o = −Vdc` e `i_d = −i_o`. Con `i_o < 0` conducen `TB+` y `TA−`, y con `i_o > 0` conducen `DB+` y `DA−`.
+- Estado 3, `TA+` y `TB+`. `v_o = 0` e `i_d = 0`. Con `i_o > 0` conducen `TA+` y `DB+`, y con `i_o < 0` conducen `DA+` y `TB+`.
+- Estado 4, `TA−` y `TB−`. `v_o = 0` e `i_d = 0`. Con `i_o > 0` conducen `DA−` y `TB−`, y con `i_o < 0` conducen `TA−` y `DB−`.
+
+En los estados de 0 la corriente gira dentro del puente por un transistor y un diodo, sin pasar por el bus [13, p. 217], y la bobina descarga su energía sobre la R.
+
+### Secuencia en un período
+
+La alta de A conduce mientras la portadora está por debajo de `ref_a` y la de B mientras está por debajo de `ref_b`. Con la portadora normalizada a `c`, de −1 en el valle a +1 en el pico, las condiciones son `c < d` para A y `c < −d` para B (modelo del inversor en PLECS, en el modelo de la planta). Con `d > 0` un período recorre los estados 3, 1, 4, 1 y 3.
+
+- En el valle `c` vale −1 y conducen las dos altas, estado 3.
+- Cuando `c` pasa `−d`, B cambia a la baja y la carga ve `+Vdc`, estado 1.
+- Cuando `c` pasa `d`, A cambia a la baja y la carga vuelve a 0, estado 4, hasta que la portadora baja otra vez de `d`.
+- En la bajada se repiten el estado 1 y el 3.
+
+Con `d < 0` la secuencia es 3, 2, 4, 2 y 3, con pulsos de `−Vdc`.
+
+La carga ve dos pulsos por período, así que la tensión diferencial pulsa a `2·f_sw` aunque cada transistor conmute a `f_sw` [13, p. 217]. El valle cae en el centro del estado 3, con `i_d = 0` y la corriente en el valor medio de su rizado, que es simétrico respecto del valle. Ahí el núcleo da el disparo de la conversión del XADC. El pico cae en el estado 4, y con `d > 0` es el único tramo en que conduce `TA−`, así que ahí se recarga el bootstrap de `TA+` (sección "Recarga en cada período"). Cuanto más se acerca `|d|` a 1, más corto queda ese tramo, y de ahí sale el límite `PR_U_MAX`.
+
+### Tiempo muerto en los caminos de corriente
+
+Durante el tiempo muerto las dos compuertas de una pierna están apagadas, y conduce uno de sus diodos según el signo de la corriente [13, Sec. 8-5]. Con `i_o > 0` la pierna A queda en 0 por `DA−`, como si tuviera la baja encendida, y la pierna B queda en `Vdc` por `DB+`, como si tuviera la alta encendida.
+
+De las cuatro transiciones del período con `d > 0`, las dos que inician el estado 1 (3 a 1 en B y 4 a 1 en A) empiezan el pulso `TM` tarde, porque el diodo sostiene el valor viejo de la pierna. Las dos que lo terminan (1 a 4 en A y 1 a 3 en B) no cambian, porque el diodo ya deja la pierna en el valor nuevo. El período pierde dos huecos de `TM` y la tensión promedio baja `2·Vdc·TM·f_sw`, la pérdida que cuenta el modelo de la planta. Con `i_o < 0` los papeles se invierten.
+
+### Estados fuera de la modulación
+
+- Precarga. Al arrancar el puente conducen las dos bajas, que es el estado 4 sostenido. La corriente está en cero, `v_o = 0` y no circula nada por la carga, y las bajas cargan los capacitores de bootstrap (sección "Precarga en el arranque").
+- Puente apagado, con `enable` en cero o después de una falla, con las cuatro compuertas apagadas. Si la bobina lleva corriente con `i_o > 0`, conducen `DA−` y `DB+`, la carga ve `−Vdc` e `i_d = −i_o`. La bobina devuelve su energía al bus, que absorbe el electrolítico (sección "Capacitores del bus"), y la corriente llega a cero en `τ·ln(1 + R·I₀/Vdc)`, unos 0,13 ms desde el techo de 2,21 A con 24 V. En cero los diodos bloquean y la corriente queda ahí.
 
 ## Compuertas altas con bootstrap
 
@@ -271,3 +314,5 @@ El pin SD de los dos IR2110 va a `VSS`. La desconexión ante falla la hace el so
 [11] AMD, "Artix 7 FPGAs Data Sheet: DC and AC Switching Characteristics", DS181 v1.27.1, 3 jul. 2024.
 
 [12] Littelfuse, "Fuseology Selection Guide", p. 4. <https://electronicscatalogs.littelfuse.com/Fuseology-Selection-Guide/4/>
+
+[13] N. Mohan, T. M. Undeland y W. P. Robbins, *Power Electronics: Converters, Applications, and Design*, 3.ª ed. Hoboken, NJ, EE. UU.: Wiley, 2003.

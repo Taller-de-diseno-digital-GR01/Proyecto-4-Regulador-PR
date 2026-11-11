@@ -32,3 +32,17 @@ sw/build/
 vivado/
 vitis/
 *.str
+
+# Auxiliares de LaTeX, el .tex y el .pdf sí se versionan (el .log ya está arriba)
+*.aux
+*.fdb_latexmk
+*.fls
+*.synctex.gz
+*.synctex(busy)
+*.out
+*.toc
+*.bbl
+*.blg
+*.nav
+*.snm
+*.xdv
