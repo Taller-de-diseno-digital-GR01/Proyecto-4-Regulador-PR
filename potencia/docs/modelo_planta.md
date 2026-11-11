@@ -101,17 +101,58 @@ que equivale a `Δd = 2·TM·f_sw` = 0,04. Con la corriente negativa conducen lo
 
 En cualquier estado del puente conducen dos MOSFET en serie con la carga, uno por pierna, así que la `RDS(on)` suma hasta 0,4 Ω a `R`. Es una cota, porque con 15 V de compuerta la resistencia es menor que la de la hoja a 10 V.
 
-El tiempo muerto que se cuenta es el programado. El hueco real en las patas de los MOSFET cambia con la asimetría de la cadena de compuertas, y la pérdida escala en proporción. El modelo de onda cuadrada también supone que la corriente no cambia de signo dentro de un período de conmutación, lo que deja de valer cerca de los cruces por cero, donde la corriente es menor que medio rizado. Por eso con 0,2 A la pérdida real es algo menor que la calculada.
+El tiempo muerto que se cuenta es el programado. El hueco real en las patas de los MOSFET cambia con la asimetría de la cadena de compuertas, y la pérdida escala en proporción. El modelo de onda cuadrada también supone que el error cambia de signo justo cuando la corriente cruza por cero. Cerca del cruce eso no pasa. Mientras `|Vdc·d|` es menor que 0,72 V, el tiempo muerto se lleva toda la tensión aplicada y la corriente queda en cero hasta que la referencia supera ese valor. En ese tramo el error copia a la tensión de referencia en lugar de valer ±0,72 V, así que la pérdida es algo menor que la de la onda cuadrada y su fundamental queda casi en fase con la tensión. Con 0,2 A el tramo cubre unos ±21° alrededor de cada cruce.
 
-| Referencia | `m` aplicado | Con tiempo muerto | Con tiempo muerto y `RDS(on)` |
-|---|---|---|---|
-| 0,2 A | 0,111 | 0,109 A (−46 %) | 0,104 A (−48 %) |
-| 0,5 A | 0,278 | 0,409 A (−18 %) | 0,393 A (−21 %) |
-| 1,0 A | 0,557 | 0,909 A (−9 %) | 0,874 A (−13 %) |
+| Referencia | `m` aplicado | Con tiempo muerto | Con tiempo muerto y `RDS(on)` | Modelo conmutado | Desfase en el modelo conmutado |
+|---|---|---|---|---|---|
+| 0,2 A | 0,111 | 0,109 A (−46 %) | 0,104 A (−48 %) | 0,106 A (−47 %) | 3,35° |
+| 0,5 A | 0,278 | 0,409 A (−18 %) | 0,393 A (−21 %) | 0,393 A (−21 %) | 3,38° |
+| 1,0 A | 0,557 | 0,909 A (−9 %) | 0,874 A (−13 %) | 0,874 A (−13 %) | 3,39° |
 
-Los valores salen de resolver `I = (Vdc·m − 0,92·e^(jφ_I)) / Z'` en 50 Hz, con `φ_I` el ángulo de la propia corriente y `Z'` la impedancia con o sin los 0,4 Ω. El desfase baja de 3,6° a unos 2° a 3,3°, porque la pérdida está en fase con la corriente. Esta tabla es la predicción del ensayo en lazo abierto con un `duty_ref` senoidal fijo.
+Las dos columnas del medio salen de resolver `I = (Vdc·m − 0,92·e^(jφ_I)) / Z'` en 50 Hz, con `φ_I` el ángulo de la propia corriente y `Z'` la impedancia con o sin los 0,4 Ω. Las dos últimas salen del modelo conmutado del inversor en PLECS, con tiempo muerto y `RDS(on)`, y son la fundamental de la corriente sobre cuatro períodos de 50 Hz. El desfase se mide respecto de la fundamental de `d`. El modelo de onda cuadrada acierta la amplitud, con 2 % de diferencia en 0,2 A, pero no el desfase. Según la onda cuadrada el desfase bajaría a 1,9° con 0,2 A, y en el modelo conmutado queda cerca de 3,4° en los tres casos, el valor que da la carga con los 0,4 Ω de la `RDS(on)` (`atan(ωL/(R + 0,4))` = 3,46°). Esta tabla es la predicción del ensayo en lazo abierto con un `duty_ref` senoidal fijo.
 
 En lazo cerrado el PR trata los dos efectos como una perturbación y corrige la fundamental. Las armónicas impares de la onda cuadrada (tercera, quinta) quedan sin corregir, porque el resonante solo actúa en 50 Hz, y se ven como una deformación de la corriente en los cruces por cero.
+
+## Modelo del inversor en PLECS
+
+El modelo conmutado reproduce el puente, la modulación unipolar del núcleo del PWM, el tiempo muerto y la carga RL. Sirve para contrastar el análisis de este documento y como planta sobre la que se valida el PR.
+
+### Parámetros
+
+Todos los valores salen de un único archivo de parámetros en Octave, que los comandos de inicialización del modelo ejecutan al arrancar cada simulación. Los componentes llevan nombres de variables y ningún número propio. Del archivo salen `R`, `L`, `Vdc` y `RDSon`, y además el reloj de la FPGA (100 MHz), `MAX` y `DEAD_TIME_CICLOS`, de los que se calculan `f_sw = f_clk/(2·MAX)`, `Ts = 1/f_sw` y `TM = DEAD_TIME_CICLOS/f_clk`. Así la frecuencia y el tiempo muerto salen de los mismos números que fija el núcleo del PWM.
+
+El ensayo se define con `fref` = 50 Hz y la corriente pico pedida `Iref`. La senoidal aplica el índice `m = |R + j·2π·fref·L|·Iref/Vdc` de la sección del régimen senoidal, sin contar el tiempo muerto ni la `RDS(on)`, que es lo que haría el ensayo en lazo abierto.
+
+### Etapa de potencia
+
+`Vdc` es una fuente de continua ideal. Cada transistor es un MOSFET con diodo en antiparalelo, porque durante el tiempo muerto la corriente de la bobina pasa por el diodo de cuerpo. El componente de PLECS es un interruptor ideal con resistencia de conducción `RDSon` en los dos sentidos y sin caída fija en el diodo, igual que el análisis, que tampoco cuenta la caída de los diodos. La carga va entre los puntos medios A y B, con un amperímetro, `L` y `R` en serie, y un voltímetro mide `v_o = v_A − v_B`.
+
+### Modulador
+
+La referencia es una senoidal de amplitud `m` y frecuencia `fref`, pasada por un retenedor de orden cero de período `Ts` que muestrea en los valles de la portadora. Es el mismo comportamiento del núcleo, que carga `duty_ref` en el valle y lo sostiene un período.
+
+La portadora va de −1 a 1 en lugar de 0 a `MAX`. Con `c = 2·portadora/MAX − 1` la condición del núcleo, portadora por debajo de `ref_a = MAX·(1 + d)/2`, queda como `c < d`, así que la alta de A conduce con `c < d` y la de B con `c < −d`. Las bajas conducen con la condición opuesta.
+
+El tiempo muerto se arma con dos portadoras iguales corridas en `±2·f_sw·TM` (±0,04). Las altas se comparan con la portadora corrida hacia arriba y las bajas con la corrida hacia abajo. La portadora recorre 2 unidades en medio período, así que su pendiente es `4·f_sw`, y un corrimiento de 0,04 de cada lado deja un hueco de `TM` entre el apagado de una compuerta y el encendido de la otra en cada flanco. El hueco queda centrado en el cruce ideal. El núcleo apaga en el cruce y enciende `TM` después, así que en el modelo cada flanco queda corrido `TM/2` (0,5 µs) respecto del hardware. La duración del hueco y la pérdida promedio por período son las mismas, y el corrimiento equivale a 0,009° en 50 Hz.
+
+### Simulación y análisis
+
+La simulación dura 0,1 s, cinco períodos de 50 Hz, con el resolvedor automático de PLECS y un paso máximo de 1 µs. Con `τ` = 0,2 ms el transitorio del arranque se extingue en el primer período.
+
+La amplitud y la fase de la fundamental se calculan proyectando la señal sobre un seno y un coseno de 50 Hz, sobre cuatro períodos completos (de 0,02 a 0,1 s) muestreados cada 1 µs. Con un número entero de períodos la proyección no mezcla la fundamental con las armónicas. El desfase de la corriente se mide respecto de la fundamental de `d`, que es la tensión aplicada sobre `Vdc`.
+
+### Validación contra el análisis
+
+Con `Iref` = 0,2 A se separan los dos efectos anulando `TM` y `RDSon`.
+
+| Caso | Amplitud de `i` | Desfase | Análisis |
+|---|---|---|---|
+| Sin tiempo muerto ni `RDS(on)` | 0,2000 A | 3,60° | 0,2 A y 3,60° |
+| Solo `RDS(on)` | 0,1923 A | 3,46° | 0,1923 A y 3,46° |
+| Solo tiempo muerto | 0,1104 A | 3,48° | 0,1086 A y 1,95° |
+| Los dos | 0,1062 A | 3,35° | 0,1044 A y 1,88° |
+
+Sin tiempo muerto el modelo da exactamente la corriente de la impedancia de la carga, así que el puente y el modulador no agregan error y el promedio `v̄_o = Vdc·d` vale. La `RDS(on)` también coincide. Con tiempo muerto la amplitud queda a 2 % del análisis y el desfase no, por el tramo de corriente nula alrededor de los cruces que se describe en la sección anterior. La fundamental de `d` da 0,1113, el `m` aplicado. La comparación con 0,5 y 1,0 A está en la tabla de la sección del tiempo muerto.
 
 ## Referencias
 
