@@ -67,9 +67,33 @@ function verificar_pr()
   h = kp * exp(-1i * w0 * td) / (z + kp * exp(-1i * w0 * td));
   fprintf('\nSolo P, error %.1f %%, desfase %.1f grados\n', 100 * (1 - abs(h)), angle(h) * 180 / pi);
 
+  % tiempo muerto de 1 us y RDS(on) de 0.2 ohm por MOSFET, como en la seccion del tiempo muerto de modelo_planta.md
+  dv = 2 * vdc * 1e-6 * fs;
+  dvf = 4 / pi * dv;
+  zr = z + 0.4;
+  fprintf('\nTiempo muerto, perdida %.2f V, fundamental %.2f V\n', dv, dvf);
+  for iref = [0.2 0.5 1.0]
+    m = abs(z) * iref / vdc;
+    [i_ab, fi_ab] = fundamental_tm(vdc * m, 0, zr, dvf);
+    g = kp * exp(-1i * w0 * td);
+    [i_p, fi_p] = fundamental_tm(g * iref, g, zr, dvf);
+    fprintf('%.1f A, lazo abierto %.3f A (%.0f %%), %.1f grados, solo P %.3f A, error %.1f %%, %.1f grados\n', ...
+      iref, i_ab, 100 * (i_ab / iref - 1), fi_ab, i_p, 100 * (1 - i_p / iref), fi_p);
+  end
+
   fprintf('Pico del escalon de 0.2 a 1.0 A en 20 instantes y en las esquinas, %.3f A\n', pico_escalon(kp, kr, L, R, fs));
   fprintf('Indice maximo del escalon con %d V, %.2f, y con R en %g ohm, %.2f\n', vdc, indice_maximo(kp, kr, L, R, fs, vdc), 1.25 * R, indice_maximo(kp, kr, L, 1.25 * R, fs, vdc));
   fprintf('Con 12 V, %.2f en regimen y %.2f en el escalon\n', abs(z) / 12, indice_maximo(kp, kr, L, R, fs, 12));
+end
+
+function [amp, fase] = fundamental_tm(fuente, g, z, dvf)
+  % I*(z + g) = fuente - dvf*exp(j*fase de I), la perdida del tiempo muerto va en fase con la corriente, punto fijo en la fase
+  i = fuente / (z + g);
+  for k = 1:200
+    i = (fuente - dvf * exp(1i * angle(i))) / (z + g);
+  end
+  amp = abs(i);
+  fase = angle(i) * 180 / pi;
 end
 
 function kp = kp_cruce(fc, L, R)
