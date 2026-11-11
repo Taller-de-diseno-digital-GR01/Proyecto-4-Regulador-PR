@@ -1,6 +1,6 @@
 # Modelo de la planta, decisiones y justificación
 
-Este documento reúne el modelo de la planta del lado de potencia. Cubre el modelo dinámico de la carga RL, la función de transferencia desde `duty_ref` hasta la corriente y la relación entre `duty_ref` y la tensión promedio sobre la carga con modulación unipolar.
+Este documento reúne el modelo de la planta del lado de potencia. Cubre el modelo dinámico de la carga RL, la función de transferencia desde `duty_ref` hasta la corriente, la relación entre `duty_ref` y la tensión promedio sobre la carga con modulación unipolar, el rizado de conmutación en los puntos de operación y la justificación de la frecuencia de conmutación.
 
 ## Valores
 
@@ -97,7 +97,7 @@ Como la carga ve la resta, las dos se suman, y la tensión promedio pierde
 Δv = 2·Vdc·TM·f_sw = 0,72 V
 ```
 
-que equivale a `Δd = 2·TM·f_sw` = 0,04. Con la corriente negativa conducen los otros dos diodos y el efecto se invierte. A lo largo de un ciclo de 50 Hz el error es una onda cuadrada de ±0,72 V en fase con la corriente, con fundamental `(4/π)·0,72` = 0,92 V. La caída de los diodos durante el hueco suma una pérdida más, la caída por 0,04, que queda por debajo de una décima de los 0,72 V y no se cuenta.
+que equivale a `Δd = 2·TM·f_sw` = 0,04 [2, Sec. 8-5, ec. 8-77]. Con la corriente negativa conducen los otros dos diodos y el efecto se invierte. A lo largo de un ciclo de 50 Hz el error es una onda cuadrada de ±0,72 V en fase con la corriente, con fundamental `(4/π)·0,72` = 0,92 V. La caída de los diodos durante el hueco suma una pérdida más, la caída por 0,04, que queda por debajo de una décima de los 0,72 V y no se cuenta.
 
 En cualquier estado del puente conducen dos MOSFET en serie con la carga, uno por pierna, así que la `RDS(on)` suma hasta 0,4 Ω a `R`. Es una cota, porque con 15 V de compuerta la resistencia es menor que la de la hoja a 10 V.
 
@@ -112,6 +112,60 @@ El tiempo muerto que se cuenta es el programado. El hueco real en las patas de l
 Las dos columnas del medio salen de resolver `I = (Vdc·m − 0,92·e^(jφ_I)) / Z'` en 50 Hz, con `φ_I` el ángulo de la propia corriente y `Z'` la impedancia con o sin los 0,4 Ω. Las dos últimas salen del modelo conmutado del inversor en PLECS, con tiempo muerto y `RDS(on)`, y son la fundamental de la corriente sobre cuatro períodos de 50 Hz. El desfase se mide respecto de la fundamental de `d`. El modelo de onda cuadrada acierta la amplitud, con 2 % de diferencia en 0,2 A, pero no el desfase. Según la onda cuadrada el desfase bajaría a 1,9° con 0,2 A, y en el modelo conmutado queda cerca de 3,4° en los tres casos, el valor que da la carga con los 0,4 Ω de la `RDS(on)` (`atan(ωL/(R + 0,4))` = 3,46°). Esta tabla es la predicción del ensayo en lazo abierto con un `duty_ref` senoidal fijo.
 
 En lazo cerrado el PR trata los dos efectos como una perturbación y corrige la fundamental. Las armónicas impares de la onda cuadrada (tercera, quinta) quedan sin corregir, porque el resonante solo actúa en 50 Hz, y se ven como una deformación de la corriente en los cruces por cero.
+
+## Rizado de conmutación y frecuencia de conmutación
+
+El rizado es la diferencia entre la corriente instantánea y su componente de baja frecuencia [2, Sec. 8-3-2-6]. Como la carga es lineal, toda la tensión de conmutación que no pertenece a la fundamental cae sobre la bobina, y el rizado de corriente sale de integrar esa tensión sobre `L` [2, ec. 8-41 y 8-42].
+
+### Rizado en un pulso
+
+En el semiciclo positivo la carga ve `+Vdc` durante dos pulsos por período de conmutación y 0 el resto del tiempo (sección de la tensión promedio). Un pulso dura mucho menos que τ, así que durante el pulso la corriente casi no se aparta de su promedio `i` y la resistencia toma `R·i`. En un período completo la corriente vuelve a casi el mismo valor, la tensión media sobre la bobina es casi nula y entonces `R·i` ≈ `Vdc·d`. A la bobina le queda
+
+```
+v_L = Vdc − R·i = Vdc·(1 − d)
+```
+
+El tiempo en `+Vdc` suma `d·Ts` por período y se reparte en dos pulsos, cada uno de `Δt = d/(2·f_sw)`. Con `v_L = L·Δi/Δt` el rizado pico a pico es
+
+```
+Δi = Vdc·d·(1 − d) / (2·L·f_sw)
+```
+
+El producto `d·(1 − d)` se anula en los dos extremos. Con `d` chico el pulso es corto, y con `d` cerca de 1 a la bobina le queda poca tensión. El máximo está en `d = 0,5` y vale
+
+```
+Δi_máx = Vdc / (8·L·f_sw)
+```
+
+En el semiciclo negativo la carga ve `−Vdc` y vale lo mismo con `|d|`.
+
+### Rizado en los puntos de operación
+
+A lo largo del ciclo de 50 Hz, `|d|` barre desde 0 hasta su valor en el pico de la senoidal. Si ese pico queda bajo 0,5 el rizado máximo del ciclo está en el pico, y si lo supera el máximo es `Δi_máx`. En lazo cerrado el PR lleva `d` hasta donde la corriente alcanza la referencia, compensando el tiempo muerto y la caída en la `RDS(on)`, así que a la carga le llega `|Z'|·I/Vdc`, con `Z'` la impedancia con los 0,4 Ω. Con 18 V el rizado máximo de cada punto queda así.
+
+- 0,2 A, `d` de 0,116 en el pico, 0,023 A
+- 0,5 A, `d` de 0,289 en el pico, 0,046 A
+- 1,0 A, `d` pasa por 0,5, 0,056 A
+
+Los tres quedan bajo el límite de 0,20 A pico a pico, el de 1,0 A con 3,6 veces de margen. En un transitorio el PR puede llevar `d` a 0,5 en cualquier punto, así que el peor caso es `Δi_máx`, 0,056 A con 18 V y 0,075 A con 24 V.
+
+En lazo abierto el PR no compensa el tiempo muerto, el `d` que llega a la carga es `m − 0,04` y el rizado de 0,2 y 0,5 A es menor (validación en la sección del modelo de PLECS).
+
+### Frecuencia de conmutación
+
+Cada transistor conmuta a `f_sw` = 20 kHz, y la tensión diferencial sobre la carga lleva dos pulsos por período, así que su componente predominante está en `2·f_sw` = 40 kHz [2, Sec. 7-7-2]. Esa duplicación es la que entra en el `Δt` del rizado. La frecuencia queda entre un piso que pone el rizado y un techo que ponen el tiempo muerto y la recarga del bootstrap, y las pérdidas, la resolución del PWM y el lazo de control terminan de ubicarla.
+
+El piso lo pone el rizado. De `Δi_máx` ≤ 0,20 A sale `f_sw ≥ Vdc/(8·L·0,20 A)`, 5,6 kHz con 18 V y 7,5 kHz con 24 V. A 20 kHz y con 24 V el rizado se mantiene bajo 0,20 A con una `L` de hasta 0,75 mH, casi tres veces menos que la nominal.
+
+El techo sale de los drivers. El tiempo muerto de 1 µs, que cubre el retardo de la cadena de compuertas, y la conducción mínima de 100 ciclos de la baja para recargar el bootstrap son tiempos fijos (diseño del puente H). Su fracción del período crece con `f_sw`. La pérdida por tiempo muerto, `Δd = 2·TM·f_sw` [2, ec. 8-77], es 0,04 a 20 kHz y 0,08 a 40 kHz. El índice máximo del PR, `1 − (DEAD_TIME_CICLOS + 100)/MAX`, baja de 0,92 a 0,84. El escalón de 0,2 a 1,0 A le pide al PR un índice de 0,83 con 18 V y el cambio de `R` de +25 % uno de 0,85 (diseño del PR), sin contar el tiempo muerto. A 20 kHz, con los 0,04 del tiempo muerto, quedan en 0,87 y 0,89, bajo 0,92. A 40 kHz llegan a 0,91 y 0,93 contra un techo de 0,84, y el PR satura en los dos ensayos.
+
+En las pérdidas, la conducción no depende de `f_sw`, mientras que la conmutación y la recuperación inversa crecen en proporción, y por eso subir la frecuencia para bajar el rizado tiene un costo en pérdidas [2, Sec. 8-3-2-6]. Por transistor, con 24 V y 1 A pico, suman unos 0,31 W a 20 kHz y 0,52 W a 40 kHz, con la recuperación como término mayor (diseño del puente H, sección "Pérdidas"). Ninguna de las dos limita la temperatura sin disipador, pero a 40 kHz la parte que depende de la frecuencia se duplica sin que el rizado lo pida.
+
+En la resolución del PWM, cuando `ref_a` sube una cuenta, `ref_b` baja una, así que el paso mínimo es `Δd = 2/MAX`, 0,0008 con `MAX` = 2500. Con 18 V son 14,4 mV de tensión promedio y unos 1,4 mA de corriente en 50 Hz, el 0,7 % de la referencia más chica. El XADC convierte con 12 bits [3, Tabla 65, p. 57] sobre 1 V, unos 0,24 mV por código, que con los 0,24 V/A del acondicionamiento del sensor son unos 1 mA. El paso del actuador queda del mismo orden que el de la medición. Al duplicar `f_sw`, `MAX` baja a la mitad y el paso se duplica.
+
+En el lazo de control, el PR muestrea una vez por período de conmutación, con un retardo de `1,5·Ts` (diseño del PR). En el cruce de 1 kHz el retardo resta 27° de fase a 20 kHz y 54° a 10 kHz. El margen de fase de 99,8° lo absorbe, y el que se cae es el margen de ganancia. Sumando al lazo de 20 kHz los 75 µs de retardo que lo separan del de 10 kHz, baja de 9,6 dB a 4,7 dB, por debajo del mínimo de 6 dB del diseño del PR, así que a 10 kHz habría que resintonizarlo con un cruce más bajo. El histórico de 2048 muestras cubre además 5,1 períodos de 50 Hz a 20 kHz, la ventana de cinco períodos en que se mide el error de amplitud, y a 40 kHz solo 2,6.
+
+10 kHz tiene ventajas propias. El tiempo muerto pierde 0,02 en `d` (0,36 V), el índice máximo del PR sube a 0,96, la parte de las pérdidas que depende de la frecuencia baja a la mitad (unos 0,21 W por transistor) y el paso del PWM se reduce a 0,0004. En contra, el rizado con 24 V llega a 0,15 A, que solo cumple con una `L` de 1,5 mH o más, y el lazo pierde margen de ganancia. 20 kHz conserva margen de rizado con la `L` todavía sin medir y los márgenes del PR tal como están sintonizados, y queda por debajo del techo de 40 kHz.
 
 ## Modelo del inversor en PLECS
 
@@ -141,6 +195,8 @@ La simulación dura 0,1 s, cinco períodos de 50 Hz, con el resolvedor automáti
 
 La amplitud y la fase de la fundamental se calculan proyectando la señal sobre un seno y un coseno de 50 Hz, sobre cuatro períodos completos (de 0,02 a 0,1 s) muestreados cada 1 µs. Con un número entero de períodos la proyección no mezcla la fundamental con las armónicas. El desfase de la corriente se mide respecto de la fundamental de `d`, que es la tensión aplicada sobre `Vdc`.
 
+El rizado se mide en un período de 50 Hz ya en régimen, de 0,04 a 0,06 s. A la corriente se le resta su componente lenta, el promedio de cada período de conmutación interpolado entre períodos, y en cada período se toma el máximo menos el mínimo. Para el rizado la simulación entrega los pasos del resolvedor y no una grilla fija. Entre conmutaciones la corriente es una exponencial sin extremos internos, y los pasos caen en las conmutaciones, así que los extremos salen exactos.
+
 ### Validación contra el análisis
 
 Con `Iref` = 0,2 A se separan los dos efectos anulando `TM` y `RDSon`.
@@ -154,6 +210,18 @@ Con `Iref` = 0,2 A se separan los dos efectos anulando `TM` y `RDSon`.
 
 Sin tiempo muerto el modelo da exactamente la corriente de la impedancia de la carga, así que el puente y el modulador no agregan error y el promedio `v̄_o = Vdc·d` vale. La `RDS(on)` también coincide. Con tiempo muerto la amplitud queda a 2 % del análisis y el desfase no, por el tramo de corriente nula alrededor de los cruces que se describe en la sección anterior. La fundamental de `d` da 0,1113, el `m` aplicado. La comparación con 0,5 y 1,0 A está en la tabla de la sección del tiempo muerto.
 
+El rizado en lazo abierto, con tiempo muerto y `RDS(on)`, se compara con `Δi` evaluado en el `d` que llega a la carga, `m − 0,04`.
+
+- 0,2 A, 0,0149 A en el modelo y 0,0149 A en el análisis (0,0223 A con `m`)
+- 0,5 A, 0,0408 A en el modelo y 0,0408 A en el análisis (0,0452 A con `m`)
+- 1,0 A, 0,0563 A en el modelo y 0,0563 A en el análisis, igual que con `m`
+
+En 0,2 y 0,5 A el máximo cae en el pico de la senoidal. En 1,0 A el `d` efectivo llega a 0,517, pasa por 0,5 y el máximo cae a unos 15° del pico, donde `d` vale 0,5. El tiempo muerto no cambia la forma del rizado, solo el `d` en que se evalúa.
+
 ## Referencias
 
 [1] International Rectifier, "IRF520N HEXFET Power MOSFET", hoja de datos PD-91339A, 13 may. 1998.
+
+[2] N. Mohan, T. M. Undeland y W. P. Robbins, *Power Electronics: Converters, Applications, and Design*, 3.ª ed. Hoboken, NJ, EE. UU.: Wiley, 2003.
+
+[3] AMD, "Artix 7 FPGAs Data Sheet: DC and AC Switching Characteristics", DS181, v1.27.1, 3 jul. 2024.
