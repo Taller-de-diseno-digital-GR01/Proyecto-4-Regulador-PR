@@ -1,13 +1,13 @@
 # Diseño del puente H, decisiones y justificación
 
-Este documento reúne las decisiones de diseño del puente H de la etapa de potencia (#16) y la razón de cada una. Cubre el aislamiento entre la Basys 3 y el puente (#21), el MOSFET, el driver y el bootstrap de las compuertas (#17), el tiempo muerto (#18) y las protecciones (#19).
+Este documento reúne las decisiones de diseño del puente H de la etapa de potencia y la razón de cada una. Cubre el aislamiento entre la Basys 3 y el puente, el MOSFET, el driver y el bootstrap de las compuertas, el tiempo muerto y las protecciones.
 
 ## Qué cruza el aislamiento
 
-La tierra del puente es propia del lado de potencia (`nivel01.md`). Toda señal entre la Basys 3 y el puente necesita su propio camino a través de la barrera.
+La tierra del puente es propia del lado de potencia (diseño de primer nivel del sistema). Toda señal entre la Basys 3 y el puente necesita su propio camino a través de la barrera.
 
 - Las cuatro compuertas, digitales de 3,3 V, de la Basys 3 hacia el puente. Son el tema de este documento.
-- La medición de corriente, analógica, del sensor hacia el JXADC. Si el sensor queda referido a la tierra de potencia y su salida entra directo al JXADC, las dos tierras se unen por ese cable y el aislamiento de las compuertas deja de servir. Su cruce se trata en el diseño del sensor (#30).
+- La medición de corriente, analógica, del sensor hacia el JXADC. Si el sensor queda referido a la tierra de potencia y su salida entra directo al JXADC, las dos tierras se unen por ese cable y el aislamiento de las compuertas deja de servir. Su cruce se trata en el diseño del sensor.
 
 ## Método de aislamiento
 
@@ -79,7 +79,7 @@ Con la compuerta alta encendida el diodo queda en inversa con Vdc encima, 24 V m
 
 ### Recarga en cada período
 
-Con la portadora de `nucleo_pwm.md`, la compuerta baja de la pierna A conduce
+Con la portadora del núcleo del PWM, la compuerta baja de la pierna A conduce
 
 `MAX · (1 − duty_ref) − DEAD_TIME_CICLOS` ciclos por período.
 
@@ -95,7 +95,7 @@ A 20 kHz la carga por período es 35 nC + 430 µA · 50 µs ≈ 57 nC, y `Q / C`
 
 El mínimo aceptado al final del encendido es 10 V, la tensión a la que el IRF520N tiene especificada la `RDS(on)` [8, p. 2] y el mínimo de `VB − VS` del IR2110 [4, p. 2]. Partiendo de unos 14,3 V, eso deja `D ≤ 14,3 − 10 − 0,12` = 4,2 V, que pide `1 − e^(−t/τ) ≥ 0,029` y `t ≥ 0,30 µs`. Con margen por la tolerancia de R, C y la caída del diodo, la compuerta baja tiene que conducir al menos 100 ciclos por período.
 
-En operación normal el límite no aparece, porque 1 A pico pide `duty_ref` cerca de 0,11 con los valores de `diseno_pr.md`. Sí aparece si el PR satura. Por eso `PR_U_MAX` de `pr_discreto.md` queda por debajo de
+En operación normal el límite no aparece, porque 1 A pico pide `duty_ref` cerca de 0,56 con la carga de 10 Ω y 2 mH y 18 V. Sí aparece si el PR satura. Por eso `PR_U_MAX` del regulador PR queda por debajo de
 
 `1 − (DEAD_TIME_CICLOS + 100) / MAX`,
 
@@ -103,7 +103,7 @@ que da 0,92 a 20 kHz con `DEAD_TIME_CICLOS = 100`.
 
 ### Precarga en el arranque
 
-Al pasar `running` a 1, lo primero que encienden las dos piernas son las compuertas altas (tabla de eventos de `nucleo_pwm.md`). Si el puente estuvo detenido, los capacitores están descargados y el IR2110 no las enciende, así que el primer período sale distorsionado. Lo mismo pasa al reanudar después de una falla.
+Al pasar `running` a 1, lo primero que encienden las dos piernas son las compuertas altas (tabla de eventos del núcleo del PWM). Si el puente estuvo detenido, los capacitores están descargados y el IR2110 no las enciende, así que el primer período sale distorsionado. Lo mismo pasa al reanudar después de una falla.
 
 Por eso el núcleo del PWM lleva un estado de precarga. Al pasar `running` a 1, cada pierna enciende su compuerta baja durante `PRECARGA_CICLOS`, un `parameter` como `DEAD_TIME_CICLOS`, y después sigue por `MUERTO` como hasta ahora. Las dos bajas encendidas dejan los dos extremos de la carga en la tierra de potencia, la carga ve 0 V y no hay camino de Vdc a tierra. Va en el núcleo porque es parte de la secuencia de las compuertas y no decide nada del control, y porque el software solo escribe `enable` y `duty_ref`. El reset y `DETENIDO` siguen con las cuatro apagadas.
 
@@ -169,7 +169,7 @@ Al conmutar una pierna, la FPGA baja la compuerta que se apaga en `t = 0` y sube
 
 `TM > t_off − t_on`
 
-El retardo que comparten los dos flancos se cancela en la resta y no cambia el tiempo muerto. Solo suma al retardo del lazo, que en `diseno_pr.md` se toma de hasta 2 µs. El peor caso usa `t_off` máximo y `t_on` mínimo en cada eslabón, y cuando la hoja no da el mínimo de `t_on` se toma 0. Las dos compuertas de una pierna pasan por eslabones distintos (dos PN2222A, dos VO3120, los canales HO y LO del IR2110 y dos MOSFET), así que la diferencia se toma entre dos unidades y no dentro de una misma.
+El retardo que comparten los dos flancos se cancela en la resta y no cambia el tiempo muerto. Solo suma al retardo del lazo, que en el diseño del PR se toma de hasta 2 µs. El peor caso usa `t_off` máximo y `t_on` mínimo en cada eslabón, y cuando la hoja no da el mínimo de `t_on` se toma 0. Las dos compuertas de una pierna pasan por eslabones distintos (dos PN2222A, dos VO3120, los canales HO y LO del IR2110 y dos MOSFET), así que la diferencia se toma entre dos unidades y no dentro de una misma.
 
 - PN2222A. El corte del transistor apaga el LED y eso apaga la compuerta, así que en el apagado entra `toff`, de 250 ns máximos (`ts` de 200 ns y `tf` de 60 ns) [7, p. 3]. `ton` tiene 35 ns máximos y no tiene mínimo. Aporta 250 ns. La hoja mide estos tiempos con `IC` = 150 mA, 15 mA de base al encender y −15 mA al apagar. En este circuito la corriente inversa de base sale solo del capacitor de aceleración, así que `ts` puede ser más largo que el de la hoja.
 - VO3120. `tPHL` y `tPLH` van de 0,1 a 0,4 µs [1, p. 4], medidos con 10 Ω y 10 nF de carga. Con `tPHL` máximo en una unidad y `tPLH` mínimo en la otra aporta 0,3 µs. La distorsión de ancho de pulso, de 0,2 µs como máximo, es `|tPHL − tPLH|` dentro de una misma unidad [1, p. 4, nota 2] y no acota la diferencia entre dos. La nota 3 de esa tabla define la diferencia entre dos unidades, pero ninguna fila le da un valor.
@@ -191,7 +191,7 @@ t_off − t_on = 250 + 300 + 125 + 138 ≈ 813 ns
 
 `DEAD_TIME_CICLOS = 100`, 1 µs con el reloj de 100 MHz. El margen de 187 ns, un 23 %, cubre un `ts` del PN2222A más largo que el de la hoja y el cableado. Con ese valor el límite del bootstrap queda en 0,92 a 20 kHz.
 
-El flanco más lento de la cadena es el apagado, con unos 250 + 400 + 125 + 138 ≈ 0,91 µs entre el pin y el corte del MOSFET, dentro de los 2 µs de `diseno_pr.md`.
+El flanco más lento de la cadena es el apagado, con unos 250 + 400 + 125 + 138 ≈ 0,91 µs entre el pin y el corte del MOSFET, dentro de los 2 µs que toma el diseño del PR.
 
 ## Protecciones
 
