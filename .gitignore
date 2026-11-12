@@ -32,3 +32,11 @@ sw/build/
 vivado/
 vitis/
 *.str
+project_4_PR/
+*.mmi
+
+# Intermedios de LaTeX y LTspice
+*.aux
+*.synctex.gz
+*.raw
+*.net
