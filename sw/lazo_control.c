@@ -10,14 +10,22 @@ volatile uint32_t control_habilitado;
 volatile valor_t amplitud_ref;
 volatile uint32_t falla;
 
+#define AMPLITUD_PASO_MAX VALOR(0.005f) // A por muestra, 1 A tarda 200 muestras (10 ms, medio período de 50 Hz) en alcanzarse, diseno_pr.md sección de saturación
+
 // Solo los toca la ISR entre una iteración y la siguiente, por eso no llevan volatile
 static uint16_t cuenta = ADC_OFFSET_CUENTAS; // si la primera iteración no trae dato se registra 0 A y no una cuenta inventada
 static uint16_t duty_ref; // el último escrito al PWM, arranca en 0 igual que el registro del periférico
 static bool saturado;
+static valor_t amplitud_actual; // rampea hacia amplitud_ref, así un cambio de switch no pega un escalón completo en el PR
+
+void lazo_control_reiniciar_rampa(void)
+{ // control_principal llama esto al habilitar, para arrancar la amplitud desde 0 y no pegar un escalón completo
+  amplitud_actual = VALOR(0.0f);
+}
 
 #ifdef PLANTA_SIMULADA // build de prueba sin potencia, la cuenta del ADC se cambia por la de una carga RL calculada acá
-#define PLANTA_A 0.778800783f // exp(-R*Ts/L) con 10 ohm, 2 mH y 50 us, ZOH exacto como en diseno_pr.md
-#define PLANTA_B 0.398158590f // (Vdc/R)*(1 - PLANTA_A) con 18 V, amperes por unidad de índice de modulación
+#define PLANTA_A 0.980198673f // exp(-R*Ts/L) con 12 ohm, 30 mH y 50 us, ZOH exacto como en diseno_pr.md
+#define PLANTA_B 0.029701990f // (Vdc/R)*(1 - PLANTA_A) con 18 V, amperes por unidad de índice de modulación
 static valor_t planta_corriente;
 static valor_t planta_u; // el índice que rigió durante el período que acaba de terminar
 
