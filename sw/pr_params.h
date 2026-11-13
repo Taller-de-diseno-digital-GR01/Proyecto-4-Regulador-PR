@@ -5,7 +5,7 @@
 #include "numerico.h"
 
 #define PR_FRECUENCIA_MUESTREO_HZ 20000u
-#define PR_KP VALOR(0.892222222f)
+#define PR_KP VALOR(10.4931747f)
 #define PR_B0 VALOR(0.00416649532f)
 #define PR_B1 VALOR(0.0f)
 #define PR_B2 VALOR(-0.00416649532f)
