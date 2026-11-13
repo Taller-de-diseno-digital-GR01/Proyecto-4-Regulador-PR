@@ -116,9 +116,11 @@ Verificando con el modelo discreto completo, con saturación y anti-windup como 
 
 La causa es que el escalón de los switches cambia `amplitud_ref` de golpe, en la muestra siguiente, y la ISR lo aplica íntegro (`lazo_control.c`, `valor_t amplitud = amplitud_ref;`). Con la carga anterior eso no pesaba porque `Kp` era chico. Con esta carga sí pesa.
 
-Una salida simple, verificada con el mismo modelo con saturación, es limitar la velocidad de cambio de `amplitud_ref` en vez de tocar `Kp` o `Kr`. Rampeando el cambio de amplitud en 200 muestras (10 ms, medio período de 50 Hz) en vez de aplicarlo de golpe, con `Kr = 3000` sin tocar, el mismo escalón en la peor fase da 6,6 %, 4,6 % y 3,9 % en los tres primeros períodos, el índice pico queda en 0,82 y la corriente pico en 0,971 A, dentro de los límites. Con 100 muestras (5 ms) ya cumple apenas (11,5 % en el segundo período, al borde), así que 200 muestras deja margen real.
+La salida es limitar la velocidad de cambio de `amplitud_ref` en vez de tocar `Kp` o `Kr`, implementada en [`lazo_control`](../docs/diseño/modulos/lazo_control.md#h6-rampa-de-amplitud) (`AMPLITUD_PASO_MAX`). El primer número que se probó, una rampa de 200 muestras (10 ms, medio período), salió de `sim_saturado.m`/`sim_rampa.m` en Octave, pero esa simulación medía el error contra la referencia ya rampeada en vez de contra la amplitud real que pide el switch, un error de método que escondía el problema en vez de mostrarlo.
 
-🔴 **Esto todavía no está implementado.** Agregar el rampeo cambia el comportamiento de la ISR de `lazo_control` (una rampa en vez de aplicar `amplitud_ref` directo), rompe la prueba existente `prueba_lazo_control.c` en el punto que asume que la referencia llega a su pico un cuarto de período después de habilitar con amplitud 1,0, y hay que decidir si el rampeo también se aplica al habilitar (arranque desde 0 A) y no solo al cambio de switches. Antes de tocar `lazo_control.c`, `lazo_control.h`, su prueba y su doc, falta que confirmes si seguimos por ese lado.
+Verificando contra el código real, no contra Octave, compilando `lazo_control.c` con `PLANTA_SIMULADA` junto con `pr_discreto.c` y `ref_senoidal.c`, y barriendo las 20 fases del escalón de 0,2 a 1,0 A contra la amplitud verdadera (no la rampeada), la rampa de 200 muestras falla, 12,2 % en el segundo período y 10,6 % en el tercero en la fase donde el switch cae justo en el pico de la corriente. Con 400 muestras (20 ms, un período completo) el peor caso de las 20 fases baja a 4,0 % en el segundo período y 3,5 % en el tercero, con pico de corriente 0,979 A. Entre 350 y 480 muestras el resultado es parecido (4,0 a 4,1 % en el segundo período), así que no es un ajuste fino, hay margen real alrededor de un período completo. Con 600 muestras o más el error del segundo período vuelve a subir (14,9 % a 800 muestras, 26,3 % a 1000), la rampa no es monótonamente mejor por ser más lenta, así que `AMPLITUD_PASO_MAX` queda en 400 muestras y no en algo más conservador.
+
+`control_principal` también reinicia la rampa en 0 al habilitar, así que arrancar con el switch ya puesto en una amplitud alta tampoco pega un escalón completo.
 
 ## Aliasing y filtro del sensor
 
@@ -242,7 +244,7 @@ Propios.
 - Medir el retardo efectivo del lazo con el GPIO de la ISR y comparar con `1,5·Ts`.
 - Que el Timer y la portadora cuenten exactamente lo mismo (5000 ciclos a 20 kHz), y medir con el GPIO de la ISR contra `pwm_trigger_o` que la fase no deriva.
 - Fijar `PR_U_MAX`, que tiene 1,0 como tope porque `duty_ref` va en Q2.14 de -1,0 a +1,0, y baja a 0,92 por el tiempo muerto y el bootstrap.
-- Decidir si se agrega el rampeo de `amplitud_ref` de la sección de saturación, y si se aplica tocar `lazo_control.c`, `lazo_control.h`, su prueba y su doc.
+- Rampeo de `amplitud_ref` listo y verificado contra el código real (sección de saturación por escalón). Falta confirmarlo en el banco con potencia.
 
 ## Referencias
 
