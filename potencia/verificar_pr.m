@@ -1,7 +1,7 @@
 function verificar_pr()
   % cifras de potencia/diseno_pr.md, en el mismo orden
-  L = 2e-3;
-  R = 10;
+  L = 30e-3;
+  R = 12;
   vdc = 18;
   fs = 20000;
   kr = 3000;
@@ -36,7 +36,7 @@ function verificar_pr()
       imprimir_margenes(sprintf('L %.1f mH, R %.1f ohm', lc * 1e3, rc), kp, kr, lc, rc, td, []);
     end
   end
-  imprimir_margenes('L 1.4 mH con Kp recalculado', kp_cruce(1000, 1.4e-3, R), kr, 1.4e-3, R, td, []);
+  imprimir_margenes('L esquina baja con Kp recalculado', kp_cruce(1000, 0.7 * L, R), kr, 0.7 * L, R, td, []);
 
   fprintf('\nRetardo extra\n');
   for extra = [2 25 50 75] * 1e-6
@@ -45,13 +45,13 @@ function verificar_pr()
   fprintf('MG en 6 dB con %d us, MF en 45 grados con %d us, MG en 0 con %d us\n', ...
     retardo_limite(kp, kr, L, R, td, 3, 6), retardo_limite(kp, kr, L, R, td, 2, 45), retardo_limite(kp, kr, L, R, td, 3, 0));
 
-  fprintf('\nFiltro del sensor, nominal y esquina de L 1.4 mH y R 7.5 ohm\n');
+  fprintf('\nFiltro del sensor, nominal y esquina baja de L y R\n');
   rc_f = @(ff) @(s) 1 ./ (1 + s / (2 * pi * ff));
   bw_f = @(ff) @(s) 1 ./ (1 + sqrt(2) * s / (2 * pi * ff) + (s / (2 * pi * ff)) .^ 2);
   filtros = {'RC 5 kHz', rc_f(5e3); 'RC 3 kHz', rc_f(3e3); 'RC 2 kHz', rc_f(2e3); 'Butterworth 5 kHz', bw_f(5e3)};
   for k = 1:size(filtros, 1)
     imprimir_margenes([filtros{k, 1} ' nominal'], kp, kr, L, R, td, filtros{k, 2});
-    imprimir_margenes([filtros{k, 1} ' esquina'], kp, kr, 1.4e-3, 7.5, td, filtros{k, 2});
+    imprimir_margenes([filtros{k, 1} ' esquina'], kp, kr, 0.7 * L, 0.75 * R, td, filtros{k, 2});
   end
 
   fprintf('\nEscalon en las esquinas\n');
