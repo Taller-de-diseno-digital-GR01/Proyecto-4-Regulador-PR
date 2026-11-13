@@ -59,6 +59,7 @@ static void habilitar(void)
 { // el reinicio va con control_habilitado en 0, así la ISR no usa estados a medio reiniciar
   pr_discreto_reiniciar();
   ref_senoidal_reiniciar_fase();
+  lazo_control_reiniciar_rampa();
   uint32_t estado = drivers_interrupciones_guardar_y_deshabilitar();
   if(!falla) { // se vuelve a leer adentro, la ISR pudo enclavarla después de la lectura de esta vuelta
     drivers_pwm_habilitar(true);
