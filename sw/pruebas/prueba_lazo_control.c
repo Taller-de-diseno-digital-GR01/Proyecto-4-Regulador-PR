@@ -73,6 +73,7 @@ static void habilitar(valor_t amplitud)
 { // el orden de control_principal.md h.2, sin la sección crítica que acá no hace falta
   pr_discreto_reiniciar();
   ref_senoidal_reiniciar_fase();
+  lazo_control_reiniciar_rampa();
   amplitud_ref = amplitud;
   control_habilitado = 1;
 }
@@ -106,11 +107,11 @@ int main(void)
   revisar(r.duty_ref == duty_escrito, "sin dato el registro no repite el último duty_ref");
   revisar((r.cuenta_banderas & CUENTA_MASCARA) == ADC_OFFSET_CUENTAS, "sin dato no se quedó con la última cuenta válida");
   revisar((r.cuenta_banderas & 0x7000u) == 0x6000u, "sin dato los bits 14 a 12 no dan 110");
-  revisar(r.i_ref_ma == 12, "sin dato la fase no avanzó"); // la tabla no interpola, un paso de fase cae en el índice 2 de 256 y da 12 y no los 15 del seno exacto
-
   for(uint32_t k = 2; k < 100; k++) iterar(true, ADC_OFFSET_CUENTAS);
   r = iterar(true, ADC_OFFSET_CUENTAS);
-  revisar(r.i_ref_ma == 999, "a un cuarto de período la referencia no está en el pico"); // el incremento redondeado deja la fase 24 cuentas antes de 2^30, índice 255 y no 256
+  revisar(r.i_ref_ma == 504, "a un cuarto de período la referencia no está en el pico"); // con AMPLITUD_PASO_MAX la rampa va a medio camino (0,5 de 1,0) a los 100 muestras, por eso no son los 999 de la amplitud ya asentada
+  r = iterar(false, 0u);
+  revisar(r.i_ref_ma == 509 && r.i_ref_ma != 504, "sin dato la fase no avanzó"); // un paso más de fase y de rampa sin dato nuevo, por eso no repite el 504 de arriba
 
   r = iterar(true, ADC_OFFSET_CUENTAS - 1500u); // -1,22 A contra 1 A de referencia, el proporcional solo ya pasa PR_U_MAX
   revisar((r.cuenta_banderas & BANDERA_SATURADO) != 0, "con 2,2 A de error el PR no saturó");
