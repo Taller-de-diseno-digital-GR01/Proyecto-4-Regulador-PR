@@ -41,7 +41,7 @@ int main(void)
   revisar(calcular(0.0f, &saturado) == 0 && !saturado, "sin error la salida no es cero");
 
   pr_discreto_reiniciar();
-  revisar(calcular(0.1f, &saturado) == (int16_t)lroundf((float)(PR_KP + PR_B0) * 0.1f / DUTY_ESCALA), "la primera iteración no es KP más B0"); // con estados en 0 solo quedan KP y B0
+  revisar(calcular(0.01f, &saturado) == (int16_t)lroundf((float)(PR_KP + PR_B0) * 0.01f / DUTY_ESCALA), "la primera iteración no es KP más B0"); // con estados en 0 solo quedan KP y B0, 0.01 porque con este KP un error de 0.1 ya satura
 
   pr_discreto_reiniciar();
   revisar(calcular(10.0f, &saturado) == tope && saturado, "no satura arriba en PR_U_MAX"); // 10 A no se alcanza nunca con 18 V
@@ -55,7 +55,7 @@ int main(void)
   int primero = maximo_en_periodo(50.0f, 0.01f, 0, por_periodo);
   pr_discreto_reiniciar();
   int quinto = maximo_en_periodo(50.0f, 0.01f, 4 * por_periodo, por_periodo);
-  revisar(quinto > 2 * primero, "el resonante no acumula ganancia en 50 Hz"); // en el modelo da como 3.4 veces
+  revisar(quinto > 3 * primero / 2, "el resonante no acumula ganancia en 50 Hz"); // en el modelo da 1.57 veces, con este KP el proporcional ya domina el total y diluye el crecimiento relativo
   pr_discreto_reiniciar();
   int al_inicio = maximo_en_periodo(1000.0f, 0.01f, 0, por_periodo);
   pr_discreto_reiniciar();
