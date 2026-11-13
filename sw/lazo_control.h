@@ -15,5 +15,6 @@ extern volatile valor_t amplitud_ref; // A pico, la escribe control_principal
 extern volatile uint32_t falla; // la escribe solo la ISR, de 1 no vuelve a 0 porque BTN_RST reinicia la plataforma
 
 void lazo_control_isr(void *ref);
+void lazo_control_reiniciar_rampa(void);
 
 #endif

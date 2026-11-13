@@ -71,7 +71,15 @@ void lazo_control_isr(void *ref)
   }
 
   if(habilitado && !en_falla) {
-    i_ref = ref_senoidal_siguiente(amplitud); // avanza también sin dato, para que la fase no se atrase
+    if(amplitud_actual < amplitud) { // rampa también sin dato, junto con la fase
+      amplitud_actual += AMPLITUD_PASO_MAX;
+      if(amplitud_actual > amplitud) amplitud_actual = amplitud;
+    }
+    else if(amplitud_actual > amplitud) {
+      amplitud_actual -= AMPLITUD_PASO_MAX;
+      if(amplitud_actual < amplitud) amplitud_actual = amplitud;
+    }
+    i_ref = ref_senoidal_siguiente(amplitud_actual); // avanza también sin dato, para que la fase no se atrase
     if(hay_dato) {
       duty_ref = pr_discreto_calcular(i_ref, corriente, &saturado);
       drivers_pwm_escribir_duty(duty_ref);
