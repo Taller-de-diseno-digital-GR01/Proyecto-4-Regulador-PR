@@ -2,8 +2,8 @@
 % Se carga con run('parametros.m') desde los comandos de inicialización del modelo
 
 % Carga RL del montaje (valores nominales, la resistencia del inductor y del cableado se suman a R al medirlas)
-R = 10;
-L = 2e-3;
+R = 12;
+L = 30e-3;
 
 % Tensión del bus de continua, la de operación acordada
 Vdc = 18;
