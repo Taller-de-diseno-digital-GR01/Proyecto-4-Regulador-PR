@@ -1,0 +1,5 @@
+Vdc = 18 V, L = 30 mH, fsw = 20 kHz, perdida del tiempo muerto 0.040 en d
+Iref [A]   m        teoria con m [A]   teoria con m - dd [A]   PLECS [A]   diferencia   instante del maximo [ms]
+0.2        0.170    0.0021             0.0017                  0.0017      +0.0 %       45.00
+0.5        0.424    0.0037             0.0035                  0.0036      +0.1 %       55.05
+1.0        0.848    0.0037             0.0037                  0.0040      +6.8 %       41.85
