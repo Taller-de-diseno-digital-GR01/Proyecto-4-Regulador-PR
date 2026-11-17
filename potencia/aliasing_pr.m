@@ -1,7 +1,7 @@
 function aliasing_pr()
   % seccion de aliasing de potencia/diseno_pr.md, error de la fundamental segun donde cae la captura
-  L = 2e-3;
-  R = 10;
+  L = 30e-3;
+  R = 12;
   vdc = 18;
   fs = 20000;
   kr = 3000;

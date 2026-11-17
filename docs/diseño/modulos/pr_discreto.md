@@ -60,9 +60,9 @@ Si más adelante se agrega compensación del retardo de cómputo o un segundo re
 
 ### h.3) Coeficientes de partida
 
-Con `Vdc = 18 V`, `fs = 20 kHz`, `Kp = 16,06 V/A` y `Kr = 3000`, ya divididos entre `Vdc`, para la carga de 10 Ω y 2 mH.
+Con `Vdc = 18 V`, `fs = 20 kHz`, `Kp = 188,88 V/A` y `Kr = 3000`, ya divididos entre `Vdc`, para la carga de 12 Ω y 30 mH.
 
-- `PR_KP = 0,8922`
+- `PR_KP = 10,4932`
 - `PR_B0 = 4,1665e-3`, `PR_B1 = 0`, `PR_B2 = -4,1665e-3`
 - `PR_A1 = -1,99975`, `PR_A2 = 1`
 

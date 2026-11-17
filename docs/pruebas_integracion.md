@@ -27,18 +27,18 @@ Lista de lo que hay que medir al probar todo junto (Basys3, Block Design, `sw/`,
 - Período de la ISR en el pin de depuración, 50 µs (5000 ciclos) entre flancos de subida, con su jitter pico a pico. Se mide con el lazo habilitado y también deshabilitado.
 - Duración de la ISR, ancho del pulso del pin. Tiene que dejar tiempo al lazo principal, y se anota el peor caso con el PR corriendo y con la falla enclavada.
 - Fase de la ISR contra `pwm_trigger_o`. Estable de un reinicio a otro y sin deriva. Se repite tras varios reinicios.
-- Retardo efectivo, desde la captura hasta el cambio en las compuertas, contra los 75 µs del modelo más `τF`. Con unos 49 µs de más el margen de ganancia baja a 6 dB, y si se pasa de eso se rehace la sintonización.
+- Retardo efectivo, desde la captura hasta el cambio en las compuertas, contra los 75 µs del modelo más `τF`. Con unos 53 µs de más el margen de ganancia baja a 6 dB y con 60 µs el de fase baja a 45°, y si se pasa de eso se rehace la sintonización.
 - Con la caché de instrucciones y sin ella, si se alcanza a probar las dos, para decidir cómo se justifica el punto de la caché del enunciado.
 
 ## Energizado, por pasos
 
 Con los instrumentos de cada ensayo (osciloscopio sobre la corriente de la carga y sobre las compuertas, `receptor_pc` sobre el histórico) y empezando en 12 V y 0,2 A, como dice `diseno_pr.md`.
 
-- Paso 1, lazo abierto. Amplitud y desfase de la corriente contra la predicción de 0,104 A, 0,393 A y 0,874 A a 18 V. Fuera de 10 % se detiene la prueba. Sirve para validar la ganancia del sensor, el signo y los `L` y `R` medidos (#31).
-- Paso 2, solo proporcional. Error de amplitud de unos 57 %, 46 % y 43 % con 0,2, 0,5 y 1,0 A. Si sale muy distinto, la planta o el retardo no son los del modelo.
+- Paso 1, lazo abierto. Amplitud y desfase de la corriente contra la predicción de 0,146 A, 0,442 A y 0,932 A a 18 V. Fuera de 10 % se detiene la prueba. Sirve para validar la ganancia del sensor, el signo y los `L` y `R` medidos (#31).
+- Paso 2, solo proporcional. Error de amplitud de unos 8,4 %, 7,1 % y 6,6 % con 0,2, 0,5 y 1,0 A. Si sale muy distinto, la planta o el retardo no son los del modelo.
 - Paso 3, PR completo con 0,2, 0,5 y 1,0 A. Error de la fundamental menor a 10 % en al menos cinco períodos en régimen, calculado con `receptor_pc`, y rizado menor a 0,20 A pico a pico medido con el osciloscopio, que el histórico no ve.
-- Paso 4, cambios de amplitud de 0,2 a 0,5 A y de 0,5 a 1,0 A. Error de 16,6 % y 15,0 % en el primer período y menos de 6 % en el segundo, como referencia para detectar desvíos grandes.
-- Paso 5, cambio de `R` de al menos 25 % con 0,5 A. Error de 5,5 % en el primer período y bajando, sin disparar el umbral de falla.
+- Paso 4, cambios de amplitud de 0,2 a 0,5 A y de 0,5 a 1,0 A. Con la rampa de 400 muestras, el peor caso simulado de 20 fases da 4,0 % en el segundo período y 3,5 % en el tercero, con pico de 0,979 A, como referencia para detectar desvíos grandes. El primer período no se compara porque la amplitud sube durante 20 ms.
+- Paso 5, cambio de `R` de al menos 25 % con 0,5 A. Error de 1,4 % en el primer período y bajando, sin disparar el umbral de falla.
 - Saturación. `saturado` no aparece en régimen con 18 V y 1,0 A, y `duty_ref` queda por debajo de 0,92.
 - Falla con carga. Una sobrecorriente real (arriba de 1,3 A) baja las cuatro compuertas, enciende el LED y el sistema no rearma solo. Se prueba con el PR corriendo, no solo en vacío.
 - Deshabilitar y volver a habilitar a mitad de un ensayo. El primer período tras habilitar no trae escalón de corriente, porque `duty_ref` y el PR arrancan en cero.
