@@ -1392,6 +1392,7 @@ Reloj y reset provienen de la infraestructura del sistema. Las cuatro señales d
 - Diseño existente: [nivel 3](diagramas/nivel03.md) y [`nucleo_pwm`](modulos/nucleo_pwm.md).
 - Instructivo del proyecto, secciones 4.2.2, 4.2.3 y 7.
 - Arm, [AMBA AXI y ACE Protocol Specification IHI 0022E](https://documentation-service.arm.com/static/5f915b62f86e16515cdc3b1c), transacciones, dependencias de canales y AXI4-Lite.
+- AMD, Vivado Design Suite AXI Reference Guide (UG1037) y Creating and Packaging Custom IP (UG1118), nombres estándar de las señales AXI con que Vivado infiere la interfaz al empaquetar el IP.
 
 ---
 
