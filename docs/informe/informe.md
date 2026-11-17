@@ -43,7 +43,7 @@ Este informe separa lo que ya está medido o simulado de lo que depende del banc
 - Pruebas del software en C y en Python, compiladas y corridas en la PC el mismo día. Pasan sin errores.
 - Cálculos y simulación del lazo discreto en Octave (`potencia/verificar_pr.m`), con la carga vigente de 12 Ω y 30 mH.
 - Utilización y timing de Vivado 2026.1 sobre el diseño ruteado, del 11 de noviembre.
-- Modelo conmutado del inversor en PLECS, con la carga anterior de 10 Ω y 2 mH. Valida el método, no las cifras de la carga vigente.
+- Modelo conmutado del inversor en PLECS 5.0.6, corrido el 16 de noviembre con la carga vigente de 12 Ω y 30 mH en lazo abierto, y antes con la de 10 Ω y 2 mH para validar el método.
 - Las mediciones energizadas (error de la fundamental, rizado, retardo del lazo, tiempo muerto en osciloscopio) todavía no están. Aparecen en la sección 12.8 con la celda de medición marcada como `PENDIENTE`, y no se completaron con valores calculados para no mezclar predicción con medición.
 
 ## 1. Resumen
@@ -599,6 +599,14 @@ El modelo en PLECS reproduce el puente, la modulación unipolar del núcleo, el 
 - Con 0,5 y 1,0 A, 0,393 y 0,874 A, ambos con unos 3,4° de desfase, que coinciden con la predicción con tiempo muerto y `RDS(on)`.
 - Rizado de conmutación en lazo abierto, 0,0149, 0,0408 y 0,0563 A para 0,2, 0,5 y 1,0 A, iguales a la fórmula evaluada en el `d` que llega a la carga.
 
+Con la carga vigente de 12 Ω y 30 mH se repitió el ensayo de lazo abierto y el de rizado con `Vdc = 18 V`, 20 kHz y 1 µs de tiempo muerto, con `potencia/sim/validar.m` sobre el mismo modelo. Las tablas y una captura por caso están en `potencia/sim/resultados/`.
+
+- Fundamental de la corriente, 0,1423, 0,4403 y 0,9314 A para 0,2, 0,5 y 1,0 A, contra 0,146, 0,442 y 0,932 A de la predicción de la sección 12.5. Las diferencias son -2,5 %, -0,4 % y -0,1 %.
+- Desfase de la corriente respecto del índice, -28,90°, -33,32° y -35,22°, contra -26,8°, -33,1° y -35,2° de la predicción.
+- Rizado pico a pico, 1,7, 3,6 y 4,0 mA, contra 1,7, 3,5 y 3,7 mA de la fórmula con la pérdida del tiempo muerto restada al índice. La diferencia es +0,0 %, +0,1 % y +6,8 %.
+
+El máximo de 4,0 mA queda apenas sobre los 3,75 mA del rizado teórico máximo y unas 50 veces por debajo del límite de 0,20 A. No se investigó el origen de ese 6,8 % en el punto de 1,0 A, que en valor absoluto son 0,3 mA.
+
 ## 13. Análisis de resultados
 
 ### 13.1 Periférico y plataforma
@@ -627,7 +635,7 @@ La consecuencia para el ensayo 4 es que el criterio de los 10 % se aplica a la a
 
 ### 13.5 Rizado y aliasing
 
-El rizado teórico máximo de 3,75 mA con 18 V y 30 mH es 53 veces menor que el límite de 0,20 A. Con la carga de 2 mH eran 56 mA, y en PLECS salieron 0,0149, 0,0408 y 0,0563 A, iguales a la fórmula, así que el método de cálculo está validado y con la carga vigente no restringe el diseño.
+El rizado teórico máximo de 3,75 mA con 18 V y 30 mH es 53 veces menor que el límite de 0,20 A. Con la carga de 2 mH eran 56 mA, y en PLECS salieron 0,0149, 0,0408 y 0,0563 A, iguales a la fórmula, así que el método de cálculo está validado y con la carga vigente no restringe el diseño. Con la carga de 30 mH, PLECS dio 1,7, 3,6 y 4,0 mA, y el máximo de 4,0 mA queda 6,8 % sobre la fórmula en el punto de 1,0 A, sin que el límite de 0,20 A llegue a estar cerca.
 
 Eso arrastra al aliasing. `aliasing_pr.m` se corrió de nuevo con 12 Ω y 30 mH, `Kp = 188,88 V/A` y `Kr = 3000`, con el puente conmutado, la portadora de 2500 cuentas y la carga resuelta exacta entre flancos, sin tiempo muerto ni cuantización del ADC. El error de amplitud de la fundamental de la corriente verdadera queda así.
 
@@ -726,7 +734,7 @@ Rutas dentro del repositorio.
 - `docs/diseño.md` y `docs/diseño/modulos/`, el planteamiento de diseño y una ficha por módulo.
 - `potencia/diseno_pr.md`, `potencia/diseno_puente_h.md` y `potencia/docs/modelo_planta.md`, el diseño del PR, del puente H y de la planta.
 - `potencia/verificar_pr.m` y `potencia/aliasing_pr.m`, los cálculos del PR en Octave. `sw/generar_pr_params.m` escribe `sw/pr_params.h`.
-- `potencia/sim/`, el modelo del inversor en PLECS con su archivo de parámetros.
+- `potencia/sim/`, el modelo del inversor en PLECS con su archivo de parámetros, `validar.m` y, en `resultados/`, las tablas y capturas de la validación con 12 Ω y 30 mH. Hace falta la rama `doc/plecs-carga-nueva` (PR #68) fusionada.
 - `src/design/`, el periférico PWM y la envoltura del XADC. `src/sim/`, los testbenches.
 - `src/bd/sistema.tcl` y `src/crear_proyecto.tcl`, el Block Design y el script que regenera el proyecto.
 - `docs/informe/reportes/`, los reportes de utilización y de timing de Vivado.
