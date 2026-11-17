@@ -12,7 +12,7 @@ Integrantes.
 - Mattio Coghi Quirós
 - Nicolás Mena Valerio
 
-Versión documentada, rama `develop`, commit `c555aff`. Fecha, 16 de noviembre de 2026.
+Versión documentada, rama `doc/informe` sobre `develop` en el commit `c555aff`. Fecha, 16 de noviembre de 2026.
 
 ## Tabla de contenidos
 
@@ -101,7 +101,7 @@ con el máximo en `d = 0,5`. Con 18 V, 20 kHz y 30 mH el máximo es 3,75 mA, muy
 
 ### 3.3 Regulador proporcional-resonante
 
-Un PI sigue referencias constantes sin error porque su ganancia es infinita en continua. Con una senoidal deja error de amplitud y de fase. El término resonante pone la ganancia infinita en `ω0 = 2π·50` y anula el error en esa frecuencia sin pasar a ejes sincrónicos ni usar un PLL, lo que lo hace barato en un procesador sin hardware dedicado [3]. La estructura ideal es
+Un PI sigue referencias constantes sin error porque su ganancia es infinita en continua. Con una senoidal deja error de amplitud y de fase. El término resonante pone la ganancia infinita en `ω0 = 2π·50` y anula el error en esa frecuencia sin pasar a ejes sincrónicos ni usar un PLL, lo que lo hace barato en un procesador sin hardware dedicado [3], [14]. La estructura ideal es
 
 $$G_c(s) = K_p + K_r\frac{s}{s^2 + \omega_0^2}$$
 
@@ -113,13 +113,13 @@ La ganancia proporcional se fija imponiendo ganancia unitaria de lazo en la frec
 
 ### 3.4 Tiempo muerto, bootstrap y saturación
 
-Con una pierna conmutando, las dos compuertas no pueden estar encendidas a la vez. Se apaga una y la complementaria se enciende un tiempo muerto `TM` después, y durante ese hueco la corriente de la bobina circula por un diodo de cuerpo y el valor de la pierna lo fija el signo de la corriente, no el PWM. La tensión promedio pierde `Δv = 2·Vdc·TM·f_sw` en el sentido de la corriente, una onda cuadrada de esa amplitud en fase con ella, con fundamental `(4/π)·Δv` [2].
+Con una pierna conmutando, las dos compuertas no pueden estar encendidas a la vez. Se apaga una y la complementaria se enciende un tiempo muerto `TM` después, y durante ese hueco la corriente de la bobina circula por un diodo de cuerpo y el valor de la pierna lo fija el signo de la corriente, no el PWM. La tensión promedio pierde `Δv = 2·Vdc·TM·f_sw` en el sentido de la corriente, una onda cuadrada de esa amplitud en fase con ella, con fundamental `(4/π)·Δv` [2], [15].
 
 Las compuertas altas se alimentan con un bootstrap. El capacitor se carga mientras conduce el transistor bajo de la misma pierna, así que si `duty_ref` se acerca a ±1 la baja deja de conducir y el capacitor no se repone. Por eso el índice se satura en `PR_U_MAX < 1 - (DEAD_TIME_CICLOS + 100)/MAX`, que da 0,92 a 20 kHz.
 
 ### 3.5 Muestreo, aliasing y sincronización con la portadora
 
-Con `fs = 20 kHz` la señal de 50 Hz y el cruce de 1 kHz quedan muy por debajo de `fs/2`. Lo que preocupa es lo demás que llega al ADC. Si la conversión cae en el valle o en el pico de la portadora, el rizado de conmutación es un múltiplo exacto de `fs` en ese instante y se pliega a continua, y el error de amplitud es mínimo. Si cae en cualquier otro punto, el rizado se pliega con un valor que depende de dónde cayó, y con un rizado grande (la bobina de 2 mH) el error llegó a ±2,6 % en simulación. Por eso `pwm_trigger_o` sale en el valle. El ruido de banda ancha no se sincroniza con nada, y solo lo frena un filtro analógico, que a su vez agrega retardo `τF = 1/(2π fF)` al lazo.
+Con `fs = 20 kHz` la señal de 50 Hz y el cruce de 1 kHz quedan muy por debajo de `fs/2`. Lo que preocupa es lo demás que llega al ADC. Si la conversión cae en el valle o en el pico de la portadora, el rizado de conmutación es un múltiplo exacto de `fs` en ese instante y se pliega a continua, y el error de amplitud es mínimo [16], [17]. Si cae en cualquier otro punto, el rizado se pliega con un valor que depende de dónde cayó, y con un rizado grande (la bobina de 2 mH) el error llegó a ±2,6 % en simulación. Por eso `pwm_trigger_o` sale en el valle. El ruido de banda ancha no se sincroniza con nada, y solo lo frena un filtro analógico, que a su vez agrega retardo `τF = 1/(2π fF)` al lazo.
 
 ### 3.6 AXI4-Lite
 
@@ -167,7 +167,7 @@ El Timer interrumpe al procesador sin controlador de interrupciones. Con un solo
 
 ### 4.2 Decisiones de diseño que más pesaron
 
-- Frecuencia de conmutación y de muestreo iguales, 20 kHz, una conversión por período de portadora. El piso lo pone el rizado (5,6 kHz con 18 V y 0,20 A) y el techo el tiempo muerto de 1 µs y la recarga del bootstrap, que a 40 kHz bajan el índice máximo a 0,84 y hacen saturar el PR en los ensayos de escalón. A 10 kHz el retardo extra de 75 µs baja el margen de ganancia a 4,7 dB, debajo del mínimo de 6 dB.
+- Frecuencia de conmutación y de muestreo iguales, 20 kHz, una conversión por período de portadora. Con la bobina de 2 mH con que empezó el diseño el piso lo ponía el rizado, 5,6 kHz con 18 V y 0,20 A, y con los 30 mH vigentes baja a 375 Hz y deja de mandar. El techo lo ponen el tiempo muerto de 1 µs y la recarga del bootstrap, que a 40 kHz bajan el índice máximo a 0,84 y hacen saturar el PR en los ensayos de escalón. A 10 kHz el retardo extra de 75 µs baja el margen de ganancia a 4,6 dB, debajo del mínimo de 6 dB.
 - Un solo `duty_ref` con signo y no dos registros. La pierna B compara contra `-duty_ref`, así que el software escribe un único valor Q2.14.
 - Saturación y registros sombra dentro del núcleo del PWM y no en el software. Lo que se escribe a mitad de período entra recién en el valle siguiente, y nunca sale un período con el `MAX` de una frecuencia y la referencia de otra.
 - Lectura sin corrección de `duty_ref`. La interfaz devuelve los 16 bits que se escribieron, aunque estén fuera de rango. El núcleo usa la versión saturada.
@@ -299,7 +299,7 @@ La envoltura del XADC es un esclavo AXI4-Lite propio con una máquina que atiend
 
 El wizard está en modo por eventos, canal único VAUX6, entrada unipolar y `DCLK` de 100 MHz con divisor 4, 25 MHz para el reloj del ADC, bajo el máximo de 26 MHz. Cada conversión y su asentamiento llevan 26 ciclos de ese reloj, 1,04 µs. Un `CONVST` que llega con el XADC ocupado, por ejemplo calibrando al salir del reinicio, se ignora, para que la máquina no quede esperando un fin de conversión que no corresponde a ninguno propio.
 
-En el software, `drivers` desplaza el dato de `[11:0]` y lo entrega a `lazo_control`, que calcula `corriente = (cuenta - 2048)·ADC_AMPERES_POR_CUENTA` con 8,138e-4 A por cuenta. Ese valor supone 0,3 V/A en todo el camino del sensor y es provisional hasta calibrar (sección 15).
+En el software, `drivers` desplaza el dato de `[11:0]` y lo entrega a `lazo_control`, que calcula `corriente = (cuenta - 2048)·ADC_AMPERES_POR_CUENTA` con 8,138e-4 A por cuenta. Ese valor supone 0,3 V/A en todo el camino del sensor, no coincide con los 0,24 V/A del acondicionador diseñado y es provisional hasta calibrar (sección 9.4).
 
 ## 8. Software de control
 
@@ -380,7 +380,32 @@ Figura 9.2. Acondicionador de señal del sensor en LTspice, con el RC antialias 
 
 ![Simulación del acondicionador, entrada y salida a 50 Hz](figuras/circuito_acondicionador_sim.png)
 
-Figura 9.3. Simulación del acondicionador con una entrada de 2,5 V con 0,1 V de amplitud a 50 Hz (azul) y la salida (verde), centrada en 0,5 V con 0,24 V de amplitud. Esa relación de 0,24 V por cada 0,1 V de entrada es la ganancia de 2,4 de la que habla la sección 15.
+Figura 9.3. Simulación del acondicionador con una entrada de 2,5 V con 0,1 V de amplitud a 50 Hz (azul) y la salida (verde), centrada en 0,5 V con 0,24 V de amplitud. Esa relación de 0,24 V por cada 0,1 V de entrada es la ganancia de 2,4 que se analiza en la sección 9.4.
+
+### 9.4 Ganancia de la cadena del sensor
+
+La corriente llega al XADC por tres etapas en serie. El ACS712-20A entrega `Vs = 0,5·VCC + Sens·i`, con `Sens = 100 mV/A` típico (96 a 104 mV/A) y salida ratiométrica con la alimentación [10]. El restador de la sección 9.3 aplica ganancia y mueve el cero. El XADC cuantiza el rango de 0 a 1 V en 4096 cuentas de 244 µV [6].
+
+En el restador, `R+ = R5‖R6 = 18 kΩ` y `R- = R2‖R3 = 10 kΩ`, y la entrada inversora recibe `VCC/2` del divisor de `R2` y `R3`. Con la condición `R+/R7 = R1/R- = k` la salida y la ganancia quedan [18]
+
+$$V_o = \left(1+\frac{R_1}{R_-}\right)V_+ - \frac{R_1}{R_-}\cdot\frac{V_{CC}}{2}, \qquad A_v = \left(1+\frac{R_1}{R_-}\right)\frac{R_+}{R_+ + R_7} = k$$
+
+Con `R1 = 24 kΩ` y `R7 = 7,5 kΩ`, `k = 2,4`. La salida en reposo es `0,1·VCC`, 0,5 V con 5 V, que es la cuenta 2048, y la sensibilidad de extremo a extremo es `Av·Sens = 0,24 V/A`, o sea `1 V/(4096·0,24 V/A) = 1,017e-3 A` por cuenta. Con 1,3 A la salida llega a 0,19 V y 0,81 V, dentro del rango, y el fondo de escala es ±2,08 A.
+
+Hay tres valores de esa constante en el repositorio, y el análisis dice cuál corresponde a cada uno.
+
+- El acondicionador diseñado, con 24 kΩ y 7,5 kΩ, que es el de la figura 9.2 y el que simuló la figura 9.3. Da 0,24 V/A y 1,017e-3 A por cuenta.
+- El archivo `circuito_acondicionador.asc` de la rama `doc/sensor-carga`, con `R1 = 12 kΩ` y `R7 = 15 kΩ`, que difiere del documento de diseño. Da `k = 1,2`, 0,12 V/A y 2,035e-3 A por cuenta.
+- El software, con 8,138e-4 A por cuenta, que corresponde a 0,3 V/A y no coincide con ninguno de los dos circuitos.
+
+La diferencia tiene consecuencias de seguridad y no solo de exactitud, porque el lazo regula la corriente medida. Si el banco se armó con el diseño de 2,4, el software lee el 80 % de la corriente real y la amplitud real sale 1,25 veces la pedida, un error de +25 % contra el límite de 10 %. Si se armó con el archivo de LTspice, el software lee el 40 % y la corriente real sale 2,5 veces la pedida, con el umbral de falla de 1,3 A equivalente a 3,25 A reales, de modo que la falla por software ya no protegería y quedaría solo el fusible de 630 mA. Por eso `ADC_AMPERES_POR_CUENTA` tiene que pasar a 1,017e-3 antes de energizar, una vez confirmada la ganancia de 2,4 contra la sonda (sección 12.8). Esa actualización del software está pendiente.
+
+Aun con la constante correcta, el sensor deja un presupuesto de error que conviene tener a la vista antes de medir.
+
+- Sensibilidad. La tolerancia de ±4 % del ACS712 se suma a la de las resistencias del restador. Como el lazo cierra sobre la corriente medida, un error de ganancia pasa directo a la amplitud real y se come parte del 10 % del enunciado. Por eso la ganancia se calibra en un punto contra la sonda, y la incertidumbre de esa calibración se combina como indica la guía GUM [19].
+- Cero. Como `Vo0 = 0,1·VCC`, una `VCC` que se corra ±5 % mueve la salida ±25 mV, unas ±102 cuentas o ±0,10 A. Esa continua no entra en el error de la fundamental, pero con `Kp/R` cerca de 15,7 a frecuencia cero el lazo la devuelve a la carga casi completa, un 94 % de su valor, y la corriente real queda con esa componente de continua. La cuenta de reposo se mide con el puente apagado, porque la portadora corre aunque `enable` esté en 0 (sección 6.2).
+- Ruido. El ACS712-20A declara 11 mV pico a pico con 2 kHz de ancho de banda [10], que tras la ganancia son 26 mV, unas 108 cuentas o 0,11 A pico a pico referidos a la entrada. Es una cota de orden de magnitud, porque el ancho de banda real del sensor y del RC es otro, y pesa más en el ensayo de 0,2 A, de 0,4 A pico a pico.
+- Cuantización y temperatura. Una cuenta vale 1,017 mA, 0,25 % de los 0,4 A pico a pico del caso chico. La deriva del cero, de -0,07 mV/°C entre 25 y 150 °C [10], son 0,7 cuentas por grado tras la ganancia y no pesan en ensayos de pocos minutos.
 
 ## 10. Diagramas de estado
 
@@ -470,7 +495,7 @@ Los grupos cubren, entre otros, `running` y precarga exacta de ambas piernas, re
 
 ### 12.4 Sintonización y márgenes del PR
 
-Con `L = 30 mH`, `R = 12 Ω`, `Vdc = 18 V`, `Td = 75 µs`, cruce de diseño en 1 kHz y `Kr = 3000`, salida de `verificar_pr.m`.
+Con `L = 30 mH`, `R = 12 Ω`, `Vdc = 18 V`, `Td = 75 µs`, cruce de diseño en 1 kHz y `Kr = 3000`, salida de `verificar_pr.m`. Los mínimos de 45° de margen de fase y 6 dB de margen de ganancia son los criterios usuales de robustez ante el retardo y la variación de la planta [20].
 
 - Cruce en 1000 Hz con 66,5° de margen de fase y 10,5 dB de margen de ganancia.
 - Con cruce en 500 Hz, 83,2° y 16,5 dB. Con 2000 Hz, 37,8° y 4,5 dB, por debajo del mínimo de 45° y 6 dB.
@@ -579,7 +604,7 @@ Estas son las mediciones que piden el enunciado y la rúbrica y que todavía no 
 - Duración de la interrupción con el PR corriendo y con la falla enclavada. Medido, `PENDIENTE`.
 - Fase de la interrupción contra `pwm_trigger_o` en varios reinicios, esperado estable sin deriva. Medido, `PENDIENTE`.
 - Retardo efectivo del lazo contra los 75 µs del modelo más `τF`, con margen de 53 µs antes de perder 6 dB. Medido, `PENDIENTE`.
-- Cuenta del ADC con 0 A, esperado 2048 con pocas cuentas de ruido, y ganancia real del sensor contra la sonda. Medido, `PENDIENTE`.
+- Cuenta del ADC con 0 A, esperado 2048 con `VCC = 5 V` y ±102 cuentas si `VCC` se corre ±5 %, y ganancia real del sensor contra la sonda, esperado 0,24 V/A (sección 9.4). Medido, `PENDIENTE`.
 - Ensayo 1, lazo abierto a 18 V, esperado 0,146, 0,442 y 0,932 A con los desfases de la sección 12.5. Medido, `PENDIENTE`.
 - Ensayo 2, solo proporcional, esperado 8,4, 7,1 y 6,6 %. Medido, `PENDIENTE`.
 - Ensayo 3, PR completo con 0,2, 0,5 y 1,0 A, error de la fundamental menor a 10 % en cinco períodos y rizado menor a 0,20 A pico a pico. Medido, `PENDIENTE`.
@@ -649,7 +674,34 @@ Con la carga de 2 mH esos mismos puntos daban hasta 2,8 % en el flanco y entre -
 
 La conclusión práctica cambia de peso y no de sentido. Con 30 mH el rizado es tan chico que el instante de captura casi no importa para el error de amplitud, y `pwm_trigger_o` en el valle deja de ser una condición crítica para el aliasing del rizado. Sigue valiendo por otras razones, el ruido de conmutación sobre el sensor y la fase estable entre la interrupción y la portadora, que se miden en banco. El aliasing del ruido de banda ancha tampoco depende de la carga y lo sigue frenando el filtro del sensor.
 
-### 13.6 Qué queda sin contrastar
+### 13.6 Comparación entre predicción, simulación y medición
+
+La Tabla 13.1 junta lo que ya se puede comparar y deja a la vista la columna que falta. La predicción sale del análisis de la sección 12.5 y de `verificar_pr.m`, la simulación del modelo conmutado de PLECS de la sección 12.9, y la medición de la sección 12.8.
+
+Tabla 13.1. Magnitudes del proyecto con su predicción, su simulación en PLECS y su medición en banco. Carga de 12 Ω y 30 mH, `Vdc = 18 V`, 20 kHz y 1 µs de tiempo muerto.
+
+| Magnitud | Condición | Predicción | PLECS | Medición |
+|---|---|---|---|---|
+| Fundamental de la corriente, lazo abierto (A) | 0,2 A pedidos | 0,146 | 0,1423 | pendiente |
+| | 0,5 A pedidos | 0,442 | 0,4403 | pendiente |
+| | 1,0 A pedidos | 0,932 | 0,9314 | pendiente |
+| Desfase de la corriente, lazo abierto (°) | 0,2 A pedidos | -26,8 | -28,90 | pendiente |
+| | 0,5 A pedidos | -33,1 | -33,32 | pendiente |
+| | 1,0 A pedidos | -35,2 | -35,22 | pendiente |
+| Rizado pico a pico (mA) | 0,2 A pedidos | 1,7 | 1,7 | pendiente |
+| | 0,5 A pedidos | 3,5 | 3,6 | pendiente |
+| | 1,0 A pedidos | 3,7 | 4,0 | pendiente |
+| Error de la fundamental, solo proporcional (%) | 0,2, 0,5 y 1,0 A | 8,4, 7,1 y 6,6 | no corrido | pendiente |
+| Error de la fundamental, PR, escalón de 0,2 a 1,0 A (%) | período 1 y período 5 | 5,3 y 2,9 | no corrido | pendiente |
+| Márgenes del lazo nominal | fase y ganancia | 66,5° y 10,5 dB | no corrido | pendiente, por el retardo |
+| Tiempo muerto (µs) | flancos de las dos piernas | 1,00 | 1,00 configurado | pendiente |
+| Período de la interrupción (µs) | `freq_sel = 01` | 50,0 | no aplica | pendiente |
+| Cuenta del ADC con 0 A | puente apagado | 2048 | no aplica | pendiente |
+| Ganancia del sensor (V/A) | extremo a extremo | 0,24 | no aplica | pendiente |
+
+Las diferencias entre predicción y PLECS son chicas salvo dos. La fundamental de 0,2 A sale 2,5 % abajo, que en valor absoluto son 3,7 mA, en el punto donde la pérdida del tiempo muerto pesa más y sin que se haya aislado la causa, y el rizado a 1,0 A sale 6,8 % arriba, 0,3 mA. Ninguna de las dos mueve una conclusión, y la segunda queda unas 50 veces bajo el límite. La columna de medición es la que deciden los ensayos energizados y el análisis de la sección 9.4 dice qué esperar de la ganancia y del cero antes de medirlos.
+
+### 13.7 Qué queda sin contrastar
 
 Con la evidencia actual no se puede afirmar nada sobre el rizado real, el retardo efectivo del lazo, el tiempo muerto medido ni el error en banco. La comparación teoría, simulación y medición que pide la rúbrica solo está completa entre las dos primeras, y las 16 mediciones de la sección 12.8 son las que cierran la tercera.
 
@@ -678,7 +730,7 @@ Con la evidencia actual no se puede afirmar nada sobre el rizado real, el retard
 ### Limitaciones
 
 - No hay mediciones energizadas, y la rúbrica pide error y rizado medidos. Las 16 pendientes de la sección 12.8 son el trabajo que falta.
-- La ganancia del sensor no está cerrada. El software usa 8,138e-4 A por cuenta, que supone 0,3 V/A en todo el camino. El acondicionador que diseñó Jefferson da 0,24 V/A con ganancia 2,4 (1,017e-3 A por cuenta), y su archivo de LTspice tiene resistencias que dan ganancia 1,2. Hay que reconciliar los tres, y con la ganancia real actualizar `ADC_AMPERES_POR_CUENTA`, el umbral de falla en cuentas y los límites de `supervisor_falla`. Con cualquiera de las tres el umbral de 1,3 A sigue cabiendo en la escala.
+- La ganancia del sensor no está cerrada en el software. El análisis de la sección 9.4 reduce las tres cifras en conflicto a una. El acondicionador diseñado da 0,24 V/A (1,017e-3 A por cuenta), el archivo de LTspice de la rama `doc/sensor-carga` tiene resistencias que dan 0,12 V/A y el software usa 8,138e-4 A por cuenta, de 0,3 V/A. La constante `ADC_AMPERES_POR_CUENTA` sigue sin actualizarse y la ganancia del banco armado no está medida. Con la ganancia real hay que actualizar esa constante, el umbral de falla en cuentas y los límites de `supervisor_falla`. Con cualquiera de las tres el umbral de 1,3 A sigue cabiendo en la escala.
 - Los documentos de potencia no usan una carga única. El PR y el software están sintonizados para 12 Ω y 30 mH, el diseño de la carga, el modelo de PLECS y el cálculo de protecciones siguen con 10 Ω y 2 mH. Si el banco usa los valores vigentes, esos tres documentos hay que rehacerlos, y la corriente de techo ante una falla con 12 Ω queda en 1,84 A con 24 V y no en 2,21 A.
 - Los valores de `L` y `R` no están medidos, y los márgenes de esquina cubren ±30 % y ±25 % pero no la saturación del transformador a 1,0 A.
 - La caché de instrucciones de 8 KB que pide el enunciado no se habilitó, y se justificó por escrito. Con el programa en la BRAM local no tendría qué guardar.
@@ -719,13 +771,27 @@ Una vez medido el retardo real del lazo se puede decidir si el PR resiste un fil
 
 [9] International Rectifier, *IR2110 High and Low Side Driver*, hoja de datos PD60147 rev. U, y *IRF520N HEXFET Power MOSFET*, PD-91339A.
 
-[10] Allegro MicroSystems, *ACS712 Fully Integrated, Hall Effect-Based Linear Current Sensor IC*, hoja de datos.
+[10] Allegro MicroSystems, *ACS712 Fully Integrated, Hall Effect-Based Linear Current Sensor IC*, hoja de datos ACS712-DS Rev. 22, 13 de febrero de 2024.
 
 [11] Digilent, *Basys 3 FPGA Board Reference Manual*. https://digilent.com/reference/programmable-logic/basys-3/reference-manual
 
 [12] J. González-Gómez, Y. Arias-Esquivel y R. Coto Calderón, *Proyecto 4, control de corriente con regulador PR sobre MicroBlaze V*, EL3313 y EL4201, II Semestre 2026. Enunciado oficial incluido en el repositorio.
 
 [13] Equipo del proyecto, *Informe técnico, Proyecto 3, Batalla Naval*. Referencia de estructura y numeración. https://github.com/Taller-de-diseno-digital-GR01/Proyecto-3-Batalla-Naval
+
+[14] D. N. Zmood y D. G. Holmes, "Stationary frame current regulation of PWM inverters with zero steady-state error", *IEEE Trans. Power Electronics*, vol. 18, no. 3, pp. 814-822, mayo de 2003.
+
+[15] D. Leggate y R. J. Kerkman, "Pulse-based dead-time compensator for PWM voltage inverters", *IEEE Trans. Industrial Electronics*, vol. 44, no. 2, pp. 191-197, abril de 1997.
+
+[16] A. V. Oppenheim y R. W. Schafer, *Discrete-Time Signal Processing*, 3.ª ed., Pearson, 2010. Capítulo 4.
+
+[17] D. G. Holmes y T. A. Lipo, *Pulse Width Modulation for Power Converters, Principles and Practice*, IEEE Press y Wiley, 2003.
+
+[18] P. Horowitz y W. Hill, *The Art of Electronics*, 3.ª ed., Cambridge University Press, 2015.
+
+[19] JCGM 100:2008, *Evaluation of measurement data, Guide to the expression of uncertainty in measurement*, BIPM.
+
+[20] G. F. Franklin, J. D. Powell y A. Emami-Naeini, *Feedback Control of Dynamic Systems*, 7.ª ed., Pearson, 2015.
 
 ## 18. Anexo, evidencia y cómo reproducirla
 
