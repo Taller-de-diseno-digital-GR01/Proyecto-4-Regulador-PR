@@ -123,7 +123,7 @@ Con `fs = 20 kHz` la señal de 50 Hz y el cruce de 1 kHz quedan muy por debajo d
 
 ### 3.6 AXI4-Lite
 
-AXI4-Lite separa cada transferencia en canales independientes con handshake `VALID`/`READY`. La escritura usa AW (dirección), W (dato) y B (respuesta), y la lectura AR y R. AW y W pueden llegar en cualquier orden y en ciclos distintos, así que el esclavo tiene que guardar cada uno hasta tener los dos, y mantener la respuesta hasta que el maestro la acepte. El periférico PWM implementa el esclavo completo, con `WSTRB`, `AWPROT`/`ARPROT` y respuesta `OKAY`.
+AXI4-Lite es el subconjunto de AXI4 sin ráfagas, con una transferencia por transacción, que define la especificación de Arm [18]. Separa cada transferencia en canales independientes con handshake `VALID`/`READY`. La escritura usa AW (dirección), W (dato) y B (respuesta), y la lectura AR y R. AW y W pueden llegar en cualquier orden y en ciclos distintos, así que el esclavo tiene que guardar cada uno hasta tener los dos, y mantener la respuesta hasta que el maestro la acepte, según las dependencias entre los handshakes de los canales que fija la misma especificación [18]. El periférico PWM implementa el esclavo completo, con `WSTRB`, `AWPROT`/`ARPROT` y respuesta `OKAY`. Vivado reconoce la interfaz por los nombres estándar de las señales (`s_axi_awaddr`, `s_axi_wvalid` y demás), que el periférico conserva [19].
 
 ### 3.7 XADC
 
@@ -206,7 +206,7 @@ Registro `0x04`, referencia.
 - Bits `[15:0]`, `duty_ref`, lectura y escritura, complemento a dos en Q2.14 con escala 1/16384. El rango representable es de -2 a 2 menos un LSB y el admisible de -1 a +1. `0x2000` pide +0,5, `0xE000` pide -0,5, `0x4000` y `0xC000` son los límites.
 - Bits `[31:16]`, reservados, se leen en 0.
 
-`WSTRB[n]` habilita el byte `n` y los demás conservan su valor. Un acceso a `0x08` o `0x0C` se lee en 0 y no escribe nada.
+`WSTRB[n]` habilita el byte `n` y los demás conservan su valor [18]. Un acceso a `0x08` o `0x0C` se lee en 0 y no escribe nada.
 
 La tabla de `freq_sel` es la siguiente.
 
@@ -262,11 +262,11 @@ Cada registro lleva la cuenta del ADC en 12 bits, cuatro banderas (`saturado`, `
 
 ## 6. Periférico PWM
 
-El periférico se parte en dos módulos, `interfaz_axi_pwm` que traduce AXI4-Lite a tres campos de registro y devuelve `running`, y `nucleo_pwm` que hace toda la modulación. `periferico_pwm` solo los une, y es lo que se empaqueta como módulo de referencia del Block Design.
+El periférico se parte en dos módulos, `interfaz_axi_pwm` que traduce AXI4-Lite a tres campos de registro y devuelve `running`, y `nucleo_pwm` que hace toda la modulación. `periferico_pwm` solo los une, y es lo que se empaqueta como módulo de referencia del Block Design, según el flujo de empaquetado de IP de Vivado [20].
 
 ### 6.1 Interfaz AXI4-Lite
 
-La interfaz guarda AW y W por separado y aplica una única escritura cuando tiene los dos, así que acepta direcciones y datos en cualquier orden. No empieza otra escritura mientras la respuesta no haya sido aceptada. La lectura captura el valor al aceptar la dirección y lo mantiene aunque el registro cambie mientras `RREADY` siga en 0. Se permite una escritura y una lectura pendientes a la vez, pero no varias del mismo tipo, que es suficiente para configurar el PWM y escribir `duty_ref` una vez por período sin agregar colas.
+La interfaz guarda AW y W por separado y aplica una única escritura cuando tiene los dos, así que acepta direcciones y datos en cualquier orden, como permite la especificación [18]. No empieza otra escritura mientras la respuesta no haya sido aceptada. La lectura captura el valor al aceptar la dirección y lo mantiene aunque el registro cambie mientras `RREADY` siga en 0. Se permite una escritura y una lectura pendientes a la vez, pero no varias del mismo tipo, que es suficiente para configurar el PWM y escribir `duty_ref` una vez por período sin agregar colas.
 
 ### 6.2 Portadora y registros sombra
 
@@ -386,7 +386,7 @@ Figura 9.3. Simulación del acondicionador con una entrada de 2,5 V con 0,1 V de
 
 La corriente llega al XADC por tres etapas en serie. El ACS712-20A entrega `Vs = 0,5·VCC + Sens·i`, con `Sens = 100 mV/A` típico (96 a 104 mV/A) y salida ratiométrica con la alimentación [10]. El restador de la sección 9.3 aplica ganancia y mueve el cero. El XADC cuantiza el rango de 0 a 1 V en 4096 cuentas de 244 µV [6].
 
-En el restador, `R+ = R5‖R6 = 18 kΩ` y `R- = R2‖R3 = 10 kΩ`, y la entrada inversora recibe `VCC/2` del divisor de `R2` y `R3`. Con la condición `R+/R7 = R1/R- = k` la salida y la ganancia quedan [18]
+En el restador, `R+ = R5‖R6 = 18 kΩ` y `R- = R2‖R3 = 10 kΩ`, y la entrada inversora recibe `VCC/2` del divisor de `R2` y `R3`. Con la condición `R+/R7 = R1/R- = k` la salida y la ganancia quedan [21]
 
 $$V_o = \left(1+\frac{R_1}{R_-}\right)V_+ - \frac{R_1}{R_-}\cdot\frac{V_{CC}}{2}, \qquad A_v = \left(1+\frac{R_1}{R_-}\right)\frac{R_+}{R_+ + R_7} = k$$
 
@@ -402,7 +402,7 @@ La diferencia tiene consecuencias de seguridad y no solo de exactitud, porque el
 
 Aun con la constante correcta, el sensor deja un presupuesto de error que conviene tener a la vista antes de medir.
 
-- Sensibilidad. La tolerancia de ±4 % del ACS712 se suma a la de las resistencias del restador. Como el lazo cierra sobre la corriente medida, un error de ganancia pasa directo a la amplitud real y se come parte del 10 % del enunciado. Por eso la ganancia se calibra en un punto contra la sonda, y la incertidumbre de esa calibración se combina como indica la guía GUM [19].
+- Sensibilidad. La tolerancia de ±4 % del ACS712 se suma a la de las resistencias del restador. Como el lazo cierra sobre la corriente medida, un error de ganancia pasa directo a la amplitud real y se come parte del 10 % del enunciado. Por eso la ganancia se calibra en un punto contra la sonda, y la incertidumbre de esa calibración se combina como indica la guía GUM [22].
 - Cero. Como `Vo0 = 0,1·VCC`, una `VCC` que se corra ±5 % mueve la salida ±25 mV, unas ±102 cuentas o ±0,10 A. Esa continua no entra en el error de la fundamental, pero con `Kp/R` cerca de 15,7 a frecuencia cero el lazo la devuelve a la carga casi completa, un 94 % de su valor, y la corriente real queda con esa componente de continua. La cuenta de reposo se mide con el puente apagado, porque la portadora corre aunque `enable` esté en 0 (sección 6.2).
 - Ruido. El ACS712-20A declara 11 mV pico a pico con 2 kHz de ancho de banda [10], que tras la ganancia son 26 mV, unas 108 cuentas o 0,11 A pico a pico referidos a la entrada. Es una cota de orden de magnitud, porque el ancho de banda real del sensor y del RC es otro, y pesa más en el ensayo de 0,2 A, de 0,4 A pico a pico.
 - Cuantización y temperatura. Una cuenta vale 1,017 mA, 0,25 % de los 0,4 A pico a pico del caso chico. La deriva del cero, de -0,07 mV/°C entre 25 y 150 °C [10], son 0,7 cuentas por grado tras la ganancia y no pesan en ensayos de pocos minutos.
@@ -468,7 +468,7 @@ La validación va por etapas, y cada una descarta una causa antes de sumar la si
 5. Pruebas en banco con la potencia apagada. Compuertas, tiempo muerto, trigger y fase de la interrupción con analizador lógico y osciloscopio.
 6. Ensayos energizados por pasos, empezando en 12 V y 0,2 A, en el orden de lazo abierto, solo proporcional, PR completo, cambio de amplitud y cambio de `R`.
 
-Los criterios de aprobación son los del enunciado, error de la fundamental menor a 10 % en al menos cinco períodos, rizado menor a 0,20 A pico a pico, y compuertas sin conducción simultánea con el tiempo muerto verificado antes de energizar. La lista de lo que se mide en cada etapa y con qué instrumento está en `docs/pruebas_integracion.md`.
+Los criterios de aprobación son los del enunciado, error de la fundamental menor a 10 % en al menos cinco períodos, rizado menor a 0,20 A pico a pico, y compuertas sin conducción simultánea con el tiempo muerto verificado antes de energizar. Qué se mide en cada etapa, con qué instrumento y con qué criterio está en `docs/guia_mediciones.md`, y la lista corta en `docs/pruebas_integracion.md`.
 
 ## 12. Resultados
 
@@ -495,7 +495,7 @@ Los grupos cubren, entre otros, `running` y precarga exacta de ambas piernas, re
 
 ### 12.4 Sintonización y márgenes del PR
 
-Con `L = 30 mH`, `R = 12 Ω`, `Vdc = 18 V`, `Td = 75 µs`, cruce de diseño en 1 kHz y `Kr = 3000`, salida de `verificar_pr.m`. Los mínimos de 45° de margen de fase y 6 dB de margen de ganancia son los criterios usuales de robustez ante el retardo y la variación de la planta [20].
+Con `L = 30 mH`, `R = 12 Ω`, `Vdc = 18 V`, `Td = 75 µs`, cruce de diseño en 1 kHz y `Kr = 3000`, salida de `verificar_pr.m`. Los mínimos de 45° de margen de fase y 6 dB de margen de ganancia son los criterios usuales de robustez ante el retardo y la variación de la planta [23].
 
 - Cruce en 1000 Hz con 66,5° de margen de fase y 10,5 dB de margen de ganancia.
 - Con cruce en 500 Hz, 83,2° y 16,5 dB. Con 2000 Hz, 37,8° y 4,5 dB, por debajo del mínimo de 45° y 6 dB.
@@ -656,7 +656,7 @@ Es el hallazgo de diseño más importante de la parte de control. El PR sintoniz
 
 La salida fue limitar la velocidad de `amplitud_ref`, y la primera estimación tenía un error de método que vale la pena anotar. La simulación en Octave medía el error contra la referencia ya rampeada en lugar de contra la amplitud que pide el switch, lo que escondía el problema. Al repetir la medición con el código real de `lazo_control.c` compilado con planta simulada y la amplitud verdadera, 200 muestras fallaban con 12,2 %. La rampa no mejora de forma monótona, a 800 muestras el error del segundo período vuelve a 14,9 %, porque el sistema pasa demasiado tiempo en una amplitud intermedia. Hay un mínimo ancho alrededor de un período completo, entre 350 y 480 muestras, y 400 queda en medio con 4,0 %.
 
-La consecuencia para el ensayo 4 es que el criterio de los 10 % se aplica a la amplitud rampeada, y el error en el primer período del cambio no es comparable con el de la tabla de la carga anterior (16,6 % y 15,0 %), que el documento de pruebas de integración todavía cita.
+La consecuencia para el ensayo 4 es que el criterio de los 10 % se aplica a la amplitud rampeada, y el error en el primer período del cambio no es comparable con el de la tabla de la carga anterior (16,6 % y 15,0 %), que los documentos de pruebas citaban antes de corregirse.
 
 ### 13.5 Rizado y aliasing
 
@@ -731,7 +731,7 @@ Con la evidencia actual no se puede afirmar nada sobre el rizado real, el retard
 
 - No hay mediciones energizadas, y la rúbrica pide error y rizado medidos. Las 16 pendientes de la sección 12.8 son el trabajo que falta.
 - La ganancia del sensor no está cerrada en el software. El análisis de la sección 9.4 reduce las tres cifras en conflicto a una. El acondicionador diseñado da 0,24 V/A (1,017e-3 A por cuenta), el archivo de LTspice de la rama `doc/sensor-carga` tiene resistencias que dan 0,12 V/A y el software usa 8,138e-4 A por cuenta, de 0,3 V/A. La constante `ADC_AMPERES_POR_CUENTA` sigue sin actualizarse y la ganancia del banco armado no está medida. Con la ganancia real hay que actualizar esa constante, el umbral de falla en cuentas y los límites de `supervisor_falla`. Con cualquiera de las tres el umbral de 1,3 A sigue cabiendo en la escala.
-- Los documentos de potencia no usan una carga única. El PR y el software están sintonizados para 12 Ω y 30 mH, el diseño de la carga, el modelo de PLECS y el cálculo de protecciones siguen con 10 Ω y 2 mH. Si el banco usa los valores vigentes, esos tres documentos hay que rehacerlos, y la corriente de techo ante una falla con 12 Ω queda en 1,84 A con 24 V y no en 2,21 A.
+- La carga de 12 Ω y 30 mH ya está en el PR, el software, el diseño del puente con sus protecciones y el modelo de PLECS (pull requests 68 y 69). Queda con 10 Ω y 2 mH el documento de diseño de la carga y el sensor de Jefferson (`potencia/carga_RL-Sensor`, en LaTeX, rama `doc/sensor-carga`), que hay que rehacer con los valores vigentes. Con 12 Ω el techo de corriente ante una falla es de 1,84 A con 24 V y no de 2,21 A, y la energía que vuelve al bus sube a 28,1 V en el peor caso.
 - Los valores de `L` y `R` no están medidos, y los márgenes de esquina cubren ±30 % y ±25 % pero no la saturación del transformador a 1,0 A.
 - La caché de instrucciones de 8 KB que pide el enunciado no se habilitó, y se justificó por escrito. Con el programa en la BRAM local no tendría qué guardar.
 - El cálculo del error de la fundamental supone que el histórico de 2048 registros cubre cinco períodos, y a 20 kHz cubre 5,12. Con menos margen que eso, un desfase de arranque de la ventana dejaría menos de cinco.
@@ -787,11 +787,17 @@ Una vez medido el retardo real del lazo se puede decidir si el PR resiste un fil
 
 [17] D. G. Holmes y T. A. Lipo, *Pulse Width Modulation for Power Converters, Principles and Practice*, IEEE Press y Wiley, 2003.
 
-[18] P. Horowitz y W. Hill, *The Art of Electronics*, 3.ª ed., Cambridge University Press, 2015.
+[18] Arm, *AMBA AXI and ACE Protocol Specification, AXI3, AXI4, AXI4-Lite, ACE and ACE-Lite*, IHI 0022E, 2013. https://documentation-service.arm.com/static/5f915b62f86e16515cdc3b1c
 
-[19] JCGM 100:2008, *Evaluation of measurement data, Guide to the expression of uncertainty in measurement*, BIPM.
+[19] AMD, *Vivado Design Suite AXI Reference Guide*, UG1037.
 
-[20] G. F. Franklin, J. D. Powell y A. Emami-Naeini, *Feedback Control of Dynamic Systems*, 7.ª ed., Pearson, 2015.
+[20] AMD, *Vivado Design Suite User Guide, Creating and Packaging Custom IP*, UG1118.
+
+[21] P. Horowitz y W. Hill, *The Art of Electronics*, 3.ª ed., Cambridge University Press, 2015.
+
+[22] JCGM 100:2008, *Evaluation of measurement data, Guide to the expression of uncertainty in measurement*, BIPM.
+
+[23] G. F. Franklin, J. D. Powell y A. Emami-Naeini, *Feedback Control of Dynamic Systems*, 7.ª ed., Pearson, 2015.
 
 ## 18. Anexo, evidencia y cómo reproducirla
 
@@ -805,6 +811,7 @@ Rutas dentro del repositorio.
 - `src/bd/sistema.tcl` y `src/crear_proyecto.tcl`, el Block Design y el script que regenera el proyecto.
 - `docs/informe/reportes/`, los reportes de utilización y de timing de Vivado.
 - `sw/` y `sw/pruebas/`, el software y sus pruebas.
+- `docs/guia_mediciones.md`, qué medir y cómo en el laboratorio, y `docs/informe/mediciones/`, donde se guardan las capturas.
 
 Simulaciones del periférico, desde la raíz del repositorio.
 
