@@ -44,7 +44,7 @@ int main(void)
   revisar(calcular(0.01f, &saturado) == (int16_t)lroundf((float)(PR_KP + PR_B0) * 0.01f / DUTY_ESCALA), "la primera iteración no es KP más B0"); // con estados en 0 solo quedan KP y B0, 0.01 porque con este KP un error de 0.1 ya satura
 
   pr_discreto_reiniciar();
-  revisar(calcular(10.0f, &saturado) == tope && saturado, "no satura arriba en PR_U_MAX"); // 10 A no se alcanza nunca con 18 V
+  revisar(calcular(10.0f, &saturado) == tope && saturado, "no satura arriba en PR_U_MAX"); // 10 A no se alcanza nunca con 24 V
   pr_discreto_reiniciar();
   revisar(calcular(-10.0f, &saturado) == -tope && saturado, "no satura abajo en -PR_U_MAX");
   pr_discreto_reiniciar();
