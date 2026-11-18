@@ -71,7 +71,7 @@ Ninguno de los umbrales está acordado todavía. Quedan con un valor provisional
 
   Con la carga en cortocircuito no hay R que ponga techo ni protección por hardware. El pin SD de los IR2110 va a `VSS`, el electrolítico del bus se descarga por dos MOSFET con un pico de unos 60 A, y el software corta a los 100 µs, cuando ya recibieron un pulso sobre sus 38 A pulsados. Ese caso queda sin cubrir para los MOSFET (`potencia/diseno_puente_h.md`, sección "Cortocircuito de la carga").
 
-- `CUENTA_ADC_MIN` y `CUENTA_ADC_MAX` dependen de la ganancia y el offset reales del acondicionamiento, que mide Jefferson. Con la sensibilidad teórica de 0,3 V/A de `lazo_control.md` (h.6), 16 y 4079 cuentas equivalen a ±1,65 A, por encima del umbral de 1,3 A, así que la sobrecorriente dispara primero y el fuera de escala queda para el sensor desconectado. Con 0,4 V/A valdrían ±1,24 A y el orden se invertiría.
+- `CUENTA_ADC_MIN` y `CUENTA_ADC_MAX` dependen de la ganancia y el offset reales del acondicionamiento. Con la ganancia medida de 0,2196 V/A de `lazo_control.md` (h.6), 16 y 4079 cuentas equivalen a ±2,26 A, por encima del umbral de 1,3 A, así que la sobrecorriente dispara primero y el fuera de escala queda para el sensor desconectado. Con una ganancia de 0,4 V/A o más el orden se invertiría.
 - `ITERACIONES_SIN_DATO_MAX = 3` es provisional. Mientras las ausencias sean toleradas, el PWM conserva el último `duty_ref`. El umbral debe validarse junto con el tiempo de detección y apagado. Con la fase ajustada según [control principal](control_principal.md), el funcionamiento nominal debe entregar una muestra nueva por ISR.
 
 ### h.5) Interfaz en C
