@@ -2,7 +2,8 @@ function verificar_pr()
   % cifras de potencia/diseno_pr.md, en el mismo orden
   L = 30e-3;
   R = 12;
-  vdc = 18;
+  vdc = 18; % lazo abierto, el mismo bus que el PLECS
+  vdc_coef = 24; % con el que se genera pr_params.h y se corre el lazo cerrado
   fs = 20000;
   kr = 3000;
   ts = 1 / fs;
@@ -13,7 +14,7 @@ function verificar_pr()
   z = R + 1i * w0 * L;
   fprintf('|Z| = %.2f ohm, desfase %.1f grados\n', abs(z), -angle(z) * 180 / pi);
   fprintf('indice con %d V, %.3f, %.3f y %.3f para 0.2, 0.5 y 1.0 A\n', vdc, abs(z) * [0.2 0.5 1.0] / vdc);
-  fprintf('Kp = %.2f V/A, KP = %.4f, Kr/wc = %.2f\n', kp, kp / vdc, kr / (2 * pi * 1000));
+  fprintf('Kp = %.2f V/A, KP = %.4f con %d V, Kr/wc = %.2f\n', kp, kp / vdc_coef, vdc_coef, kr / (2 * pi * 1000));
 
   fprintf('\nMargenes segun fc\n');
   for fc = [500 1000 2000]
@@ -58,7 +59,6 @@ function verificar_pr()
   imprimir_margenes('nominal con 12.5 ohm', kp, kr, L, 12.5, td, []);
 
   fprintf('\nCoeficientes generados con 24 V y el bus en 12, 18 y 24 V\n');
-  vdc_coef = 24;
   for vbus = [12 18 24]
     kp_bus = kp * vbus / vdc_coef; % pr_params.h trae el 1/Vdc fijo, el bus real lo vuelve a multiplicar
     kr_bus = kr * vbus / vdc_coef;
@@ -97,6 +97,21 @@ function verificar_pr()
       iref, i_ab, 100 * (i_ab / iref - 1), fi_ab, i_p, 100 * (1 - i_p / iref), fi_p);
   end
 
+  fprintf('Solo P con %d V\n', vdc_coef);
+  dvf24 = 4 / pi * 2 * vdc_coef * 1e-6 * fs;
+  for iref = [0.2 0.5 1.0]
+    g = kp * exp(-1i * w0 * td);
+    [i_p, fi_p] = fundamental_tm(g * iref, g, zr, dvf24);
+    fprintf('%.1f A, solo P %.3f A, error %.1f %%, %.1f grados\n', iref, i_p, 100 * (1 - i_p / iref), fi_p);
+  end
+
+  fprintf('\nIndice en regimen con 1.0 A, tiempo muerto y RDS(on), contra PR_U_MAX = 0.92\n');
+  for rc = [R 12.5 1.25 * R]
+    fprintf('R %.2f ohm, %.3f con 18 V, %.3f con 24 V, Vdc minimo %.1f V\n', rc, indice_regimen(1.0, rc, L, 18, fs), ...
+      indice_regimen(1.0, rc, L, 24, fs), fzero(@(v) indice_regimen(1.0, rc, L, v, fs) - 0.92, [10 40]));
+  end
+  fprintf('R %.2f ohm con 0.5 A, %.3f con 18 V\n', 1.25 * R, indice_regimen(0.5, 1.25 * R, L, 18, fs));
+
   fprintf('Pico del escalon de 0.2 a 1.0 A en 20 instantes y en las esquinas, %.3f A\n', pico_escalon(kp, kr, L, R, fs));
   fprintf('Indice maximo del escalon con %d V, %.2f, y con R en %g ohm, %.2f\n', vdc, indice_maximo(kp, kr, L, R, fs, vdc), 1.25 * R, indice_maximo(kp, kr, L, 1.25 * R, fs, vdc));
   fprintf('Con 12 V, %.2f en regimen y %.2f en el escalon\n', abs(z) / 12, indice_maximo(kp, kr, L, R, fs, 12));
@@ -110,6 +125,12 @@ function [amp, fase] = fundamental_tm(fuente, g, z, dvf)
   end
   amp = abs(i);
   fase = angle(i) * 180 / pi;
+end
+
+function m = indice_regimen(iref, R, L, vdc, fs)
+  % tension que tiene que dar el puente pa iref, con la corriente en fase 0 la perdida del tiempo muerto queda en fase con ella
+  z = R + 0.4 + 1i * 2 * pi * 50 * L;
+  m = abs(iref * z + 4 / pi * 2 * vdc * 1e-6 * fs) / vdc;
 end
 
 function kp = kp_cruce(fc, L, R)
