@@ -54,6 +54,22 @@ function verificar_pr()
     imprimir_margenes([filtros{k, 1} ' esquina'], kp, kr, 0.7 * L, 0.75 * R, td, filtros{k, 2});
   end
 
+  fprintf('\nCarga medida en el banco\n');
+  imprimir_margenes('nominal con 12.5 ohm', kp, kr, L, 12.5, td, []);
+
+  fprintf('\nCoeficientes generados con 24 V y el bus en 12, 18 y 24 V\n');
+  vdc_coef = 24;
+  for vbus = [12 18 24]
+    kp_bus = kp * vbus / vdc_coef; % pr_params.h trae el 1/Vdc fijo, el bus real lo vuelve a multiplicar
+    kr_bus = kr * vbus / vdc_coef;
+    imprimir_margenes(sprintf('%d V nominal', vbus), kp_bus, kr_bus, L, R, td, []);
+    imprimir_margenes(sprintf('%d V esquina', vbus), kp_bus, kr_bus, 0.7 * L, 0.75 * R, td, []);
+    imprimir_margenes(sprintf('%d V con RC 2 kHz, esquina', vbus), kp_bus, kr_bus, 0.7 * L, 0.75 * R, td, rc_f(2e3));
+    fprintf('  escalon de 0.2 a 1.0 A, %s %%\n', sprintf('%.1f ', escalon(kp_bus, kr_bus, L, R, fs, 0.2, 1.0, R, 5)));
+  end
+  imprimir_margenes('coeficientes de 18 V con el bus en 24 V, esquina', kp * 24 / 18, kr * 24 / 18, 0.7 * L, 0.75 * R, td, []);
+  imprimir_margenes('coeficientes de 18 V con el bus en 24 V, RC 2 kHz, esquina', kp * 24 / 18, kr * 24 / 18, 0.7 * L, 0.75 * R, td, rc_f(2e3));
+
   fprintf('\nEscalon en las esquinas\n');
   for lc = [0.7 1.3] * L
     for rc = [0.75 1.25] * R
