@@ -24,9 +24,11 @@ Confirmado con Mattio, la carga del banco es de unos 12,5 Ω y 30 mH. Queda cerc
 
 ## Vdc con que se generan los coeficientes del PR
 
-`sw/generar_pr_params.m` mete el $1/V_{dc}$ dentro de `PR_KP` y `PR_B0`, y el bus real lo vuelve a multiplicar en el puente. La ganancia del lazo en el banco es entonces la de diseño por $V_{dc,bus}/V_{dc,generado}$. `pr_params.h` estaba generado con 18 V. Si la prueba de 1,0 A se corre a 24 V con ese header, `Kp` y `Kr` efectivos suben a 251,8 V/A y 4000, y en la esquina de $L$ baja el lazo queda con 40,5° y 5,0 dB, debajo del criterio de 45° y 6 dB. Con el filtro antialias RC de 2 kHz (#29) baja a 14,3° y 2,3 dB, casi oscilando.
+`sw/generar_pr_params.m` mete el $1/V_{dc}$ dentro de `PR_KP` y `PR_B0`, y el bus real lo vuelve a multiplicar en el puente. La ganancia del lazo en el banco es entonces la de diseño por $V_{dc,bus}/V_{dc,generado}$. `pr_params.h` estaba generado con 18 V. Si la prueba de 1,0 A se corre a 24 V con ese header, `Kp` y `Kr` efectivos suben a 251,8 V/A y 4000, y en la esquina de $L$ baja el lazo queda con 40,5° y 5,0 dB, debajo del criterio de 45° y 6 dB. Con un RC de 2 kHz, el más bajo que se llegó a considerar en #29, baja a 14,3° y 2,3 dB, casi oscilando.
 
-Se regeneró `pr_params.h` con 24 V, el máximo del enunciado, así que ahora el bus solo puede bajar la ganancia. Con 24 V quedan los márgenes de diseño, 66,5° y 10,5 dB. Con 18 V el cruce baja a 749 Hz con 74,4° y 13,0 dB, la esquina con el RC de 2 kHz mejora a 42,1° y 7,3 dB, y el escalón de 0,2 a 1,0 A empieza en 7,0 % el primer período. Con 12 V queda en 83,6° nominal, pero ahí no se corre 1,0 A. Las cifras salen de `potencia/verificar_pr.m` y el detalle está en [`pr_discreto.md`](modulos/pr_discreto.md), h.3.
+Se regeneró `pr_params.h` con 24 V, el máximo del enunciado, así que ahora el bus solo puede bajar la ganancia. Con 24 V quedan los márgenes de diseño, 66,5° y 10,5 dB. Con 18 V el cruce baja a 749 Hz con 74,4° y 13,0 dB, la esquina con el RC de 2 kHz mejora a 42,1° y 7,3 dB, y el escalón de 0,2 a 1,0 A empieza en 7,0 % el primer período. Con 12 V queda en 83,6° nominal, pero ahí no se corre 1,0 A.
+
+El lazo cerrado igual tiene que ir con 24 V. Contando el tiempo muerto, la `RDS(on)` y la carga medida de 12,5 Ω, 1,0 A con 18 V pide un índice de 0,929, sobre `PR_U_MAX = 0,92`, y el mínimo es 18,2 V. Con 24 V queda en 0,707. La guía de mediciones, `pruebas_integracion.md` y `diseno_pr.md` ya tienen el lazo abierto en 18 V y el lazo cerrado en 24 V. Las cifras salen de `potencia/verificar_pr.m` y el detalle está en [`pr_discreto.md`](modulos/pr_discreto.md), h.3.
 
 ## Causa de la falla al habilitar, sigue abierta
 
