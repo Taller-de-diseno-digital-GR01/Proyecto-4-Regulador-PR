@@ -195,7 +195,7 @@ El flanco más lento de la cadena es el apagado, con unos 250 + 400 + 125 + 138 
 
 ## Protecciones
 
-El puente opera con Vdc = 18 V. Las protecciones se dimensionan con 24 V, el máximo del rango del enunciado, para que un ajuste equivocado de la fuente no las deje cortas.
+El puente opera con Vdc = 18 V en lazo abierto y 24 V en lazo cerrado, porque con 18 V y la carga medida el PR satura a 1,0 A (`diseno_pr.md`). Las protecciones se dimensionan con 24 V, el máximo del rango del enunciado.
 
 Cada falla tiene su escala de tiempo, y la cubre la protección que alcanza a actuar antes del daño.
 
@@ -225,7 +225,7 @@ En los 15 V, junto a los IR2110, va un electrolítico de 47 µF y 25 V, que repo
 
 A la entrada de Vdc, entre la fuente y el electrolítico, va un fusible rápido de vidrio de 5×20 mm, de 630 mA o 1 A, en un portafusible en línea. Corta una falla sostenida que la fuente no limite, por ejemplo un MOSFET que quedó en corto con el límite de la fuente por encima de la nominal del fusible. También corta la fuente conectada con la polaridad invertida, porque los diodos de cuerpo de una diagonal ponen el bus en corto con unos −1,5 V.
 
-La corriente normal sale de la potencia de la carga. Con 1 A pico en 12 Ω, `P = I_rms² · R` = (1 A / √2)² · 12 Ω = 6 W. Con unos 2 W de pérdidas de los cuatro transistores como cota (sección "Pérdidas"), la fuente entrega 8 W / 18 V ≈ 0,44 A en promedio. Littelfuse recomienda operar un fusible a no más del 75 % de su nominal a 25 °C [12], así que la nominal tiene que ser de 0,59 A o más. 630 mA queda al 70 % y 1 A al 44 %. En la entrada el fusible ve solo el promedio, porque el electrolítico toma los pulsos del puente. La inductancia y la resistencia del fusible quedan fuera del camino entre el electrolítico y las piernas.
+La corriente normal sale de la potencia de la carga. Con 1 A pico en 12 Ω, `P = I_rms² · R` = (1 A / √2)² · 12 Ω = 6 W. Con unos 2 W de pérdidas de los cuatro transistores como cota (sección "Pérdidas"), la fuente entrega 8 W / 18 V ≈ 0,44 A en promedio, y con 24 V baja a 0,33 A. Littelfuse recomienda operar un fusible a no más del 75 % de su nominal a 25 °C [12], así que la nominal tiene que ser de 0,59 A o más. 630 mA queda al 70 % y 1 A al 44 %. En la entrada el fusible ve solo el promedio, porque el electrolítico toma los pulsos del puente. La inductancia y la resistencia del fusible quedan fuera del camino entre el electrolítico y las piernas.
 
 El fusible es rápido porque no hay corriente de arranque que esquivar. Vdc se aplica último y con la fuente limitada, así que el electrolítico se carga a la corriente del límite.
 
