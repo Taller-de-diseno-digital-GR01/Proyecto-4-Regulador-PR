@@ -14,6 +14,10 @@ El $A_v=2{,}4$ del texto se calculó con una sensibilidad de sensor de 100 mV/A,
 
 [`pr_discreto.md`](modulos/pr_discreto.md) fija $K_p = 188{,}88$ V/A y $K_r = 3000$ para la carga de 12 Ω y 30 mH, y la planta simulada (`PLANTA_SIMULADA` en `sw/lazo_control.c`) usa esos mismos 12 Ω y 30 mH. El punto de diseño candidato de `diseño_carga_sensor.tex` es $R=10\ \Omega$, $L=2$ mH, quince veces menos inductancia que la asumida por el PR. Falta confirmar cuál es la carga realmente armada en el banco ahora. Si es la de 2 mH el PR nunca se validó contra esa dinámica, y eso explica mejor la sobrecorriente al habilitar que cualquier problema del sensor.
 
+Confirmado con Mattio, la carga del banco es de unos 12,5 Ω y 30 mH. Queda cerca de lo que ya asume el PR, no hace falta rehacer el Bode ni resintonizar `Kp`/`Kr`.
+
 ## Ganancia asumida en firmware vs ganancia real confirmada
 
 `sw/lazo_control.h` asume 0,3 V/A y 0,5V de offset a la entrada del ADC (`ADC_AMPERES_POR_CUENTA`, `ADC_OFFSET_CUENTAS`, ya marcados "provisional" en el propio código, y el mismo pendiente que [`pruebas_integracion.md`](../pruebas_integracion.md) deja anotado). Con $A_v=1{,}2$ confirmado y el sensor de 183 mV/A, la ganancia real a la entrada del ADC es de unos 0,22 V/A, no 0,3 V/A. El offset sí coincide, 0,5V. Hay que recalcular esa constante, y de paso `UMBRAL_SOBRECORRIENTE` en `supervisor_falla.h`, para que reflejen la ganancia real.
+
+`ADC_AMPERES_POR_CUENTA` ya quedó corregida a 1,1118e-3 (ganancia real de 0,2196 V/A). `UMBRAL_SOBRECORRIENTE` no necesitaba tocarse, está en amperios físicos y no depende de esa constante.
