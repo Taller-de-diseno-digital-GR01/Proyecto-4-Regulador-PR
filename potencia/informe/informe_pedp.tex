@@ -172,7 +172,7 @@ El enunciado pide un cambio de al menos \SI{25}{\percent} en la resistencia exte
 
 \subsection{Sensor y acondicionamiento}
 \label{sec:sensor}
-La corriente se mide con un ACS712, un sensor de efecto Hall bidireccional con aislamiento propio \cite{acs712}, que a \SI{0}{A} entrega $V_{cc}/2=\SI{2.5}{V}$. El sensor necesita \SI{5}{V} y las salidas de la Basys~3 son de \SI{3.3}{V}, así que lleva una fuente aparte de \SI{5}{V}. El XADC de la Basys~3 solo acepta \SI{0}{} a \SI{1}{V} en el Pmod JXADC, así que un amplificador restador quita ese cero, aplica una ganancia $A_v$ y suma un offset de \SI{0.5}{V}, de modo que \SI{0}{A} cae a mitad de la escala útil. La salida del amplificador pasa por un filtro RC antialias.
+La corriente se mide con un ACS712 de \SI{5}{A} (\SI{185}{mV/A} típico, \num{180} a \SI{190}{mV/A}), un sensor de efecto Hall bidireccional con aislamiento propio \cite{acs712}, que a \SI{0}{A} entrega $V_{cc}/2=\SI{2.5}{V}$. El sensor necesita \SI{5}{V} y las salidas de la Basys~3 son de \SI{3.3}{V}, así que lleva una fuente aparte de \SI{5}{V}. El XADC de la Basys~3 solo acepta \SI{0}{} a \SI{1}{V} en el Pmod JXADC, así que un amplificador restador quita ese cero, aplica una ganancia $A_v$ y suma un offset de \SI{0.5}{V}, de modo que \SI{0}{A} cae a mitad de la escala útil. La salida del amplificador pasa por un filtro RC antialias.
 
 \begin{figure}[!ht]
 	\centering
@@ -196,11 +196,11 @@ El circuito tiene tres tareas, quitar el cero del sensor (\SI{2.5}{V}), amplific
 
 La ganancia se eligió para dejar \SI{0.10}{V} de margen en cada extremo del rango de \SI{0}{} a \SI{1}{V}, una excursión de $\pm\SI{0.40}{V}$ alrededor de \SI{0.5}{V}. Con la sensibilidad de \SI{100}{mV/A} del sensor y la corriente máxima de la carga original, \SI{1.66}{A}, $A_v\le0.40/(0.100\cdot1.66)=2.41$, y se tomó $A_v=2.4$. Con la carga vigente y el umbral de falla de \SI{1.3}{A} la cota es $A_v\le3.08$, y la ganancia de \num{2.4} la cumple igual. El offset de \SI{0.5}{V} sale de $R_5=9R_6$, con $R_6=\SI{20}{k\ohm}$ y $R_5=\SI{180}{k\ohm}$, que dan $R_+=\SI{18}{k\ohm}$. El balance pide $R_7=R_+/A_v=\SI{7.5}{k\ohm}$, y con $R_2=R_3=\SI{20}{k\ohm}$ y $R_1=\SI{24}{k\ohm}$ el amplificador queda balanceado. Con $V_{sensor}=\SI{2.5}{V}$ resulta $V_+=\SI{1.912}{V}$ y $V_o=\SI{0.50}{V}$.
 
-Jefferson cambió $R_1$ a \SI{12}{k\ohm} y $R_7$ a \SI{15}{k\ohm} en el esquema del 13 de noviembre. El balance se mantiene ($R_+/R_7=R_1/R_-=1.2$) y con $V_{sensor}=\SI{2.5}{V}$ la salida sigue en \SI{0.50}{V}, pero la ganancia pasa a \num{1.2} y la sensibilidad de todo el camino a \SI{0.12}{V/A}. El texto de diseño no recoge ese cambio. \pendiente{confirmar con Jefferson qué ganancia quedó montada, \num{2.4} o \num{1.2}}.
+Jefferson cambió $R_1$ a \SI{12}{k\ohm} y $R_7$ a \SI{15}{k\ohm} en el esquema del 13 de noviembre. El balance se mantiene ($R_+/R_7=R_1/R_-=1.2$) y con $V_{sensor}=\SI{2.5}{V}$ la salida sigue en \SI{0.50}{V}, pero la ganancia pasa a \num{1.2} y la sensibilidad de todo el camino a \SI{0.12}{V/A}. El texto de diseño no recoge ese cambio. En el banco se confirmó el 17 de noviembre que quedó montada la ganancia de \num{1.2}, y que el sensor instalado es el de \SI{5}{A}, no el de \SI{20}{A} con que se calculó $A_v=2.4$. La sensibilidad del sensor medida fue de \SI{183}{mV/A}, dentro de los \num{180} a \SI{190}{mV/A} de la hoja de datos \cite{acs712}, y la de todo el camino queda en $1.2\cdot\SI{183}{mV/A}=\SI{0.2196}{V/A}$.
 
-Con la carga vigente el techo en régimen senoidal es $0.92\,V_{dc}/|Z|=\SI{1.085}{A}$ pico, y la escala del XADC sigue cubriendo el umbral de falla de \SI{1.3}{A} con cualquiera de las dos ganancias. La ganancia final está \pendiente{ganancia $A_v$ real del acondicionador montado}. El software usa provisionalmente \SI{0.3}{V/A} en todo el camino de medición, que equivale a \SI{8.138e-4}{A} por cuenta del XADC de \num{12} bits, y la ganancia del diseño de acondicionamiento no es la misma. Cuando se mida la ganancia real se actualizan la conversión de cuentas a amperes y los límites de la protección. La calibración contra una sonda de corriente está \pendiente{calibrar el sensor contra la sonda}.
+Con la carga vigente el techo en régimen senoidal es $0.92\,V_{dc}/|Z|=\SI{1.085}{A}$ pico, y la escala del XADC sigue cubriendo el umbral de falla de \SI{1.3}{A} con cualquiera de las dos ganancias. Con \SI{0.2196}{V/A} el software usa $\SI{1}{V}/(4096\cdot\SI{0.2196}{V/A})=\SI{1.1118e-3}{A}$ por cuenta del XADC de \num{12} bits, y la escala cubre $\pm\SI{2.28}{A}$. Antes usaba provisionalmente \SI{0.3}{V/A} (\SI{8.138e-4}{A} por cuenta), que hacía leer al lazo el \SI{73}{\percent} de la corriente real. Cuando se mida la ganancia real se actualizan la conversión de cuentas a amperes y los límites de la protección. La calibración contra una sonda de corriente está \pendiente{calibrar el sensor contra la sonda}.
 
-Para el offset se adopta la cuenta de \num{2048}, que es \SI{0.5}{V} en el XADC de \num{12} bits y \SI{1}{V} de escala. Sale del diseño del acondicionador de Jefferson, donde el restador quita los \SI{2.5}{V} del sensor y suma \SI{0.5}{V}, y es el valor que ya usa el software como \texttt{ADC\_OFFSET\_CUENTAS}. La hoja de datos del ACS712 \cite{acs712} da la salida a \SI{0}{A} solo como $V_{CC}\times0.5$ típico, sin mínimo ni máximo, y como deriva con la temperatura \SI{-0.07}{mV/\celsius} entre \SI{25}{} y \SI{150}{\celsius} para la versión de \SI{20}{A}, de modo que ni el offset de fábrica ni su dispersión están acotados por el fabricante. Con el banco a unos \SI{25}{\celsius} la deriva es de unos \SI{4}{mV} si el sensor sube \SI{60}{\celsius}, apenas \num{0.04}~A. Como el cero también sigue a $V_{cc}$, un error de \SI{50}{mV} en la fuente de \SI{5}{V} lo mueve \SI{25}{mV}, y ese corrimiento sí es comparable con la referencia de \SI{0.2}{A}. Con esa incertidumbre y sin cota del fabricante se adopta \num{2048} cuentas como el cero del sensor, y la protección y la conversión a amperes parten de ese valor.
+Para el offset se adopta la cuenta de \num{2048}, que es \SI{0.5}{V} en el XADC de \num{12} bits y \SI{1}{V} de escala. Sale del diseño del acondicionador de Jefferson, donde el restador quita los \SI{2.5}{V} del sensor y suma \SI{0.5}{V}, y es el valor que ya usa el software como \texttt{ADC\_OFFSET\_CUENTAS}. La hoja de datos del ACS712 \cite{acs712} da la salida a \SI{0}{A} solo como $V_{CC}\times0.5$ típico, sin mínimo ni máximo, y como deriva con la temperatura \SI{-0.08}{mV/\celsius} entre \SI{25}{} y \SI{150}{\celsius} para la versión de \SI{5}{A}, de modo que ni el offset de fábrica ni su dispersión están acotados por el fabricante. Con el banco a unos \SI{25}{\celsius} la deriva es de unos \SI{4}{mV} si el sensor sube \SI{60}{\celsius}, apenas \num{0.04}~A. Como el cero también sigue a $V_{cc}$, un error de \SI{50}{mV} en la fuente de \SI{5}{V} lo mueve \SI{25}{mV}, y ese corrimiento sí es comparable con la referencia de \SI{0.2}{A}. Con esa incertidumbre y sin cota del fabricante se adopta \num{2048} cuentas como el cero del sensor, y la protección y la conversión a amperes parten de ese valor.
 
 El filtro antialias RC propuesto usa \SI{1}{k\ohm} y \SI{33}{nF}, con corte en \SI{4823}{Hz}, un retardo de \SI{33}{\micro s} y un atraso de $\arctan(50/4823)=\ang{0.59}$ sobre la señal de \SI{50}{Hz}. Se pidió un corte entre \num{2} y \SI{5}{kHz}, el rango aceptado para el regulador, porque un corte menor atenúa más ruido pero agrega más retardo al lazo. El ruido del sensor es de \SI{11}{mV} pico a pico con \SI{2}{kHz} de ancho de banda, y crece con la raíz del ancho de banda, así que con ese corte el ruido equivale a unos \SI{17}{mV}, \SI{0.17}{A} pico a pico con la sensibilidad de \SI{100}{mV/A}. La Tabla~\ref{tab:antialias} compara tres capacitores con $R_4=\SI{1}{k\ohm}$. El valor final se define con el ruido medido, \pendiente{medir ruido del sensor y fijar $C_1$}.
 
@@ -275,15 +275,15 @@ Antes de los ensayos con el regulador se miden los parámetros que el diseño su
 		\toprule
 		Magnitud & Nominal & Medido \\
 		\midrule
-		$L$ del transformador & \SI{30}{mH} & \pendiente{medir} \\
-		$R$ total de la carga & \SI{12}{\ohm} & \pendiente{medir} \\
+		$L$ del transformador & \SI{30}{mH} & \SI{30}{mH} \\
+		$R$ total de la carga & \SI{12}{\ohm} & \SI{12.5}{\ohm} \\
 		$R$ del devanado & --- & \pendiente{medir} \\
 		$L$ a \SI{1.0}{A} (saturación) & \SI{30}{mH} & \pendiente{medir} \\
 		Tiempo muerto en las compuertas & \SI{1.00}{\micro s} & \SI{1}{\micro s} (16/11, potencia apagada) \\
 		Retardo de la cadena de compuertas & \num{0.1} a \SI{0.91}{\micro s} & \pendiente{medir} \\
 		Offset del sensor a \SI{0}{A} & \num{2048} cuentas & \num{2048} cuentas (adoptado) \\
-		Ganancia del sensor y acondicionador & \SI{0.24}{V/A} o \SI{0.12}{V/A} & \pendiente{medir} \\
-		Ruido del sensor & \SI{17}{mV} pico a pico & \pendiente{medir} \\
+		Ganancia del sensor y acondicionador & \SI{0.24}{V/A} o \SI{0.12}{V/A} & \SI{0.2196}{V/A} \\
+		Ruido del sensor & \SI{25}{mV} pico a pico & \pendiente{medir} \\
 		\bottomrule
 	\end{tabular}
 \end{table}
@@ -412,7 +412,7 @@ El resonante discretizado es un filtro de segundo orden, $r[k]=b_0e[k]+b_1e[k-1]
 	b_0=\frac{K_r\sin\theta}{2\omega_0},\ b_1=0,\ b_2=-b_0,\ a_1=-2\cos\theta,\ a_2=1.
 	\label{eq:coef}
 \end{equation}
-Dividiendo $K_p$ entre $V_{dc}$ para que la salida sea índice de modulación, los coeficientes finales son $K_P=\num{10.4932}$, $b_0=\num{4.1665e-3}$, $b_2=-\num{4.1665e-3}$ y $a_1=-\num{1.99975}$. $a_1$ queda muy cerca de $-2$ y la diferencia con $-2$ fija la frecuencia del polo, así que hay que representarla bien. En punto flotante de \num{32} bits el paso en ese valor es de \num{1.2e-7}, que corre el polo \SI{0.012}{Hz} y deja la ganancia del resonante en \SI{50}{Hz} en miles. Por eso el controlador corre en punto flotante en el procesador.
+Dividiendo $K_p$ entre $V_{dc}=\SI{24}{V}$ para que la salida sea índice de modulación, los coeficientes finales son $K_P=\num{7.8699}$, $b_0=\num{3.1249e-3}$, $b_2=-\num{3.1249e-3}$ y $a_1=-\num{1.99975}$. Se divide entre \SI{24}{V}, el máximo del enunciado, porque el $1/V_{dc}$ queda fijo en el programa y el bus real lo vuelve a multiplicar. Con el bus más bajo el lazo solo pierde ganancia, y con coeficientes de \SI{18}{V} y el bus en \SI{24}{V} la esquina de $L$ baja quedaría en \ang{40.5} y \SI{5.0}{dB}. Además, con el tiempo muerto, la $R_{DS(on)}$ y la carga medida de \SI{12.5}{\ohm}, \SI{1.0}{A} con \SI{18}{V} pide un índice de \num{0.929}, sobre $\num{0.92}$, así que el lazo cerrado se ensaya con \SI{24}{V}, donde queda en \num{0.707}. $a_1$ queda muy cerca de $-2$ y la diferencia con $-2$ fija la frecuencia del polo, así que hay que representarla bien. En punto flotante de \num{32} bits el paso en ese valor es de \num{1.2e-7}, que corre el polo \SI{0.012}{Hz} y deja la ganancia del resonante en \SI{50}{Hz} en miles. Por eso el controlador corre en punto flotante en el procesador.
 
 \subsection{Saturación y rampa de amplitud}
 \label{sec:sat}
@@ -574,9 +574,9 @@ El \SI{1}{\micro s} medido coincide con el que usa \texttt{verificar\_pr.m}. Con
 		\toprule
 		Ref. (A) & Solo P pred. (\%) & Solo P med. & Error PR (\%) & Desfase (°) & Rizado (A) \\
 		\midrule
-		\num{0.2} & \num{8.4} & \pendiente{medir} & \pendiente{medir} & \pendiente{medir} & \pendiente{medir} \\
-		\num{0.5} & \num{7.1} & \pendiente{medir} & \pendiente{medir} & \pendiente{medir} & \pendiente{medir} \\
-		\num{1.0} & \num{6.6} & \pendiente{medir} & \pendiente{medir} & \pendiente{medir} & \pendiente{medir} \\
+		\num{0.2} & \num{9.2} & \pendiente{medir} & \pendiente{medir} & \pendiente{medir} & \pendiente{medir} \\
+		\num{0.5} & \num{7.4} & \pendiente{medir} & \pendiente{medir} & \pendiente{medir} & \pendiente{medir} \\
+		\num{1.0} & \num{6.8} & \pendiente{medir} & \pendiente{medir} & \pendiente{medir} & \pendiente{medir} \\
 		\bottomrule
 	\end{tabular}
 \end{table}
