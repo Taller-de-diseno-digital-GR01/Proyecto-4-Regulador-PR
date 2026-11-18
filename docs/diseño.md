@@ -2537,13 +2537,15 @@ Si más adelante se agrega compensación del retardo de cómputo o un segundo re
 
 ### h.3) Coeficientes de partida
 
-Con `Vdc = 18 V`, `fs = 20 kHz`, `Kp = 188,88 V/A` y `Kr = 3000`, ya divididos entre `Vdc`, para la carga de 12 Ω y 30 mH.
+Con `Vdc = 24 V`, `fs = 20 kHz`, `Kp = 188,88 V/A` y `Kr = 3000`, ya divididos entre `Vdc`, para la carga de 12 Ω y 30 mH.
 
-- `PR_KP = 10,4932`
-- `PR_B0 = 4,1665e-3`, `PR_B1 = 0`, `PR_B2 = -4,1665e-3`
+- `PR_KP = 7,8699`
+- `PR_B0 = 3,1249e-3`, `PR_B1 = 0`, `PR_B2 = -3,1249e-3`
 - `PR_A1 = -1,99975`, `PR_A2 = 1`
 
-Son provisionales hasta medir `L` y `R` reales y confirmar `Vdc` y la frecuencia de muestreo. Si cambian, se regeneran con el script y este módulo no se toca.
+El `1 / Vdc` queda fijo en el header y el bus real lo vuelve a multiplicar, así que la ganancia del lazo en el banco es la de diseño por `Vdc_bus / 24`. Por eso se generan con 24 V, el máximo del enunciado. Con el bus más bajo el lazo solo pierde ancho de banda, con 18 V el cruce baja a 749 Hz con 74,4° y 13,0 dB y el escalón de 0,2 a 1,0 A queda en 7,0 % el primer período. Al revés no sirve, con coeficientes generados a 18 V y el bus en 24 V la esquina de `L` baja queda en 40,5° y 5,0 dB, debajo de 45° y 6 dB. Las cifras salen de `potencia/verificar_pr.m`, sección de los coeficientes generados con 24 V.
+
+La carga medida en el banco es de 12,5 Ω y 30 mH. Mueve el margen nominal de 66,5° a 66,7°, así que los coeficientes se dejan con 12 Ω. Si la frecuencia de muestreo cambia, se regeneran con el script y este módulo no se toca.
 
 ### h.4) Unidades de la salida
 

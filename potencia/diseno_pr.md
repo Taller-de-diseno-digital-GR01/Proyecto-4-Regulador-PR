@@ -89,12 +89,12 @@ La estructura de cinco coeficientes de `pr_discreto` y de `generar_pr_params.m` 
 
 ## Coeficientes resultantes
 
-Con los valores provisionales y dividiendo entre `Vdc` para que la salida sea índice de modulación, como ya prevé el script.
+Dividiendo entre `Vdc = 24 V` para que la salida sea índice de modulación, como ya prevé el script. Se divide entre el máximo del enunciado y no entre los 18 V del punto de operación, porque con el bus más bajo la ganancia efectiva solo baja (`docs/diseño/modulos/pr_discreto.md`, h.3).
 
-- `KP = 10,4932`
-- `B0 = 4,1665e-3`
+- `KP = 7,8699`
+- `B0 = 3,1249e-3`
 - `B1 = 0`
-- `B2 = -4,1665e-3`
+- `B2 = -3,1249e-3`
 - `A1 = -1,99975`
 - `A2 = 1`
 
