@@ -2348,7 +2348,7 @@ La ISR publica `falla` y el lazo principal baja `control_habilitado` en su sigui
 
 `ADC_OFFSET_CUENTAS` y `ADC_AMPERES_POR_CUENTA` salen de medir el sensor montado, y los mide Jefferson (#32). Mientras tanto quedan con valores teóricos, marcados con `// TODO: Revisar` en `lazo_control.h`.
 
-El offset es el del nivel 2, 0 A en 0,5 V, o sea 2048 cuentas, la mitad de la escala de 12 bits. Para la ganancia se parte de una sensibilidad del sensor de 0,3 V/A, que lleva ±1,0 A a 0,2 V y 0,8 V y deja 0,2 V de margen en cada extremo de los 0 a 1 V del XADC para los transitorios. Con ella `ADC_AMPERES_POR_CUENTA = 1 V / (4096 · 0,3 V/A) = 8,138e-4 A`, 0,81 mA por cuenta, que es 0,4 % de la corriente del ensayo más chico (0,2 A). La escala completa queda en ±1,67 A, y eso pesa porque el umbral de sobrecorriente de `supervisor_falla` (1,3 A) tiene que caer dentro de lo que el ADC puede ver. Con 0,4 V/A también habría margen de tensión, pero la escala llegaría solo a ±1,25 A y el umbral no se alcanzaría nunca. La sensibilidad real la fija Jefferson en #28, y si cambia se actualizan las dos constantes y los límites de `supervisor_falla`.
+El offset es el del nivel 2, 0 A en 0,5 V, o sea 2048 cuentas, la mitad de la escala de 12 bits. La ganancia es la que se midió el 2026-11-17, sensor de 183 mV/A y restador de ganancia 1,2, o sea 0,2196 V/A a la entrada del XADC. Con ella `ADC_AMPERES_POR_CUENTA = 1 V / (4096 · 0,2196 V/A) = 1,1118e-3 A`, 1,1 mA por cuenta, que es 0,6 % de la corriente del ensayo más chico (0,2 A). ±1,0 A queda en 0,28 V y 0,72 V, y la escala completa en ±2,28 A, así que el umbral de sobrecorriente de `supervisor_falla` (1,3 A) cae dentro de lo que el ADC puede ver. El diseño había partido de 0,3 V/A (8,138e-4 A por cuenta y escala de ±1,67 A), que no correspondía al circuito armado ([inconsistencias](diseño/inconsistencias.md)). Si la ganancia cambia se actualizan las dos constantes y los límites de `supervisor_falla`.
 
 ### h.7) Presupuesto de tiempo
 
@@ -2537,13 +2537,15 @@ Si más adelante se agrega compensación del retardo de cómputo o un segundo re
 
 ### h.3) Coeficientes de partida
 
-Con `Vdc = 18 V`, `fs = 20 kHz`, `Kp = 188,88 V/A` y `Kr = 3000`, ya divididos entre `Vdc`, para la carga de 12 Ω y 30 mH.
+Con `Vdc = 24 V`, `fs = 20 kHz`, `Kp = 188,88 V/A` y `Kr = 3000`, ya divididos entre `Vdc`, para la carga de 12 Ω y 30 mH.
 
-- `PR_KP = 10,4932`
-- `PR_B0 = 4,1665e-3`, `PR_B1 = 0`, `PR_B2 = -4,1665e-3`
+- `PR_KP = 7,8699`
+- `PR_B0 = 3,1249e-3`, `PR_B1 = 0`, `PR_B2 = -3,1249e-3`
 - `PR_A1 = -1,99975`, `PR_A2 = 1`
 
-Son provisionales hasta medir `L` y `R` reales y confirmar `Vdc` y la frecuencia de muestreo. Si cambian, se regeneran con el script y este módulo no se toca.
+El `1 / Vdc` queda fijo en el header y el bus real lo vuelve a multiplicar, así que la ganancia del lazo en el banco es la de diseño por `Vdc_bus / 24`. Por eso se generan con 24 V, el máximo del enunciado. Con el bus más bajo el lazo solo pierde ancho de banda, con 18 V el cruce baja a 749 Hz con 74,4° y 13,0 dB y el escalón de 0,2 a 1,0 A queda en 7,0 % el primer período. Al revés no sirve, con coeficientes generados a 18 V y el bus en 24 V la esquina de `L` baja queda en 40,5° y 5,0 dB, debajo de 45° y 6 dB. Las cifras salen de `potencia/verificar_pr.m`, sección de los coeficientes generados con 24 V.
+
+La carga medida en el banco es de 12,5 Ω y 30 mH. Mueve el margen nominal de 66,5° a 66,7°, así que los coeficientes se dejan con 12 Ω. Si la frecuencia de muestreo cambia, se regeneran con el script y este módulo no se toca.
 
 ### h.4) Unidades de la salida
 
@@ -2670,11 +2672,11 @@ Ninguno de los umbrales está acordado todavía. Quedan con un valor provisional
 
 - `UMBRAL_SOBRECORRIENTE` depende de la corriente máxima de los ensayos (1,0 A pico) más el rizado, y de lo que aguanten el puente y la carga. Lo fija la etapa de potencia. Con la carga de 12 Ω y 30 mH se corrió el escalón de 0,2 A a 1,0 A pico con el código real de `lazo_control.c` y la rampa de 400 muestras, en 20 fases del período. El pico máximo fue 0,979 A, así que el transitorio no se acerca a 1,3 A. El rizado de conmutación no entra en esa simulación y es de unos 4 mA pico a pico con esa carga, así que el pico total ronda 0,98 A, bien debajo de 1,3 A. El margen que queda entre ese pico y el umbral es de 0,32 A, y el ruido pico del sensor (lo mide Jefferson en #29) tiene que quedar por debajo, unas 390 cuentas del ADC con la sensibilidad de `lazo_control.md`, que es de sobra para un sensor aceptable.
 
-  Lo que el umbral no cubre es la subida de corriente mientras el apagado se hace efectivo. Desde que la corriente cruza el umbral hasta que las compuertas quedan en bajo pasan hasta dos períodos, uno hasta que la siguiente muestra la ve y otro hasta que el núcleo PWM toma `enable` en el valle, o sea hasta 100 µs. Si el PR está saturado en `PR_U_MAX = 0,92` en ese momento, la carga ve en promedio `0,92 · Vdc` y la corriente se acerca en exponencial a `0,92 · Vdc / R` con τ = L / R = 2,5 ms. Con 18 V, 12 Ω y 30 mH pasa de 1,3 A a 1,30 A en los 100 µs y el techo es 1,38 A. Con la fuente mal ajustada en 24 V llega a 1,32 A y el techo sube a 1,84 A. El techo lo fija la R y no depende de L, y en el ensayo de cambio de carga la R sube al menos 25 %, así que la carga nominal es el peor caso. No se da con el lazo funcionando, porque en los ensayos previstos el PR no satura en régimen, pero sí con un sensor que lee de menos. Las cuentas son las de `potencia/diseno_puente_h.md`, sección "Tensión y corriente".
+  Lo que el umbral no cubre es la subida de corriente mientras el apagado se hace efectivo. Desde que la corriente cruza el umbral hasta que las compuertas quedan en bajo pasan hasta dos períodos, uno hasta que la siguiente muestra la ve y otro hasta que el núcleo PWM toma `enable` en el valle, o sea hasta 100 µs. Si el PR está saturado en `PR_U_MAX = 0,92` en ese momento, la carga ve en promedio `0,92 · Vdc` y la corriente se acerca en exponencial a `0,92 · Vdc / R` con τ = L / R = 2,5 ms. Con 18 V, 12 Ω y 30 mH pasa de 1,3 A a 1,30 A en los 100 µs y el techo es 1,38 A. Con 24 V, el bus del lazo cerrado, llega a 1,32 A y el techo sube a 1,84 A. El techo lo fija la R y no depende de L, y en el ensayo de cambio de carga la R sube al menos 25 %, así que la carga nominal es el peor caso. No se da con el lazo funcionando, porque en los ensayos previstos el PR no satura en régimen, pero sí con un sensor que lee de menos. Las cuentas son las de `potencia/diseno_puente_h.md`, sección "Tensión y corriente".
 
   Con la carga en cortocircuito no hay R que ponga techo ni protección por hardware. El pin SD de los IR2110 va a `VSS`, el electrolítico del bus se descarga por dos MOSFET con un pico de unos 60 A, y el software corta a los 100 µs, cuando ya recibieron un pulso sobre sus 38 A pulsados. Ese caso queda sin cubrir para los MOSFET (`potencia/diseno_puente_h.md`, sección "Cortocircuito de la carga").
 
-- `CUENTA_ADC_MIN` y `CUENTA_ADC_MAX` dependen de la ganancia y el offset reales del acondicionamiento, que mide Jefferson. Con la sensibilidad teórica de 0,3 V/A de `lazo_control.md` (h.6), 16 y 4079 cuentas equivalen a ±1,65 A, por encima del umbral de 1,3 A, así que la sobrecorriente dispara primero y el fuera de escala queda para el sensor desconectado. Con 0,4 V/A valdrían ±1,24 A y el orden se invertiría.
+- `CUENTA_ADC_MIN` y `CUENTA_ADC_MAX` dependen de la ganancia y el offset reales del acondicionamiento. Con la ganancia medida de 0,2196 V/A de `lazo_control.md` (h.6), 16 y 4079 cuentas equivalen a ±2,26 A, por encima del umbral de 1,3 A, así que la sobrecorriente dispara primero y el fuera de escala queda para el sensor desconectado. Con una ganancia de 0,4 V/A o más el orden se invertiría.
 - `ITERACIONES_SIN_DATO_MAX = 3` es provisional. Mientras las ausencias sean toleradas, el PWM conserva el último `duty_ref`. El umbral debe validarse junto con el tiempo de detección y apagado. Con la fase ajustada según [control principal](modulos/control_principal.md), el funcionamiento nominal debe entregar una muestra nueva por ISR.
 
 ### h.5) Interfaz en C
@@ -3043,7 +3045,7 @@ Del lado de la Basys 3 ([block_design](#block_design), h.7).
 Del lado del puente.
 
 - 15 V de un canal aparte de la fuente de banco, con el negativo en la tierra de potencia, para la salida de los VO3120 y para `VCC` y `VDD` de los IR2110.
-- Vdc de 18 V, de otro canal, solo para el puente. Las protecciones se dimensionan con 24 V, el máximo del enunciado.
+- Vdc de otro canal, solo para el puente, con 18 V en lazo abierto y 24 V en lazo cerrado. Las protecciones se dimensionan con 24 V, el máximo del enunciado.
 
 La cadena de las compuertas funciona entera con Vdc apagado, y por eso las compuertas y el tiempo muerto se revisan sin energizar el bus.
 
@@ -3113,7 +3115,7 @@ La integración con el puente sigue el plan de pruebas de `potencia/diseno_pr.md
 
 1. Potencia desenergizada, con los 15 V encendidos y Vdc apagado. En el osciloscopio, y con capturas, se revisan las cuatro compuertas en las patas de los MOSFET, la precarga al habilitar y las tres frecuencias de `freq_sel`. En cada pierna, el hueco entre la bajada de una compuerta y la subida de la otra tiene que quedar sobre los 138 ns que tarda en apagarse el IRF520N, con margen, y si no alcanza se sube `DEAD_TIME_CICLOS`. Se mide el retardo de cada flanco de la cadena, que entra en el retardo del lazo. La falla se prueba con un umbral bajo, para ver que baja `enable`, enciende el LED y no se rearma sola. Con 0 A en la carga, el ADC tiene que dar el offset del acondicionamiento.
 2. Con la polaridad de Vdc verificada, Vdc sube desde 0 hasta 18 V con el límite en 0,1 A, y el límite pasa a 0,52 A si la fuente no entró en limitación. Primero en lazo abierto con un `duty_ref` senoidal fijo de 50 Hz y sin PR, desde 0,2 A. La amplitud y el desfase de la corriente confirman la ganancia y el signo del sensor y los valores de R y L.
-3. Solo la parte proporcional del PR, con `Kr = 0`.
+3. Solo la parte proporcional del PR, con `Kr = 0`. Desde acá Vdc va en 24 V, el valor con que se genera `pr_params.h`.
 4. PR completo con 0,2, 0,5 y 1,0 A pico, los cambios de amplitud con `SW[1:0]` y el cambio de carga de al menos 25 %.
 
 La salida de depuración en JB1 acompaña todos los pasos, para medir el período y el jitter del lazo con la potencia conectada. En cada sesión energizada los roles quedan fijos y anotados. Una persona se encarga de la seguridad, con la salida de Vdc al alcance, otra opera la fuente y otra toma los datos.

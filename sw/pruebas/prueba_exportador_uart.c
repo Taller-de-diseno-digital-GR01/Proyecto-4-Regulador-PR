@@ -62,7 +62,7 @@ static void revisar_trama(uint32_t n)
   revisar(cantidad == n, "cantidad");
   revisar(frecuencia == 20000u, "frecuencia de muestreo");
   revisar(offset == 2048.0f, "offset del ADC");
-  revisar(fabsf(ganancia - 8.138e-4f) < 1e-9f, "amperes por cuenta"); // float, no se compara exacto
+  revisar(fabsf(ganancia - 1.1118e-3f) < 1e-9f, "amperes por cuenta"); // float, no se compara exacto
   revisar(escala == 1.0f / 16384.0f, "escala de duty"); // Q2.14
   revisar(trama[19] == 1, "duty con signo");
 
@@ -114,7 +114,7 @@ int main(int argc, char **argv)
     for(uint32_t k = 0; k < BUFFER_REGISTROS; k++) {
       double fase = 2.0 * 3.14159265358979 * 50.0 * k / 20000.0; // 50 Hz muestreado a 20 kHz
       int16_t i_ref_ma = (int16_t)lround(500.0 * sin(fase));
-      uint16_t cuenta = (uint16_t)lround(2048.0 + 0.45 * sin(fase - 0.05) / 8.138e-4); // 0,45 A atrasada 0,05 rad, pasada a cuentas
+      uint16_t cuenta = (uint16_t)lround(2048.0 + 0.45 * sin(fase - 0.05) / 1.1118e-3); // 0,45 A atrasada 0,05 rad, pasada a cuentas
       int16_t duty = (int16_t)lround(0.6 * 16384.0 * sin(fase + 0.3)); // 0,6 en Q2.14
       registro_t r = { (uint16_t)(cuenta | BANDERA_HABILITADO), (uint16_t)duty, i_ref_ma };
       buffer_muestras_guardar(&r);
