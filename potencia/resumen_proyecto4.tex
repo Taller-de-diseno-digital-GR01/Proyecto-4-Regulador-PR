@@ -1,0 +1,296 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[spanish,es-noshorthands]{babel}
+\usepackage[margin=1.9cm]{geometry}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,fit,backgrounds,calc,shapes.geometric,shapes.symbols}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{microtype}
+
+\setlist{itemsep=1pt,topsep=3pt,parsep=0pt}
+\titleformat{\section}{\large\bfseries}{\thesection}{0.6em}{}
+\titlespacing*{\section}{0pt}{9pt}{4pt}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{4pt}
+\pagestyle{empty}
+
+\definecolor{tallerC}{RGB}{200,222,247}
+\definecolor{pedpC}{RGB}{252,220,178}
+\definecolor{jointC}{RGB}{216,236,209}
+\definecolor{grisC}{RGB}{235,235,235}
+\definecolor{pA}{RGB}{200,60,60}
+\definecolor{pB}{RGB}{50,110,190}
+\definecolor{pC}{RGB}{40,150,90}
+\definecolor{pD}{RGB}{215,130,20}
+
+\tikzset{
+  caja/.style={draw,rounded corners=2pt,minimum height=0.9cm,align=center,font=\footnotesize,inner sep=3pt},
+  taller/.style={caja,fill=tallerC},
+  pedp/.style={caja,fill=pedpC},
+  joint/.style={caja,fill=jointC},
+  gris/.style={caja,fill=grisC},
+  flecha/.style={-{Stealth[length=2.2mm]},thick},
+  dflecha/.style={-{Stealth[length=2.2mm]},thick,dashed},
+  etq/.style={font=\scriptsize,fill=white,inner sep=1pt,align=center},
+  badge/.style={circle,inner sep=0.8pt,font=\tiny\bfseries,text=white,minimum size=3.6mm}
+}
+\newcommand{\pa}[1]{\node[badge,fill=pA,anchor=south east] at (#1.north east){A};}
+\newcommand{\pb}[1]{\node[badge,fill=pB,anchor=south east] at (#1.north east){B};}
+\newcommand{\pc}[1]{\node[badge,fill=pC,anchor=south east] at (#1.north east){C};}
+\newcommand{\pd}[1]{\node[badge,fill=pD,anchor=south east] at (#1.north east){D};}
+
+\begin{document}
+
+\begin{center}
+{\LARGE Proyecto 4, qué se pide y quién hace qué}\\[3pt]
+\small EL3313 Taller de Diseño Digital y EL4201 PEDP, II semestre 2026
+\end{center}
+
+\section{La idea en una página}
+
+\begin{itemize}
+\item Un puente H de 12 a 24 V empuja una corriente senoidal de 50 Hz por una carga RL.
+\item El MicroBlaze V, dentro de la FPGA, mide la corriente, calcula el regulador PR y le dice al PWM cuánto abrir.
+\item Eso se repite miles de veces por segundo y siempre igual.
+\item Son dos cursos con el mismo enunciado. Taller pone lo digital, PEDP pone el puente, la carga, el sensor y el diseño del PR.
+\item Los puntos de contacto, el PWM que maneja el puente y el ADC que lee el sensor, son los que piden más cuidado.
+\end{itemize}
+
+\begin{center}
+\begin{tikzpicture}[x=1cm,y=1cm]
+% bus
+\coordinate (bus) at (0,0);
+\draw[line width=2.2pt,gray] (-0.6,0) -- (11.6,0);
+\node[etq] at (5.5,0) {AXI4-Lite};
+% arriba del bus
+\node[taller] (mb) at (1.2,1.7) {MicroBlaze V\\100 MHz, 32 KB};
+\node[taller] (tm) at (4.4,1.7) {AXI Timer};
+\node[taller] (gp) at (7.2,1.7) {AXI GPIO};
+\node[taller] (ur) at (10.0,1.7) {AXI UART Lite};
+\foreach \n in {mb,tm,gp,ur} \draw[thick,gray] (\n.south) -- (\n.south |- bus);
+\draw[flecha] (tm.west) -- node[etq,above]{IRQ} (mb.east);
+\node[gris] (bt) at (7.2,3.4) {botones y LEDs};
+\draw[{Stealth[length=2.2mm]}-{Stealth[length=2.2mm]},thick] (gp.north) -- (bt.south);
+\node[gris] (pc) at (10.0,3.4) {PC, gráfica\\fuera de línea};
+\draw[flecha] (ur.north) -- (pc.south);
+% abajo del bus
+\node[taller] (pw) at (3.0,-1.7) {Periférico PWM\\(SystemVerilog)};
+\node[taller] (xa) at (8.4,-1.7) {XADC};
+\foreach \n in {pw,xa} \draw[thick,gray] (\n.north) -- (\n.north |- bus);
+\draw[dflecha] (pw.east) -- node[etq]{pwm\_trigger\_o} (xa.west);
+\node[pedp] (hb) at (3.0,-3.6) {Puente H\\4 compuertas};
+\node[pedp] (rl) at (5.6,-3.6) {Carga RL};
+\node[pedp] (sn) at (8.4,-3.6) {Sensor de\\corriente, 0 a 1 V};
+\draw[flecha] (pw.south) -- node[etq,left]{4 señales} (hb.north);
+\draw[flecha] (hb.east) -- (rl.west);
+\draw[flecha] (rl.east) -- (sn.west);
+\draw[flecha] (sn.north) -- (xa.south);
+% leyenda
+\node[taller,minimum height=0.5cm] at (0.8,-5.1) {Taller};
+\node[pedp,minimum height=0.5cm] at (2.8,-5.1) {PEDP};
+\node[gris,minimum height=0.5cm] at (5.2,-5.1) {Fuera del FPGA};
+\end{tikzpicture}
+\end{center}
+
+\begin{itemize}
+\item Azul se evalúa en Taller, naranja en PEDP.
+\item El PR vive dentro del MicroBlaze, programado en C.
+\end{itemize}
+
+\section{Qué pasa en cada iteración}
+
+\begin{itemize}
+\item El Timer dispara una interrupción periódica.
+\item El PWM genera una portadora triangular y avisa con \texttt{pwm\_trigger\_o} en el valle o el pico, donde el rizado de conmutación no estorba la medición.
+\item En cada iteración la rutina de interrupción hace siempre lo mismo y en el orden del dibujo.
+\end{itemize}
+
+\begin{center}
+\begin{tikzpicture}[x=1.15cm,y=1cm]
+% portadora
+\draw[thick] (0,0) -- (2,1.1) -- (4,0) -- (6,1.1) -- (8,0) -- (10,1.1);
+\node[etq,anchor=east] at (-0.1,0.55) {portadora};
+\foreach \x in {0,4,8} {
+  \draw[dflecha,color=pD] (\x,-0.9) -- (\x,-0.05);
+}
+\node[etq,text=pD] at (4,-1.15) {pwm\_trigger\_o};
+% Ts
+\draw[{Stealth[length=1.8mm]}-{Stealth[length=1.8mm]},thin] (0,2.0) -- node[above,font=\scriptsize]{$T_s=1/f_s$} (4,2.0);
+% bloques
+\node[taller,anchor=west,minimum width=0.8cm] (cv) at (0.1,-2.3) {1. XADC\\convierte};
+\node[taller,anchor=west,minimum width=2.1cm] (isr) at (1.5,-2.3) {2. ISR lee,\\calcula PR};
+\node[taller,anchor=west,minimum width=1.5cm] (dt) at (3.95,-2.3) {3. escribe\\\texttt{duty\_ref}};
+\node[taller,anchor=west,minimum width=1.9cm] (bf) at (6.3,-2.3) {4. guarda en\\buffer circular};
+% aplicación del duty
+\draw[dflecha,color=pA] (6,-3.2) -- (6,-0.1);
+\node[etq,text=pA,anchor=north] at (6,-3.25) {el PWM aplica el duty nuevo\\solo en el pico o el valle};
+\end{tikzpicture}
+\end{center}
+
+\begin{itemize}
+\item Al apretar un botón, el lazo principal (no la interrupción) recorre el buffer y lo manda por UART.
+\item El lazo de control no se frena mientras eso pasa.
+\end{itemize}
+
+\section{Qué es de Taller, qué de PEDP y qué de los dos}
+
+\begin{center}
+\begin{tikzpicture}[x=1cm,y=1cm]
+\node[draw,fill=tallerC,rounded corners=3pt,text width=5.0cm,inner sep=6pt,anchor=north west] (t) at (0,0) {\footnotesize\textbf{Taller}\\[2pt]
+MicroBlaze V y Block Design\\
+Periférico PWM con AXI4-Lite\\
+Interfaz del XADC\\
+UART, GPIO y botones\\
+Software en C del lazo\\
+Testbench autoverificable y simulación temporizada};
+\node[draw,fill=jointC,rounded corners=3pt,text width=4.3cm,inner sep=6pt,anchor=north west] (j) at (5.7,0) {\footnotesize\textbf{Entre los dos}\\[2pt]
+Frecuencia de conmutación\\
+Período de muestreo\\
+Formato de \texttt{duty\_ref}\\
+Rango y offset del sensor\\
+Filtro antialias\\
+Ejecución del PR en el MicroBlaze};
+\node[draw,fill=pedpC,rounded corners=3pt,text width=5.0cm,inner sep=6pt,anchor=north west] (p) at (10.7,0) {\footnotesize\textbf{PEDP}\\[2pt]
+Puente H, drivers y protecciones\\
+Carga RL y su caracterización\\
+Sensor de corriente\\
+Modelo RL y PLECS\\
+Estructura, sintonía y estabilidad del PR\\
+Ensayos de la sección 4.3};
+\end{tikzpicture}
+\end{center}
+
+\begin{itemize}
+\item Taller, documento de diseño 20 \%, presentación funcional 60 \%, informe 10 \%, repositorio 10 \%.
+\item Dentro de la presentación funcional de Taller, sistema base 15 \%, periférico PWM 20 \%, ADC y sincronización 15 \%, integración con potencia y PR 15 \%, UART y simulación autoverificable 15 \%, defensa 20 \%.
+\item PEDP da hasta 80 puntos que no dependen del MicroBlaze, siempre que el PR corra en lazo cerrado sobre el inversor real, aunque sea en otra plataforma de control. Otros 20 puntos salen solo si el MicroBlaze mueve el inversor.
+\item Por eso la potencia no espera a la parte digital. El inversor y el PR se prueban primero con una fuente de PWM provisional.
+\end{itemize}
+
+\section{El reparto del equipo}
+
+\begin{itemize}
+\item El reparto original le daba a cada persona una tarea digital y una de potencia.
+\item Carlos está solo en Taller, así que su parte de potencia se redistribuyó.
+\item El PR completo es de Mattio, la carga RL y PLECS quedan entre Jefferson y Nicolás.
+\end{itemize}
+
+\begin{center}
+\begin{tikzpicture}[x=1cm,y=1cm]
+\tikzset{card/.style={draw,rounded corners=3pt,text width=7.6cm,inner sep=6pt,anchor=north west,font=\footnotesize}}
+\node[card,fill=pA!10,anchor=north west] (ca) at (0,0) {\textbf{A, Jefferson}\\[2pt]
+\begin{itemize}[leftmargin=10pt,itemsep=0pt]
+\item Digital, núcleo del PWM en SystemVerilog (portadora, tiempo muerto, trigger).
+\item Potencia, puente H, drivers y protecciones.
+\item Carga RL y PLECS, por confirmar con Nicolás.
+\end{itemize}};
+\node[card,fill=pB!10,anchor=north west] (cb) at (8.3,0) {\textbf{B, Carlos}\\[2pt]
+\begin{itemize}[leftmargin=10pt,itemsep=0pt]
+\item Digital, interfaz AXI4-Lite del PWM.
+\item Testbench autoverificable y simulación temporizada.
+\item Nada de potencia, solo Taller.
+\end{itemize}};
+\node[card,fill=pC!10,anchor=north west] (cc) at (0,-3.1) {\textbf{C, Nicolás}\\[2pt]
+\begin{itemize}[leftmargin=10pt,itemsep=0pt]
+\item Digital, Block Design con MicroBlaze V y XADC.
+\item Potencia, sensor de corriente y acondicionamiento de 0 a 1 V.
+\item Carga RL y PLECS, por confirmar con Jefferson.
+\end{itemize}};
+\node[card,fill=pD!10,anchor=north west] (cd) at (8.3,-3.1) {\textbf{D, Mattio}\\[2pt]
+\begin{itemize}[leftmargin=10pt,itemsep=0pt]
+\item Digital, todo el software en C (ISR, buffer, UART, falla) y el script de PC.
+\item Potencia, el PR completo, desde la estructura y la sintonía hasta la discretización.
+\end{itemize}};
+\end{tikzpicture}
+\end{center}
+
+\begin{itemize}
+\item \texttt{docs/reparto.md} todavía le asigna a Carlos la carga RL, PLECS y el diseño del PR, y habría que actualizarlo.
+\end{itemize}
+
+\section{Qué le toca a Mattio}
+
+\begin{itemize}
+\item Todo el software que corre en el MicroBlaze.
+\item El PR completo y el puente entre su diseño y el código.
+\end{itemize}
+
+\begin{center}
+\begin{tikzpicture}[x=1cm,y=1cm]
+% PC
+\node[gris,text width=3.4cm] (dis) at (1.9,2.6) {Diseño del PR\\Kp, Kr, método,\\$f_s$, $V_{dc}$};
+\node[gris,text width=3.4cm] (py) at (1.9,0.6) {\texttt{generar\_pr\_params.py}\\(esqueleto, falta fórmula)};
+\node[gris,text width=3.4cm] (hh) at (1.9,-1.4) {\texttt{pr\_params.h}\\coeficientes ya escalados};
+\draw[flecha] (dis) -- (py);
+\draw[flecha] (py) -- (hh);
+% ISR
+\node[draw,rounded corners=3pt,fill=tallerC!35,minimum width=6.6cm,minimum height=4.9cm,anchor=north west] (isrbox) at (4.9,3.6) {};
+\node[font=\scriptsize\bfseries,anchor=north west] at (5.0,3.55) {Rutina de interrupción, lazo\_control};
+\node[taller,fill=green!15,text width=2.5cm] (m1) at (9.35,2.2) {ref\_senoidal\\hecho y probado};
+\node[taller,fill=grisC,text width=2.5cm] (m2) at (6.35,2.2) {pr\_discreto\\sin implementar};
+\node[taller,fill=green!15,text width=2.5cm] (m3) at (6.35,0.7) {supervisor\_falla\\hecho y probado};
+\node[taller,fill=green!15,text width=2.5cm] (m4) at (9.35,0.7) {buffer\_muestras\\hecho y probado};
+\node[taller,fill=grisC,text width=5.6cm] (m5) at (7.85,-0.8) {drivers del PWM, XADC, GPIO y Timer\\documentados, sin código};
+\draw[flecha] (hh.east) -- ++(0.9,0) |- (m2.west);
+% lazo principal
+\node[draw,rounded corners=3pt,fill=jointC!50,minimum width=6.6cm,minimum height=1.6cm,anchor=north west] (mainbox) at (4.9,-2.1) {};
+\node[font=\scriptsize\bfseries,anchor=north west] at (5.0,-2.15) {Lazo principal};
+\node[gris,text width=2.5cm] (e1) at (6.35,-3.05) {control\_principal\\estados, botones};
+\node[gris,text width=2.5cm] (e2) at (9.35,-3.05) {exportador\_uart\\sin implementar};
+% PC
+\node[gris,text width=2.2cm] (rp) at (14.0,-3.05) {receptor\_pc\\y gráfica};
+\draw[flecha] (e2.east) -- node[etq,above]{UART} (rp.west);
+\end{tikzpicture}
+\end{center}
+
+\begin{itemize}
+\item Verde, ya existe en C con su prueba en la PC.
+\item Gris, está solo en documentos.
+\item Falta el \texttt{pr\_discreto}, la pieza que depende de las decisiones de estructura y discretización del PR.
+\end{itemize}
+
+\section{Lo que hay que demostrar}
+
+\begin{itemize}
+\item Seguir 0,2, 0,5 y 1,0 A pico a 50 Hz.
+\item Cambios de amplitud, de 0,2 a 0,5 A y de 0,5 a 1,0 A.
+\item Cambio de la resistencia en al menos 25 \% con 0,5 A pico.
+\item Error de la amplitud de la fundamental menor a 10 \% en una ventana de al menos cinco períodos.
+\item Rizado de conmutación menor a 0,20 A pico a pico, informado aparte de la fundamental.
+\item Antes de energizar se revisan las compuertas y el tiempo muerto con la potencia apagada.
+\item En cada ensayo se presentan referencia, corriente medida, tensión sobre la carga y señales PWM, con pico y RMS distinguidos.
+\end{itemize}
+
+
+\section{Orden de trabajo}
+
+\begin{center}
+\begin{tikzpicture}[x=1cm,y=1cm]
+\tikzset{fase/.style={draw,signal,signal to=east,signal pointer angle=70,fill=tallerC,minimum height=1.45cm,text width=2.2cm,align=center,font=\scriptsize,inner sep=4pt}}
+\node[fase] at (1.6,0) {1\\acuerdos con PEDP y Block Design base};
+\node[fase] at (4.9,0) {2\\PWM con testbench, XADC, potencia y sensor};
+\node[fase] at (8.2,0) {3 y 4\\integración, drivers y lazo, con D al frente};
+\node[fase] at (11.5,0) {5\\ensayos, jitter e informe};
+\end{tikzpicture}
+\end{center}
+
+\begin{itemize}
+\item Los cuatro acuerdos que bloquean el diseño son frecuencia de conmutación, período de muestreo, formato de \texttt{duty\_ref} y acondicionamiento del sensor.
+\item Primeras pruebas energizadas de Mattio con quien tenga el puente armado. Primero lazo abierto, luego solo la parte proporcional, y recién después el resonante.
+\end{itemize}
+
+\section{Qué sigue sin decidir}
+
+\begin{itemize}
+\item Fechas de planteamiento y de entrega, que el enunciado no trae.
+\item Caché de instrucciones de 8 KB, que no hace nada sobre la BRAM local, así que se habilita igual o se justifica por escrito.
+\item Qué hace el cuarto código de \texttt{freq\_sel}.
+\item Punto fijo o flotante para el PR.
+\item Plataforma alternativa de control para el respaldo de PEDP, y dónde vive el script de la PC.
+\end{itemize}
+
+\end{document}
