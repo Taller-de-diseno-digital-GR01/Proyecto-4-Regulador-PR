@@ -102,9 +102,9 @@ Por eso esta rutina no usa `amplitud_ref` directo para `ref_senoidal_siguiente`,
 
 ### h.7) Calibración
 
-`ADC_OFFSET_CUENTAS` y `ADC_AMPERES_POR_CUENTA` salen de medir el sensor montado, y los mide Jefferson (#32). Mientras tanto quedan con valores teóricos, marcados con `// TODO: Revisar` en `lazo_control.h`.
+`ADC_OFFSET_CUENTAS` y `ADC_AMPERES_POR_CUENTA` salen del sensor montado (#32). La ganancia ya quedó fijada con el ACS712 de ±5 A medido en 183 mV/A y el acondicionador real con $A_v = 1{,}2$ (ver [`inconsistencias.md`](../inconsistencias.md)).
 
-El offset es el del nivel 2, 0 A en 0,5 V, o sea 2048 cuentas, la mitad de la escala de 12 bits. Para la ganancia se parte de una sensibilidad del sensor de 0,3 V/A, que lleva ±1,0 A a 0,2 V y 0,8 V y deja 0,2 V de margen en cada extremo de los 0 a 1 V del XADC para los transitorios. Con ella `ADC_AMPERES_POR_CUENTA = 1 V / (4096 · 0,3 V/A) = 8,138e-4 A`, 0,81 mA por cuenta, que es 0,4 % de la corriente del ensayo más chico (0,2 A). La escala completa queda en ±1,67 A, y eso pesa porque el umbral de sobrecorriente de `supervisor_falla` (1,3 A) tiene que caer dentro de lo que el ADC puede ver. Con 0,4 V/A también habría margen de tensión, pero la escala llegaría solo a ±1,25 A y el umbral no se alcanzaría nunca. La sensibilidad real la fija Jefferson en #28, y si cambia se actualizan las dos constantes y los límites de `supervisor_falla`.
+El offset es el del nivel 2, 0 A en 0,5 V, o sea 2048 cuentas, la mitad de la escala de 12 bits. La ganancia a la entrada del ADC es 0,183 · 1,2 = 0,2196 V/A, que lleva ±1,0 A a 0,28 V y 0,72 V y deja 0,28 V de margen en cada extremo de los 0 a 1 V del XADC para los transitorios. Con ella `ADC_AMPERES_POR_CUENTA = 1 V / (4096 · 0,2196 V/A) = 1,1118e-3 A`, 1,11 mA por cuenta, que es 0,6 % de la corriente del ensayo más chico (0,2 A). La escala completa queda en ±2,28 A, y eso pesa porque el umbral de sobrecorriente de `supervisor_falla` (1,3 A) tiene que caer dentro de lo que el ADC puede ver. Con 0,4 V/A también habría margen de tensión, pero la escala llegaría solo a ±1,25 A y el umbral no se alcanzaría nunca. Si la ganancia cambia se actualizan las dos constantes y los límites de `supervisor_falla`.
 
 ### h.8) Presupuesto de tiempo
 
