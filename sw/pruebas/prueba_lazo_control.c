@@ -113,8 +113,8 @@ int main(void)
   r = iterar(false, 0u);
   revisar(r.i_ref_ma == 254 && r.i_ref_ma != 252, "sin dato la fase no avanzó"); // un paso más de fase y de rampa sin dato nuevo, por eso no repite el 252 de arriba
 
-  r = iterar(true, ADC_OFFSET_CUENTAS - 1500u); // -1,22 A contra 1 A de referencia, el proporcional solo ya pasa PR_U_MAX
-  revisar((r.cuenta_banderas & BANDERA_SATURADO) != 0, "con 2,2 A de error el PR no saturó");
+  for(uint32_t k = 0; k < 400u && !(r.cuenta_banderas & BANDERA_SATURADO); k++) r = iterar(true, ADC_OFFSET_CUENTAS); // con KP = 0,25 ningún error dentro de los ±1,3 A del supervisor satura solo con el proporcional, así que se deja crecer el resonante con la corriente en 0
+  revisar((r.cuenta_banderas & BANDERA_SATURADO) != 0, "con la corriente en 0 durante un período el PR no saturó");
   control_habilitado = 0;
   r = iterar(true, ADC_OFFSET_CUENTAS);
   revisar(r.duty_ref == 0, "deshabilitado y el registro arrastra el duty_ref de la sesión anterior");
@@ -138,7 +138,7 @@ int main(void)
   falla = 0;
   habilitar(VALOR(1.0f));
   antes = escrituras;
-  iterar(true, ADC_OFFSET_CUENTAS + 1700u); // 1700 * 8,138e-4 = 1,38 A, arriba del umbral de 1,3 A
+  iterar(true, ADC_OFFSET_CUENTAS + 1700u); // 1700 * 1,1118e-3 = 1,89 A, arriba del umbral de 1,3 A
   revisar(falla == 1, "no publicó la falla por sobrecorriente");
   revisar(apagados == 2, "la sobrecorriente no apagó el PWM");
   revisar(escrituras == antes, "con sobrecorriente el PR escribió en la misma iteración");
