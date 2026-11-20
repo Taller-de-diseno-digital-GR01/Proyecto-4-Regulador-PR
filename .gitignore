@@ -34,3 +34,17 @@ sw/build/
 vivado/
 vitis/
 *.str
+
+# Salidas de simulación de LTspice, se regeneran desde el .asc
+*.raw
+*.net
+
+# Intermedios de LaTeX
+*.aux
+*.synctex.gz
+
+# Proyecto de Vivado local fuera de vivado/
+project_4_PR/
+
+# Mapa de memoria que genera Vivado al implementar
+*.mmi
