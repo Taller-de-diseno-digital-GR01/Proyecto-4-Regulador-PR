@@ -60,10 +60,10 @@ Si más adelante se agrega compensación del retardo de cómputo o un segundo re
 
 ### h.3) Coeficientes de partida
 
-Con `Vdc = 18 V`, `fs = 20 kHz`, `Kp = 188,88 V/A` y `Kr = 3000`, ya divididos entre `Vdc`, para la carga de 12 Ω y 30 mH.
+Con `Vdc = 18 V`, `fs = 20 kHz`, `Kp = 4,5 V/A` y `Kr = 10000`, ya divididos entre `Vdc`, para la carga de 9 Ω y 200 µH.
 
-- `PR_KP = 10,4932`
-- `PR_B0 = 4,1665e-3`, `PR_B1 = 0`, `PR_B2 = -4,1665e-3`
+- `PR_KP = 0,25`
+- `PR_B0 = 1,3888e-2`, `PR_B1 = 0`, `PR_B2 = -1,3888e-2`
 - `PR_A1 = -1,99975`, `PR_A2 = 1`
 
 Son provisionales hasta medir `L` y `R` reales y confirmar `Vdc` y la frecuencia de muestreo. Si cambian, se regeneran con el script y este módulo no se toca.
@@ -108,7 +108,7 @@ Coeficientes, estados y entradas son `valor_t`, de `sw/numerico.h`. Las multipli
 - `L` y `R` reales de la carga, que caracteriza Jefferson, y `Vdc` y la frecuencia de muestreo definitiva, que salen de la `f_sw` que elige Nicolás. Con ellos se repite la sintonización.
 - `PR_U_MAX` queda en 0,92. Nicolás cerró el tiempo muerto en #18 con `DEAD_TIME_CICLOS = 100` (813 ns de peor caso, en `potencia/diseno_puente_h.md`), y en #7 dejó el límite `PR_U_MAX < 1 - (DEAD_TIME_CICLOS + 100) / MAX`, con `MAX = 2500` a 20 kHz. Pasado `1 - DEAD_TIME_CICLOS / MAX = 0,96` el pulso alto de la pierna B desaparece, y el requisito de 100 ciclos de la baja para el bootstrap ya cubre ese caso. El valor se revisa si cambia `DEAD_TIME_CICLOS`.
 - FPU del MicroBlaze V, con Nicolás.
-- Sumar el retardo del filtro antialias (Jefferson, #29, todavía sin entregar) al `Td = 1,5 · Ts` de `potencia/diseno_pr.md` y recalcular los márgenes. Hay presupuesto de sobra. El margen de fase nominal es 79° y baja a 45° con 96 µs extra, un RC de 2 a 5 kHz deja entre 59° y 69°, y 2 µs de aislamiento dejan 78,5°. Nicolás cerró el aislamiento en #21 y #34 con un retardo de la cadena de 0,1 a 0,91 µs, dentro de esos 2 µs. La asimetría del aislamiento no entra al `Td`, la cubre el tiempo muerto.
+- Sumar el retardo del filtro antialias (Jefferson, #29, todavía sin entregar) al `Td = 1,5 · Ts` de `potencia/diseno_pr.md` y recalcular los márgenes. Con la carga de 200 µH hay presupuesto de sobra. El margen de ganancia nominal es 7,8 dB y baja a 6 dB recién con 203 µs extra, un RC de 2 a 4,8 kHz lo sube a entre 9,4 y 12,6 dB porque atenúa donde la fase llega a -180°, y 2 µs de aislamiento no lo mueven. Nicolás cerró el aislamiento en #21 y #34 con un retardo de la cadena de 0,1 a 0,91 µs, dentro de esos 2 µs. La asimetría del aislamiento no entra al `Td`, la cubre el tiempo muerto.
 - Respuesta del profesor sobre la estructura ideal.
 - Completar la validación de saturación y anti-windup en el PLECS que arma Nicolás (#38), con tiempo muerto y cuantización del ADC, que el lazo discreto de `potencia/diseno_pr.md` no tiene.
 
