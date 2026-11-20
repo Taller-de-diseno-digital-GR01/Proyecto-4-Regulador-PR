@@ -1,27 +1,27 @@
 function verificar_pr()
   % cifras de potencia/diseno_pr.md, en el mismo orden
-  L = 30e-3;
-  R = 12;
+  L = 200e-6;
+  R = 9;
   vdc = 18;
   fs = 20000;
-  kr = 3000;
+  kr = 10000;
   ts = 1 / fs;
   td = 1.5 * ts; % un muestreo de computo mas medio de actualizacion
   w0 = 2 * pi * 50;
-  kp = kp_cruce(1000, L, R);
+  kp = R / 2; % la carga es casi resistiva hasta 7 kHz, el cruce en 1 kHz deja 1.8 dB y lo que manda es el margen de ganancia
 
   z = R + 1i * w0 * L;
   fprintf('|Z| = %.2f ohm, desfase %.1f grados\n', abs(z), -angle(z) * 180 / pi);
   fprintf('indice con %d V, %.3f, %.3f y %.3f para 0.2, 0.5 y 1.0 A\n', vdc, abs(z) * [0.2 0.5 1.0] / vdc);
-  fprintf('Kp = %.2f V/A, KP = %.4f, Kr/wc = %.2f\n', kp, kp / vdc, kr / (2 * pi * 1000));
+  fprintf('Kp = %.2f V/A, KP = %.4f\n', kp, kp / vdc);
 
-  fprintf('\nMargenes segun fc\n');
-  for fc = [500 1000 2000]
-    imprimir_margenes(sprintf('fc %d Hz', fc), kp_cruce(fc, L, R), kr, L, R, td, []);
+  fprintf('\nMargenes segun Kp, el ultimo es el de cruce en 1 kHz\n');
+  for k = [3 4.5 6 kp_cruce(1000, L, R)]
+    imprimir_margenes(sprintf('Kp %.2f', k), k, kr, L, R, td, []);
   end
 
   fprintf('\nKr, margenes y error del escalon de 0.2 a 1.0 A por periodo\n');
-  for k = [1000 3000 5000]
+  for k = [3000 5000 10000]
     imprimir_margenes(sprintf('Kr %d', k), kp, k, L, R, td, []);
     [err, desfase] = escalon(kp, k, L, R, fs, 0.2, 1.0, R, 5);
     fprintf('  error %s %%, desfase max %.1f grados\n', sprintf('%.1f ', err), max(abs(desfase)));
@@ -33,10 +33,9 @@ function verificar_pr()
   imprimir_margenes('nominal', kp, kr, L, R, td, []);
   for lc = [0.7 1.3] * L
     for rc = [0.75 1.25] * R
-      imprimir_margenes(sprintf('L %.1f mH, R %.1f ohm', lc * 1e3, rc), kp, kr, lc, rc, td, []);
+      imprimir_margenes(sprintf('L %.0f uH, R %.2f ohm', lc * 1e6, rc), kp, kr, lc, rc, td, []);
     end
   end
-  imprimir_margenes('L esquina baja con Kp recalculado', kp_cruce(1000, 0.7 * L, R), kr, 0.7 * L, R, td, []);
 
   fprintf('\nRetardo extra\n');
   for extra = [2 25 50 75] * 1e-6
@@ -48,7 +47,7 @@ function verificar_pr()
   fprintf('\nFiltro del sensor, nominal y esquina baja de L y R\n');
   rc_f = @(ff) @(s) 1 ./ (1 + s / (2 * pi * ff));
   bw_f = @(ff) @(s) 1 ./ (1 + sqrt(2) * s / (2 * pi * ff) + (s / (2 * pi * ff)) .^ 2);
-  filtros = {'RC 5 kHz', rc_f(5e3); 'RC 3 kHz', rc_f(3e3); 'RC 2 kHz', rc_f(2e3); 'Butterworth 5 kHz', bw_f(5e3)};
+  filtros = {'RC 4.8 kHz', rc_f(4.8e3); 'RC 3 kHz', rc_f(3e3); 'RC 2 kHz', rc_f(2e3); 'Butterworth 5 kHz', bw_f(5e3)};
   for k = 1:size(filtros, 1)
     imprimir_margenes([filtros{k, 1} ' nominal'], kp, kr, L, R, td, filtros{k, 2});
     imprimir_margenes([filtros{k, 1} ' esquina'], kp, kr, 0.7 * L, 0.75 * R, td, filtros{k, 2});
@@ -57,7 +56,7 @@ function verificar_pr()
   fprintf('\nEscalon en las esquinas\n');
   for lc = [0.7 1.3] * L
     for rc = [0.75 1.25] * R
-      fprintf('L %.1f mH, R %.1f ohm, %s %%\n', lc * 1e3, rc, sprintf('%.1f ', escalon(kp, kr, lc, rc, fs, 0.2, 1.0, rc, 3)));
+      fprintf('L %.0f uH, R %.2f ohm, %s %%\n', lc * 1e6, rc, sprintf('%.1f ', escalon(kp, kr, lc, rc, fs, 0.2, 1.0, rc, 3)));
     end
   end
   fprintf('0.2 a 0.5 A, %s %%\n', sprintf('%.1f ', escalon(kp, kr, L, R, fs, 0.2, 0.5, R, 3)));

@@ -1,11 +1,11 @@
 function aliasing_pr()
   % seccion de aliasing de potencia/diseno_pr.md, error de la fundamental segun donde cae la captura
-  L = 30e-3;
-  R = 12;
+  L = 200e-6;
+  R = 9;
   vdc = 18;
   fs = 20000;
-  kr = 3000;
-  kp = sqrt(R ^ 2 + (2 * pi * 1000 * L) ^ 2);
+  kr = 10000;
+  kp = R / 2; % mismo que verificar_pr
   ts = 1 / fs;
   m_pico = abs(R + 1i * 2 * pi * 50 * L) / vdc; % indice pico con 1.0 A, pa ubicar el flanco
 
