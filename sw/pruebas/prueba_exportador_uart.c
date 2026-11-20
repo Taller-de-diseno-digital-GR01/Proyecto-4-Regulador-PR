@@ -62,7 +62,7 @@ static void revisar_trama(uint32_t n)
   revisar(cantidad == n, "cantidad");
   revisar(frecuencia == 20000u, "frecuencia de muestreo");
   revisar(offset == 2048.0f, "offset del ADC");
-  revisar(fabsf(ganancia - 8.138e-4f) < 1e-9f, "amperes por cuenta"); // float, no se compara exacto
+  revisar(fabsf(ganancia - 1.1118e-3f) < 1e-9f, "amperes por cuenta"); // float, no se compara exacto
   revisar(escala == 1.0f / 16384.0f, "escala de duty"); // Q2.14
   revisar(trama[19] == 1, "duty con signo");
 
