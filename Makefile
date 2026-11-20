@@ -6,7 +6,7 @@ SALIDA_VIVADO := vivado/regenerado
 XSA := $(SALIDA_VIVADO)/sistema_wrapper.xsa
 BIT := $(SALIDA_VIVADO)/p4/p4.runs/impl_1/sistema_wrapper.bit
 WS_VITIS := vitis/workspace
-ELF := $(WS_VITIS)/control_pr/Debug/control_pr.elf
+ELF := $(WS_VITIS)/control_pr/build/control_pr.elf
 
 .DEFAULT_GOAL := help
 
