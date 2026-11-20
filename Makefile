@@ -33,7 +33,7 @@ program: $(XSA) $(ELF)
 	xsdb src/programar_vitis.tcl $(BIT) $(ELF)
 
 sim:
-	iverilog -g2012 -o /tmp/tb_$(TB).vvp src/design/*.sv src/sim/tb_$(TB).sv -s tb_$(TB)
+	iverilog -g2012 -s tb_$(TB) -o /tmp/tb_$(TB).vvp src/design/*.sv src/sim/tb_$(TB).sv
 	vvp /tmp/tb_$(TB).vvp
 
 clean:
