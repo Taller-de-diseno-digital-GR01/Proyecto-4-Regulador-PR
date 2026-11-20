@@ -110,7 +110,7 @@ int main(void)
   revisar(escrituras == 0, "control apagado y el PR escribió duty_ref");
 
   habilitar(VALOR(0.0f));
-  r = iterar(true, ADC_OFFSET_CUENTAS - 100u);
+  r = iterar(true, ADC_OFFSET_CUENTAS - 15u); // -0,1 A, debajo de SALTO_MAX
   revisar((r.cuenta_banderas & 0x7000u) == 0x2000u, "habilitado sin falla, los bits 14 a 12 no dan 010");
   revisar((int16_t)duty_escrito > 0, "corriente negativa y el PR no empujó hacia arriba, ¿la resta dio la vuelta en uint16?");
   revisar(r.duty_ref == duty_escrito, "el registro no trae el duty_ref escrito");
@@ -140,12 +140,12 @@ int main(void)
   habilitar(VALOR(0.0f)); // amplitud 0 y corriente 0 dejan el PR en 0, cualquier duty_ref distinto sale de la muestra
   for(uint32_t k = 0; k < 3; k++) iterar(true, ADC_OFFSET_CUENTAS);
   revisar(duty_escrito == 0, "con amplitud y corriente en 0 el PR no se quedó en 0");
-  iterar(true, ADC_OFFSET_CUENTAS + 450u); // 450 * 1,1118e-3 = 0,5 A de un golpe
+  iterar(true, ADC_OFFSET_CUENTAS + 75u); // 75 * 6,6705e-3 = 0,5 A de un golpe
   revisar(duty_escrito == 0, "una espiga sola movió el PR");
-  iterar(true, ADC_OFFSET_CUENTAS + 450u);
+  iterar(true, ADC_OFFSET_CUENTAS + 75u);
   revisar(duty_escrito != 0, "dos muestras seguidas en 0,5 A no se tomaron como corriente de verdad");
 
-  revisar(cerca_del_flanco(ADC_OFFSET_CUENTAS) == cerca_del_flanco(ADC_OFFSET_CUENTAS + 180u), "con el índice arriba de 0,65 el PR usó la muestra cerca del flanco"); // 0,2 A, debajo de SALTO_MAX, así solo el flanco explica que se ignore
+  revisar(cerca_del_flanco(ADC_OFFSET_CUENTAS) == cerca_del_flanco(ADC_OFFSET_CUENTAS + 30u), "con el índice arriba de 0,65 el PR usó la muestra cerca del flanco"); // 0,2 A, debajo de SALTO_MAX, así solo el flanco explica que se ignore
 
   control_habilitado = 1; // lo de abajo espera el control andando
 
@@ -166,7 +166,7 @@ int main(void)
   falla = 0;
   habilitar(VALOR(1.0f));
   antes = escrituras;
-  iterar(true, ADC_OFFSET_CUENTAS + 1700u); // 1700 * 1,1118e-3 = 1,89 A, arriba del umbral de 1,3 A
+  iterar(true, ADC_OFFSET_CUENTAS + 283u); // 283 * 6,6705e-3 = 1,89 A, arriba del umbral de 1,3 A
   revisar(falla == 1, "no publicó la falla por sobrecorriente");
   revisar(apagados == 2, "la sobrecorriente no apagó el PWM");
   revisar(escrituras == antes, "con sobrecorriente el PR escribió en la misma iteración");
