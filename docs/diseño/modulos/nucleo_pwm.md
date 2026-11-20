@@ -30,13 +30,14 @@ Convierte `duty_ref` en las cuatro señales de compuerta del puente H, con modul
 - `DEAD_TIME_CICLOS`, `parameter`, tiempo muerto en ciclos de `clk`.
 - `PRECARGA_CICLOS`, `parameter`, ciclos de `clk` con la compuerta baja encendida al arrancar cada pierna, para cargar el capacitor de bootstrap de la alta.
 - `MAX_FREQ_00`, `MAX_FREQ_01`, `MAX_FREQ_10` y `MAX_FREQ_11`, `parameter`, el máximo de la portadora para cada código de `freq_sel`. En simulación se reemplazan por valores chicos.
+- `RETARDO_TRIGGER_CICLOS`, `parameter`, ciclos de `clk` entre el valle y `pwm_trigger_o`. Vale 0 en el núcleo y `periferico_pwm` lo pone en 100. Tiene que quedar debajo del `MAX` más chico, si no el disparo no sale nunca y `supervisor_falla` declara falla por falta de datos.
 
 ## e) Salidas
 
 - `compuerta_a_alta` y `compuerta_a_baja`, `logic`, par complementario con tiempo muerto de la pierna A hacia los drivers del puente H. Compara la portadora contra `duty_ref`.
 - `compuerta_b_alta` y `compuerta_b_baja`, `logic`, igual para la pierna B, que compara contra `-duty_ref`.
 - `running`, `logic`, hacia `interfaz_axi_pwm`, que lo expone en el bit 3 de `0x00`. Vale 1 mientras las compuertas conmutan y cambia en el borde del período, no cuando cambia `enable`.
-- `pwm_trigger_o`, `logic`, pulso de un ciclo de `clk` en el valle hacia `envoltura_xadc`. En el valle las dos piernas están en el mismo estado y la corriente pasa por su valor promedio.
+- `pwm_trigger_o`, `logic`, pulso de un ciclo de `clk` hacia `envoltura_xadc`, `RETARDO_TRIGGER_CICLOS` después del valle en la subida de la portadora. En el valle las dos piernas están en el mismo estado y la corriente pasa por su valor promedio.
 
 Todas las salidas salen directo de flip-flops, sin lógica combinacional después, para que no lleven glitches. Las compuertas son activas en alto, con 1 para el transistor encendido, como pide la cadena de aislamiento de `potencia/diseno_puente_h.md`.
 
@@ -54,10 +55,12 @@ El valle, cuando el contador vale 0, es el punto de sincronización de todo el n
 
 1. `freq_sel` pasa a su registro sombra, y el `MAX` nuevo rige desde ese período.
 2. `duty_ref`, ya saturado y escalado, pasa a su registro sombra.
-3. Se emite `pwm_trigger_o`, registrado para que no salga con glitches.
+3. Se emite `pwm_trigger_o`, registrado para que no salga con glitches. Con `RETARDO_TRIGGER_CICLOS` distinto de 0 sale esa cantidad de ciclos más tarde, cuando la portadora subiendo vale ese número.
 4. `running` toma el valor de `enable`.
 
 Lo que el software escriba a mitad de período espera al valle siguiente, así que ningún período sale con un `MAX` o un `duty_ref` mezclado.
+
+El retardo del disparo existe porque la conmutación real llega tarde. Las compuertas la atrasan entre 0,1 y 0,91 µs respecto a la portadora, así que muestrear justo en el valle de la portadora deja la muestra pegada al flanco anterior. Con índices altos ese flanco ya está a pocos microsegundos, y el ruido de conmutación que entra por tierra al pin del XADC, después del RC del acondicionador, puede caer encima de la muestra. Con 100 ciclos (1 µs) la muestra queda después de la conmutación atrasada, y con `PR_U_MAX = 0,8` el flanco siguiente sigue a más de 2,5 µs. El valor se revisa en el osciloscopio, viendo dónde cae `xadc_convst` respecto al ruido en la entrada del XADC.
 
 Durante el período cada pierna compara el contador contra su referencia. La pierna A pide su compuerta alta mientras el contador está por debajo de `ref_a`, que sale de `duty_ref`, y la pierna B mientras está por debajo de `ref_b`, que sale de `-duty_ref`. Con `duty_ref = 0` las dos piernas quedan al 50 % y la carga ve 0 V en promedio, y con `duty_ref = 0,5` quedan al 75 % y al 25 % y la carga ve 0,5·Vdc.
 
