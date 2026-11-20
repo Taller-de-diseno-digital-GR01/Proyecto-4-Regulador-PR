@@ -37,7 +37,7 @@ set_property top sistema_wrapper [current_fileset]
 update_compile_order -fileset sources_1
 
 # Síntesis (con las corridas fuera de contexto de cada IP), implementación y bitstream
-launch_runs impl_1 -to_step write_bitstream -jobs 4
+launch_runs impl_1 -to_step write_bitstream -jobs 1 ;# cada corrida OOC de IP es otro proceso de Vivado de 1 a 2 GB, con 4 en paralelo no cabe en 8 GB
 wait_on_run impl_1
 if {[get_property PROGRESS [get_runs impl_1]] ne "100%"} {
   error "La implementación no terminó, revisar [get_property DIRECTORY [get_runs impl_1]]"
