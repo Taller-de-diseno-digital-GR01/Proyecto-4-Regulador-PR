@@ -28,6 +28,20 @@ static bool esperar_avance(void)
   return false;
 }
 
+static bool calibrar_offset(void)
+{ // enable sigue en 0, el puente no conduce y lo que lee el ADC es el cero del sensor
+  uint32_t suma = 0;
+  if(!esperar_avance()) return false; // el primero puede venir de antes de configurar el XADC, no se promedia
+  for(uint32_t n = 0; n < OFFSET_MUESTRAS; n++) {
+    if(!esperar_avance()) return false;
+    suma += drivers_adc_leer();
+  }
+  uint32_t offset = (suma + OFFSET_MUESTRAS / 2u) / OFFSET_MUESTRAS;
+  if(offset + OFFSET_TOLERANCIA < ADC_OFFSET_CUENTAS || offset > ADC_OFFSET_CUENTAS + OFFSET_TOLERANCIA) return false; // sensor suelto, sin 5 V o el divisor mal armado, mejor no dejar habilitar
+  adc_offset_cuentas = (uint16_t)offset;
+  return true;
+}
+
 void control_principal_arrancar(void)
 {
   entradas_anterior = drivers_gpio_entradas(); // un botón apretado desde el reset no cuenta como flanco
@@ -48,7 +62,7 @@ void control_principal_arrancar(void)
   drivers_interrupciones_iniciar(lazo_control_isr); // con el Timer detenido todavía no llega ninguna
 
   (void)drivers_adc_dato_nuevo(); // toma el contador actual como punto de partida
-  arranque_correcto = esperar_avance() && esperar_avance(); // el primer avance puede venir de un período anterior a freq_sel, se descarta
+  arranque_correcto = calibrar_offset() && esperar_avance() && esperar_avance(); // los dos avances van al final porque el Timer se alinea con el último
   if(!arranque_correcto) return; // Timer detenido y enable en 0, el LED de falla lo enciende la primera vuelta
 
   for(volatile uint32_t i = 0; i < MARGEN_ARRANQUE_VUELTAS; i++) {} // volatile para que el compilador no borre la espera

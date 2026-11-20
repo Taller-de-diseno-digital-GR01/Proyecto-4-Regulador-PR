@@ -25,7 +25,7 @@ void exportador_uart_pedir(void)
   buffer_muestras_congelar(); // la ISR deja de escribir mientras se manda
   uint16_t cantidad = (uint16_t)buffer_muestras_cantidad(); // 2048 max, cabe en 16 bits
   uint32_t frecuencia = PR_FRECUENCIA_MUESTREO_HZ;
-  float offset = (float)ADC_OFFSET_CUENTAS;
+  float offset = (float)adc_offset_cuentas; // el medido al arrancar, así receptor_pc convierte con el mismo cero que usó el PR
   float ganancia = (float)ADC_AMPERES_POR_CUENTA;
   float escala = (float)DUTY_ESCALA;
 

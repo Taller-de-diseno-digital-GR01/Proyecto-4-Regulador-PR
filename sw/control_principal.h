@@ -11,6 +11,8 @@
 // TODO: Revisar en integración con la salida de depuración, provisionales de control_principal.md h.6
 #define SONDEO_MAX_LECTURAS 100000u
 #define MARGEN_ARRANQUE_VUELTAS 40u
+#define OFFSET_MUESTRAS 256u // 12,8 ms con el puente apagado, promedia el ruido del ACS712
+#define OFFSET_TOLERANCIA 205u // ±10 % de 2048, cubre un Vcc del sensor entre 4,5 y 5,5 V
 
 void control_principal_arrancar(void);
 void control_principal_vuelta(void);
