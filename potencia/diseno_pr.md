@@ -1,6 +1,6 @@
 # Diseño del regulador PR, decisiones y justificación
 
-Este documento junta las decisiones de diseño del regulador proporcional-resonante (PR) del lazo de corriente, con la razón de cada una. La carga quedó en `R = 12 Ω` y el inductor pasó a ser un transformador de `L = 30 mH` en vez de la bobina de 2 mH con la que se diseñó al principio. `Vdc` y `fsw` siguen provisionales y están marcados como tales. Todo lo que depende de `L` y `R` se rehace cambiando esos números, el procedimiento no cambia, y es lo que se hizo acá, ver la nota al final de cada sección que cambió.
+Este documento junta las decisiones de diseño del regulador proporcional-resonante (PR) del lazo de corriente, con la razón de cada una. La carga quedó en dos inductores de 100 µH en serie, con unos 0,5 Ω de devanado cada uno, más la resistencia de 8 Ω, o sea `L = 200 µH` y `R = 9 Ω`. Antes fue un transformador de 30 mH con 12 Ω, y antes de eso una bobina de 2 mH con 10 Ω. `Vdc` y `fsw` siguen provisionales y están marcados como tales. Con 200 µH la carga es casi resistiva en toda la banda del lazo, y eso cambió el criterio con el que se fija `Kp` además de los números (sección de ganancia proporcional).
 
 Los márgenes y las curvas de error de este documento se calcularon en Octave con el lazo discreto descrito en las secciones de sintonización, y cada cifra lleva sus condiciones. `potencia/verificar_pr.m` calcula los márgenes del lazo abierto y simula el lazo promedio, con los escalones, las esquinas de `L` y `R`, el cambio de `R` y la saturación. `potencia/aliasing_pr.m` simula el puente conmutado de la sección de aliasing. Los dos imprimen las cifras en el orden en que aparecen acá. Los coeficientes finales los escribe `sw/generar_pr_params.m` en `pr_params.h`, y los tres corren igual en Octave y en MATLAB.
 
@@ -32,11 +32,11 @@ A ese `Td` todavía hay que sumarle el retardo del filtro analógico del sensor 
 
 ## Valores provisionales de partida
 
-- `Vdc = 18 V`, punto medio del rango de 12 a 24 V del enunciado. El rizado máximo es lineal en `Vdc`, así que con 24 V sube un tercio y con 12 V baja a dos tercios. A 1,0 A pico el control pide unos 15,3 V. Con 18 V eso es un índice de 0,85, debajo de `PR_U_MAX = 0,92` pero con poco margen, y con 12 V sube a 1,27 y no se puede entregar. El mínimo de `Vdc` para 1,0 A en régimen es 16,6 V, y el escalón de 0,2 a 1,0 A sin rampa llega a pedir 8,5 con 18 V y satura (sección de saturación por escalón). Los ensayos con 1,0 A van entonces con 18 V o más.
+- `Vdc = 18 V`, punto medio del rango de 12 a 24 V del enunciado. A 1,0 A pico el control pide unos 9 V, un índice de 0,50 con 18 V y de 0,75 con 12 V, los dos debajo de `PR_U_MAX = 0,92`. El escalón de 0,2 a 1,0 A sin rampa pide como máximo 0,52 con 18 V y 0,77 con 12 V, así que con esta carga los ensayos de 1,0 A también se pueden correr a 12 V. El que empuja a bajar `Vdc` ahora es el rizado (sección de rizado).
 - `fsw = fs = 20 kHz`, muestreando una vez por período. A 100 MHz son 5000 ciclos de reloj por iteración, de sobra para las seis multiplicaciones del PR incluso en flotante por software. Es una frecuencia habitual para MOSFET de baja tensión, pero Nicolás tiene que confirmar que su puente y su tiempo muerto la aguantan. La tabla de `nucleo_pwm.md` trae 10 y 40 kHz en las otras dos frecuencias y el código `11` satura a 20 kHz. Cada frecuencia pide regenerar los coeficientes.
-- `L = 30 mH` y `R = 12 Ω`. El inductor es un transformador, no la bobina de 2 mH del diseño original, y la `R` subió de 10 a 12 Ω. Con 1,0 A pico la `R` disipa 6 W en promedio, así que tiene que ser de potencia. Jefferson mide los valores reales (#31), estos todavía son los que dictó para armar el banco.
+- `L = 200 µH` y `R = 9 Ω`. Son dos inductores de 100 µH en serie con unos 0,5 Ω cada uno, más la resistencia de 8 Ω que ya estaba. Con 1,0 A pico la carga disipa 4,5 W en promedio, 4 W de ellos en la resistencia de 8 Ω. Son los valores nominales, falta medirlos (#31).
 
-A 50 Hz la impedancia es `|Z| = |R + jω0L| = 15,26 Ω`, ya no casi toda resistiva como antes, con 38,1° de desfase (contra 3,6° con la carga de 2 mH). De ahí sale el índice de modulación que pide cada amplitud con 18 V, 0,170 para 0,2 A, 0,424 para 0,5 A y 0,848 para 1,0 A, mucho más cerca de `PR_U_MAX = 0,92` que con la carga anterior (0,557 a 1,0 A). El margen de índice en régimen a 1,0 A es ahora angosto, ver la sección de saturación por escalón más abajo.
+A 50 Hz la impedancia es `|Z| = 9,00 Ω` con 0,4° de desfase, prácticamente resistiva. El índice que pide cada amplitud con 18 V es 0,100 para 0,2 A, 0,250 para 0,5 A y 0,500 para 1,0 A. La constante de tiempo `τ = L/R` es de 22 µs, menos que los 50 µs del período de muestreo, así que la carga llega a su valor final dentro de una sola muestra.
 
 ## Rizado y la `L` mínima
 
@@ -46,32 +46,51 @@ $$\Delta I_{pp} \approx \frac{V_{dc}\,D(1-D)}{2\,L\,f_{sw}}$$
 
 cuyo máximo está en `D = 0,5` y vale `Vdc/(8·L·fsw)`. Esta fórmula es derivación propia, los libros solo dan la duplicación efectiva de la frecuencia. Exigir que ese máximo quede bajo 0,20 A da `L ≥ Vdc/(1,6·fsw)`.
 
+- Con 12 V y 20 kHz, `L ≥ 0,38 mH`.
 - Con 18 V y 20 kHz, `L ≥ 0,56 mH`.
 - Con 24 V y 20 kHz, `L ≥ 0,75 mH`.
 
-Con `L = 30 mH` y 18 V el máximo teórico es 3,75 mA, quince veces menos que con la bobina de 2 mH. A 1,0 A pico el índice de modulación es 0,848, lejos del `D = 0,5` del máximo, así que el rizado real es todavía más chico, de 1,9 mA. Con 24 V sube a 4,6 mA, y a 10 kHz, con `freq_sel = 00`, se duplica. Con esta `L` el rizado deja de ser una restricción, el transformador filtra de sobra, y el tiempo muerto y las caídas en los transistores (que lo empeoran un poco y no están incluidos) no lo acercan al límite de 0,20 A pp.
+Con `L = 200 µH` no se cumple con ninguna `Vdc` del rango a 20 kHz. Como `τ = 22 µs` es del orden de los 25 µs entre pulsos, la fórmula lineal sobrestima un poco. Con la solución exponencial exacta de la RL, el rizado en el pico de la senoidal (donde `D = m`, o `D = 0,5` si `m` pasa de 0,5) queda así para 0,2, 0,5 y 1,0 A.
+
+- 12 V y 20 kHz, 0,19, 0,34 y 0,37 A pp.
+- 18 V y 20 kHz, 0,20, 0,41 y 0,55 A pp.
+- 24 V y 20 kHz, 0,21, 0,45 y 0,69 A pp.
+- 12 V y 40 kHz, 0,10, 0,18 y 0,19 A pp.
+
+El límite de 0,20 A pp de la sección 4.3.5 solo se cumple en las tres amplitudes con 12 V y 40 kHz, y a 1,0 A queda en 0,19 A, sin margen para el tiempo muerto y las caídas de los transistores, que no están incluidos. Con 18 V y 20 kHz falla en 0,5 y 1,0 A por un factor de dos a casi tres.
+
+El PR no puede hacer nada con esto, el rizado depende solo de `L`, `Vdc` y `fsw`. Hay dos salidas. Una es subir `L` a por lo menos 0,56 mH, que con inductores de 100 µH son seis en serie con 18 V o cuatro con 12 V, y cada uno suma su 0,5 Ω. La otra es correr el puente a 40 kHz, que no sale gratis, porque el lazo cerrado hoy corre solo a 20 kHz con el Timer fijo en 5000 ciclos y `control_principal` solo habilita con `freq_sel = 01`. A 40 kHz, con `MAX = 1250`, el tope de índice baja a `PR_U_MAX = 0,84`, que es justo lo que pide 1,0 A con 12 V sumando el tiempo muerto. Queda abierto en `docs/diseño/inconsistencias.md`.
 
 ## Ganancia proporcional
 
-Se fija el ancho de banda del lazo `fc` en `fs/20 = 1 kHz`. Más alto el retardo de 1,5 `Ts` come margen de fase y de ganancia, y más bajo la parte proporcional se vuelve lenta aunque el resonante domina el seguimiento de todas formas. Con `fc` en 2 kHz el margen de fase queda en 37,8° y el de ganancia en 4,5 dB, los dos por debajo del mínimo de 45°/6 dB, y con 500 Hz sobra margen (83,2° y 16,5 dB) pero no se gana nada medible. Con la `L` de 30 mH la carga ya aporta bastante fase en el cruce por sí sola (38,1° a 50 Hz), y a diferencia de la bobina de 2 mH acá sí importa mantener `fc` en 1 kHz y no subirlo, porque a 2 kHz el margen ya no alcanza.
+Con las cargas anteriores `Kp` se fijaba imponiendo ganancia unitaria de lazo en `fc = fs/20 = 1 kHz`, sin contar el resonante.
 
-En el cruce el resonante sigue aportando apenas `Kr/ωc ≈ 0,48` contra un `Kp` que ahora es mucho más grande, así que `Kp` se sigue calculando como si el resonante no estuviera. Imponiendo ganancia unitaria de lazo en `ωc`.
+$$K_p = \sqrt{R^2 + (\omega_c L)^2}$$
 
-$$K_p = \sqrt{R^2 + (\omega_c L)^2} = 188{,}88\ \mathrm{V/A}$$
+Con 200 µH eso da `Kp = 9,09 V/A`, y ahí el criterio deja de servir. La carga es resistiva hasta su polo en `R/(2πL) = 7,2 kHz`, así que la ganancia del lazo queda casi plana en `Kp/R` desde 50 Hz hasta cerca de Nyquist, mientras el retardo de 1,5 `Ts` sigue restando fase. La fase llega a -180° con la ganancia todavía cerca de 1 y el margen de ganancia queda en 1,8 dB. En la esquina de `L = 140 µH` y `R = 6,75 Ω` el lazo es inestable.
 
-Con la carga anterior (2 mH, 10 Ω) `Kp` daba 16,06 V/A porque `ωc·L` y `R` eran del mismo orden. Con 30 mH, `ωc·L = 188,5 Ω` ya domina casi del todo sobre `R = 12 Ω`, y por eso `Kp` sube casi doce veces. Esto es la raíz de lo que se discute en la sección de saturación por escalón más abajo, no es un ajuste cosmético.
+Lo que manda ahora es el margen de ganancia, que sale casi directo de `Kp/R`. Con `Kr = 10000` y la carga nominal.
+
+- `Kp = 3`, 11,3 dB.
+- `Kp = 4,5`, 7,8 dB.
+- `Kp = 6`, 5,4 dB.
+- `Kp = 9,09`, el del cruce en 1 kHz, 1,8 dB.
+
+Se elige `Kp = R/2 = 4,5 V/A`, que deja 7,8 dB en el nominal y 5,2 dB en la peor esquina, sobre los 6 dB y 3 dB pedidos. Con 6 V/A la esquina ya baja a 2,7 dB. El cruce de ganancia ya no lo pone `Kp` sino el resonante, y queda en 216 Hz con 112,4° de margen de fase.
+
+Con `Kp` debajo de `R` la parte proporcional sola deja 66,7 % de error de amplitud, y el seguimiento lo hace casi todo el resonante. Con el transformador pasaba lo contrario, `Kp = 188,88` cerraba el lazo casi solo y era el que saturaba el puente en los escalones.
 
 ## Ganancia resonante
 
-`Kr` fija qué tan rápido converge el error en 50 Hz. Con `Kp = 188,88` se probó en un lazo discreto completo (planta por ZOH exacto, un muestreo de retardo, regulador con Tustin precorregido) y un escalón de 0,2 a 1,0 A pico aplicado en un cruce por cero de la referencia, midiendo el error de la fundamental en ventanas de un período. El error es el de amplitud de la fundamental, `(|I1| - |R1|)/|R1|` con `I1` y `R1` los fasores de 50 Hz de la corriente y de la referencia, que es el criterio de 4.3.5 y el que calcula `receptor_pc.md` en su sección h.2, y se informa en valor absoluto. Los fasores se extraen proyectando sobre seno y coseno en el período completo. El desfase sale aparte y en estas pruebas no pasó de 2,1°, por lo que el error del fasor completo da casi lo mismo.
+`Kr` fija qué tan rápido converge el error en 50 Hz. Con `Kp = 4,5` se probó en un lazo discreto completo (planta por ZOH exacto, un muestreo de retardo, regulador con Tustin precorregido) y un escalón de 0,2 a 1,0 A pico aplicado en un cruce por cero de la referencia, midiendo el error de la fundamental en ventanas de un período. El error es el de amplitud de la fundamental, `(|I1| - |R1|)/|R1|` con `I1` y `R1` los fasores de 50 Hz de la corriente y de la referencia, que es el criterio de 4.3.5 y el que calcula `receptor_pc.md` en su sección h.2, y se informa en valor absoluto. Los fasores se extraen proyectando sobre seno y coseno en el período completo.
 
-- `Kr = 1000`, error de 5,8 %, 5,5 %, 5,2 %, 4,9 %, 4,7 % en los cinco primeros períodos.
-- `Kr = 3000`, error de 5,3 %, 4,6 %, 3,9 %, 3,4 %, 2,9 %.
-- `Kr = 5000`, error de 5,0 %, 3,9 %, 3,0 %, 2,3 %, 1,8 %.
+- `Kr = 3000`, error de 22,4 %, 1,9 % y 0,1 % en los tres primeros períodos.
+- `Kr = 5000`, 14,5 %, 0,1 % y 0 %.
+- `Kr = 10000`, 7,0 %, 0,3 % y 0 %.
 
-Se elige `Kr = 3000`, igual que con la carga anterior, y ya cumple los 10 % desde el primer período en este escalón idealizado (aplicado en el cruce por cero, sin saturación). Los márgenes de fase quedan en 66,5°, 66,6° y 66,4° con 1000, 3000 y 5000, prácticamente iguales entre sí porque ahora `Kp` domina tanto que `Kr` casi no mueve el cruce.
+Se elige `Kr = 10000`, el único de los tres que cumple los 10 % ya en el primer período, con un desfase que no pasa de 0,1°. Subirlo casi no toca los márgenes (7,9 dB con 3000 y 7,8 dB con 10000), porque solo mueve el cruce de 89 a 216 Hz, lejos de donde la fase llega a -180°. El polo más lento del lazo cerrado queda en `|z| = 0,9915`, una constante de tiempo de 5,9 ms.
 
-Con la carga provisional anterior, de 2 Ω y 1 mH, el mismo criterio daba `Kr = 1000`, y con la de 10 Ω y 2 mH subió a `Kr = 3000` porque la convergencia se frena con `Kp + |Z|`. Con 12 Ω y 30 mH ese término pasó de unos 26 a unos 204, pero como ahora `Kp` solo ya hace la mayor parte del trabajo de seguimiento (en este modelo sin saturación), hasta `Kr = 1000` alcanza. Esto no significa que el lazo mejoró, lo que se ve con saturación de por medio en la sección de abajo es justo lo contrario.
+Con el transformador alcanzaba `Kr = 3000` porque `Kp` hacía casi todo el trabajo. Con `Kp` chico el resonante tiene que converger solo, y por eso subió.
 
 ## Discretización
 
@@ -91,14 +110,14 @@ La estructura de cinco coeficientes de `pr_discreto` y de `generar_pr_params.m` 
 
 Con los valores provisionales y dividiendo entre `Vdc` para que la salida sea índice de modulación, como ya prevé el script.
 
-- `KP = 10,4932`
-- `B0 = 4,1665e-3`
+- `KP = 0,25`
+- `B0 = 1,3888e-2`
 - `B1 = 0`
-- `B2 = -4,1665e-3`
+- `B2 = -1,3888e-2`
 - `A1 = -1,99975`
 - `A2 = 1`
 
-Los coeficientes del resonante (`B0`, `B2`, `A1`, `A2`) no cambian con `L` y `R`, dependen solo de `Kr` y `fs`, que se mantuvieron. Lo único que cambió en `pr_params.h` fue `KP`.
+`A1` y `A2` dependen solo de `fs` y no cambiaron. `B0` y `B2` subieron con `Kr` de 3000 a 10000, y `KP` bajó de 10,4932 a 0,25.
 
 `A1` queda muy cerca de -2, y lo que importa es que la diferencia con -2 se represente bien porque ella fija la frecuencia del polo. Un paso de 1e-6 en `A1` corre el polo unos 0,1 Hz. En flotante de 32 bits el paso en ese valor es de 1,2e-7, o sea 0,012 Hz, y con ese corrimiento la ganancia del resonante en 50 Hz sigue siendo de miles, con un error de seguimiento menor a 0,03 %. En punto fijo hace falta un formato con al menos dos bits enteros y unos 20 fraccionarios para `A1`, y esto es un argumento a favor de habilitar la FPU.
 
@@ -106,86 +125,81 @@ Los coeficientes del resonante (`B0`, `B2`, `A1`, `A2`) no cambian con `L` y `R`
 
 El PR calcula un índice de modulación `u[k]` que se recorta a `±PR_U_MAX` antes de convertirlo a `duty_ref` en Q2.14. El tope absoluto es 1,0, el rango del periférico, y lo que lo baja son el tiempo muerto y el bootstrap. A 20 kHz, con `MAX = 2500`, hace falta `PR_U_MAX < 1 - (DEAD_TIME_CICLOS + 100)/MAX`, que con 100 ciclos de tiempo muerto da 0,92. Si hubo recorte, el estado que se guarda del resonante es el que habría hecho caer la suma justo en el límite, y así no acumula energía mientras el puente está saturado. La fórmula y las razones están en `pr_discreto.md`, sección h.5, que es la fuente de verdad de esa parte.
 
-Con 18 V y la carga anterior no había saturación ni en régimen ni en el escalón de 0,2 a 1,0 A aplicado en el cruce por cero, que en el peor instante del período pedía 0,83 contra el tope de 0,92. Con 12 Ω y 30 mH eso ya no es cierto.
+Con esta carga no hay saturación ni en régimen ni en el escalón. En régimen el índice a 1,0 A es 0,50 con 18 V y 0,75 con 12 V. El escalón de 0,2 a 1,0 A sin rampa, barriendo 20 fases del período, pide como máximo 0,52 con 18 V, 0,64 con la `R` subida a 11,25 Ω y 0,77 con 12 V.
 
-### Saturación del escalón de amplitud con la carga nueva
+### Rampa de amplitud
 
-En régimen, a 1,0 A pico con 18 V, el índice es 0,848, todavía debajo de `PR_U_MAX`, así que seguir una senoidal ya establecida no satura. El problema es el escalón de amplitud que se aplica con los switches (sección "Ensayos de cambio de amplitud" del enunciado), y específicamente cuando cae lejos de un cruce por cero, que es lo que de verdad pasa al mover un switch a mano. `potencia/verificar_pr.m` ya tenía este chequeo (`pico_escalon`, `indice_maximo`, barriendo 20 fases dentro del período), y con la carga anterior el peor caso a 18 V daba un índice de 0,83. Con la carga nueva da **8,53**, y con 12 V, **12,80**. El `Kp` que subió casi doce veces (sección anterior) multiplica igual de fuerte el error instantáneo del escalón, no solo el error en régimen.
+La rampa de `amplitud_ref` de [`lazo_control`](../docs/diseño/modulos/lazo_control.md#h6-rampa-de-amplitud) (`AMPLITUD_PASO_MAX`, 400 muestras de 0 a 1,0 A) nació con el transformador, donde `Kp = 188,88` hacía que el escalón de un switch pidiera un índice de 8,5 y dejara el puente pegado al tope varios períodos. Con `Kp = 4,5` ese problema desaparece, y la rampa se deja porque no estorba.
 
-Verificando con el modelo discreto completo, con saturación y anti-windup como en `pr_discreto.c` (`sim_saturado.m`, no versionado, corrido desde esta sesión), el escalón de 0,2 a 1,0 A en la peor fase deja el error de la fundamental en 11,6 %, 36,9 % y 58,1 % en los tres primeros períodos con `Kr = 3000`, y ningún `Kr` probado (3000 a 30000) lo baja de 10 % para el segundo período. El anti-windup evita que el resonante se vaya a cualquier parte, pero no evita que el puente se quede pegado al tope de índice mientras la corriente real alcanza a la referencia, y eso solo no alcanza para cumplir el criterio de la sección 4.3.5 en este escalón.
+Compilando `lazo_control.c` con `PLANTA_SIMULADA` junto con `pr_discreto.c` y `ref_senoidal.c`, con la carga nueva y barriendo 20 fases del escalón contra la amplitud verdadera del switch (no la rampeada), el peor caso queda así, sin ninguna muestra saturada.
 
-La causa es que el escalón de los switches cambia `amplitud_ref` de golpe, en la muestra siguiente, y la ISR lo aplica íntegro (`lazo_control.c`, `valor_t amplitud = amplitud_ref;`). Con la carga anterior eso no pesaba porque `Kp` era chico. Con esta carga sí pesa.
+- 0,2 a 1,0 A, 0,5 % en el segundo período y 0 % desde el tercero, con pico de 1,010 A.
+- 0,2 a 0,5 A, 0,3 % y 0 %.
+- 0,5 a 1,0 A, 0,5 % y 0 %, con pico de 1,012 A.
+- 1,0 a 0,2 A, 2,7 % y 0,1 %.
 
-La salida es limitar la velocidad de cambio de `amplitud_ref` en vez de tocar `Kp` o `Kr`, implementada en [`lazo_control`](../docs/diseño/modulos/lazo_control.md#h6-rampa-de-amplitud) (`AMPLITUD_PASO_MAX`). El primer número que se probó, una rampa de 200 muestras (10 ms, medio período), salió de `sim_saturado.m`/`sim_rampa.m` en Octave, pero esa simulación medía el error contra la referencia ya rampeada en vez de contra la amplitud real que pide el switch, un error de método que escondía el problema en vez de mostrarlo.
-
-Verificando contra el código real, no contra Octave, compilando `lazo_control.c` con `PLANTA_SIMULADA` junto con `pr_discreto.c` y `ref_senoidal.c`, y barriendo las 20 fases del escalón de 0,2 a 1,0 A contra la amplitud verdadera (no la rampeada), la rampa de 200 muestras falla, 12,2 % en el segundo período y 10,6 % en el tercero en la fase donde el switch cae justo en el pico de la corriente. Con 400 muestras (20 ms, un período completo) el peor caso de las 20 fases baja a 4,0 % en el segundo período y 3,5 % en el tercero, con pico de corriente 0,979 A. Entre 350 y 480 muestras el resultado es parecido (4,0 a 4,1 % en el segundo período), así que no es un ajuste fino, hay margen real alrededor de un período completo. Con 600 muestras o más el error del segundo período vuelve a subir (14,9 % a 800 muestras, 26,3 % a 1000), la rampa no es monótonamente mejor por ser más lenta, así que `AMPLITUD_PASO_MAX` queda en 400 muestras y no en algo más conservador.
-
-`control_principal` también reinicia la rampa en 0 al habilitar, así que arrancar con el switch ya puesto en una amplitud alta tampoco pega un escalón completo.
+El primer período no se compara porque ahí la amplitud todavía está subiendo. `control_principal` también reinicia la rampa en 0 al habilitar, así que arrancar con el switch ya puesto en una amplitud alta tampoco pega un escalón completo.
 
 ## Aliasing y filtro del sensor
 
-El criterio `fs > 2·BW` se cumple de sobra para la señal. La referencia es de 50 Hz y el lazo cruza en 1 kHz, contra una `fs` de 20 kHz. Lo que el criterio no mira es todo lo demás que entra al ADC, porque al muestrear cualquier contenido por encima de `fs/2` se pliega hacia la banda del lazo y se confunde con corriente.
+El criterio `fs > 2·BW` se cumple de sobra para la señal. La referencia es de 50 Hz y el lazo cruza en 216 Hz, contra una `fs` de 20 kHz. Lo que el criterio no mira es todo lo demás que entra al ADC, porque al muestrear cualquier contenido por encima de `fs/2` se pliega hacia la banda del lazo y se confunde con corriente.
 
-- El rizado de conmutación se sincroniza solo. Si la captura cae en el valle o en el pico de la portadora, el rizado es un múltiplo exacto de `fs` y se pliega a continua. Esto se simuló con `potencia/aliasing_pr.m` para la carga de 10 Ω y 2 mH, con la portadora de 2500 cuentas a 100 MHz, la carga RL resuelta de forma exacta entre flancos y el PR de las secciones anteriores, sin tiempo muerto ni cuantización del ADC. Las cifras de abajo todavía son las de esa carga, `aliasing_pr.m` no se corrió de nuevo con 12 Ω y 30 mH en esta sesión, y como el rizado de conmutación ahora es quince veces más chico (sección de rizado de arriba) es de esperar que el aliasing pese menos, pero eso hay que confirmarlo corriendo el script, no asumirlo. El error de amplitud de la fundamental de la corriente verdadera, no la muestreada, daba lo siguiente con 1,0 A pico y la carga vieja.
-  - Captura en el valle, 0,05 %. Con +200 ns de error en el instante sube a 0,15 % y con -200 ns baja a -0,05 %, y con ±400 ns queda entre -0,15 % y 0,25 %. En el pico de la portadora es igual (0,05 % y 0,15 % con +200 ns).
-  - Captura adelantada respecto al valle de la corriente, por el retardo de la cadena de compuertas (#18, de 0,1 a 0,91 µs). Con 0,91 µs antes del valle da -0,41 % con 1,0 A y -0,39 % con 0,2 A, y con 0,1 µs da menos de 0,01 %. En el valle la tensión sobre la carga es cero y la pendiente es `-R·i/L`, proporcional a la corriente, así que el error crece con la amplitud igual que la señal y a 0,2 A el error relativo no sube. Es más que con la carga de 2 Ω y 1 mH porque `R/L` pasó de 2000 a 5000 por segundo, pero queda unas 25 veces por debajo del 10 % y la envoltura sigue sin necesitar retardo antes de `CONVST`.
-  - Captura en el centro del pulso, con la portadora en `MAX/2`, donde el rizado también pasa por su promedio pero con la pendiente máxima. Con 1,0 A y ±200 ns da entre -0,18 % y 0,08 %, parecido al valle, porque con 10 V sobre la carga la pendiente en el pulso es baja. Con 0,2 A pico da entre -1,2 % y 0,9 %, unas 7 veces más que en el valle, porque el error absoluto no baja con la amplitud.
-  - Captura en el flanco del pulso, donde se lee el extremo del rizado, 2,8 % con 1,0 A.
-  - Con una fase cualquiera, a 5, 7,8 y 20 µs del valle, el error va de -2,4 % a +2,6 %.
+- El rizado de conmutación se sincroniza solo. Si la captura cae en el valle o en el pico de la portadora, el rizado es un múltiplo exacto de `fs` y se pliega a continua. Esto se simuló con `potencia/aliasing_pr.m`, con la portadora de 2500 cuentas a 100 MHz, la carga RL resuelta de forma exacta entre flancos y el PR de las secciones anteriores, sin tiempo muerto, sin cuantización del ADC y sin el filtro del sensor. Con 200 µH lo que se pliega ya no es el promedio. En el valle la tensión sobre la carga es cero y la corriente decae con `τ = 22 µs`, del orden del propio tramo, así que la muestra del medio del tramo queda por debajo del promedio del período. El PR lleva la muestra a la referencia y la corriente verdadera queda por encima. Con las cargas anteriores `τ` era de milisegundos, el tramo era casi recto y el error daba 0,05 %. El error de amplitud de la fundamental de la corriente verdadera, no la muestreada, queda así.
+  - Captura en el valle, 4,2 % con 1,0 A y 5,3 % con 0,2 A. Con ±200 ns de error en el instante va de 3,3 % a 5,2 % con 1,0 A, y con ±400 ns de 2,4 % a 6,1 %. En el pico de la portadora es igual (4,2 % y 5,2 % con +200 ns).
+  - Captura adelantada respecto al valle, por el retardo de la cadena de compuertas (#18, de 0,1 a 0,91 µs). Con 0,91 µs antes da 0,13 % con 1,0 A y 1,1 % con 0,2 A, y con 0,1 µs da 3,8 %. Adelantar la captura compensa en parte la caída del tramo, así que acá el retardo de la cadena juega a favor.
+  - Captura en el centro del pulso, con ±200 ns, entre -6,0 % y -3,3 % con 1,0 A y entre -18,1 % y 1,3 % con 0,2 A. Con esta carga deja de ser una alternativa.
+  - Captura en el flanco del pulso, donde se lee el extremo del rizado, 27,4 % con 1,0 A.
+  - Con una fase cualquiera, a 5, 7,8 y 20 µs del valle, el error va de -16,5 % a +28,4 %.
 
-  Por eso `pwm_trigger_o` tiene que caer en el valle o el pico. La tolerancia es holgada, unos pocos cientos de nanosegundos alcanzan, y eso le sirve a #34 para decidir cuántos ciclos adelantar el trigger por el sample and hold del XADC.
+  `pwm_trigger_o` tiene que seguir cayendo en el valle o el pico. Ahí todo queda bajo el 10 %, pero el aliasing ya se come hasta 6 % del presupuesto según dónde caiga la captura. El filtro del sensor promedia parte del rizado antes del ADC y no está en la simulación, así que la cifra real puede ser otra, y se confirma en el banco con el ensayo 3.
 - El ruido de banda ancha del sensor y de la conmutación no se sincroniza con nada, y lo único que lo frena es un filtro analógico antes del ADC. Ese filtro todavía no existe. Su corte sale de medir el ruido real del sensor, y lo mide Jefferson, que también diseña el filtro (#29).
 
-El filtro cuesta fase en el cruce. Para un RC de primer orden con corte `fF`, el retardo de grupo a baja frecuencia es `τF = 1/(2π·fF)`, que vale 32 µs con 5 kHz, 53 µs con 3 kHz y 80 µs con 2 kHz, o sea 0,64, 1,06 y 1,59 `Ts`. Los márgenes que quedan con cada uno están en la sección siguiente. Todavía no hay corte ni orden elegidos, así que el retardo total del lazo es `Td = 1,5·Ts + τF` con `τF` pendiente, y los márgenes se recalculan cuando Jefferson fije el filtro.
-
+El filtro cuesta fase. Para un RC de primer orden con corte `fF`, el retardo de grupo a baja frecuencia es `τF = 1/(2π·fF)`, que vale 33 µs con 4,8 kHz, 53 µs con 3 kHz y 80 µs con 2 kHz, o sea 0,66, 1,06 y 1,59 `Ts`. Con el cruce en 216 Hz eso casi no pesa, y los márgenes que quedan con cada uno están en la sección siguiente. El retardo total del lazo es `Td = 1,5·Ts + τF`, con `τF` el del filtro que fije Jefferson.
 Con `freq_sel` la tabla de `nucleo_pwm.md` quedó en `00` a 10 kHz, `01` a 20 kHz y `10` a 40 kHz, y `11` satura a 20 kHz. El lazo cerrado corre solo a 20 kHz, con el Timer fijo en 5000 ciclos, así que el argumento del aliasing a 10 kHz ya no aplica. Las otras frecuencias son para mostrar el PWM y para el testbench, con el control deshabilitado, y `control_principal` solo deja habilitar el control con `freq_sel = 01`.
 
 ## Análisis de estabilidad
 
-Se analiza `L(s) = Gc(s)·e^(-s·Td)/(Ls + R)` con `Td = 1,5·Ts = 75 µs`. Todos los márgenes de esta sección salen de ese lazo abierto, con `Kp = 188,88` y `Kr = 3000` salvo que se diga otra cosa, y se miden en el cruce de ganancia más alto.
+Se analiza `L(s) = Gc(s)·e^(-s·Td)/(Ls + R)` con `Td = 1,5·Ts = 75 µs`. Todos los márgenes de esta sección salen de ese lazo abierto, con `Kp = 4,5` y `Kr = 10000` salvo que se diga otra cosa, y se miden en el cruce de ganancia más alto.
 
-El diseño nominal, con `L = 30 mH` y `R = 12 Ω`, cruza en 1,0 kHz con 66,5° de margen de fase y 10,5 dB de margen de ganancia. Sigue cumpliendo el mínimo de 45°/6 dB, pero con menos holgura que antes (99,8° y 9,6 dB con la carga de 2 mH). El criterio que se pide es margen de fase de al menos 45° y de ganancia de al menos 6 dB con la `L` medida y el filtro del sensor puestos, y de al menos 30° y 3 dB en las esquinas de `L` y `R` de abajo con `Kp` sin retocar. Si la `L` medida difiere de 30 mH se recalcula `Kp` con la fórmula de arriba, por ejemplo con la esquina baja de abajo (21 mH) sale `Kp = 132,49` y 68,0° y 10,6 dB.
+El diseño nominal, con `L = 200 µH` y `R = 9 Ω`, cruza en 216 Hz con 112,4° de margen de fase y 7,8 dB de margen de ganancia. El criterio que se pide es margen de fase de al menos 45° y de ganancia de al menos 6 dB con la `L` medida y el filtro del sensor puestos, y de al menos 30° y 3 dB en las esquinas de `L` y `R` de abajo con `Kp` sin retocar. Si la `R` medida difiere de 9 Ω se recalcula `Kp = R/2`.
 
-Si `L` y `R` varían después de sintonizar, por ejemplo por saturación del inductor o por calentamiento de la resistencia, `Kp` queda fijo y los márgenes se mueven. Las esquinas son ±30 % en `L` y ±25 % en `R`. El mínimo está en la `L` más chica con la `R` más chica, porque sube el cruce y la carga aporta menos fase.
+Si `L` y `R` varían después de sintonizar, por ejemplo por saturación del inductor o por calentamiento de la resistencia, `Kp` queda fijo y los márgenes se mueven. Las esquinas son ±30 % en `L` y ±25 % en `R`. El mínimo está en la `R` más chica, porque sube `Kp/R`, y la `L` casi no importa.
 
-- `L = 21,0 mH`, `R = 9,0 Ω`, cruce en 1430 Hz, 54,0° y 7,5 dB.
-- `L = 21,0 mH`, `R = 15,0 Ω`, cruce en 1427 Hz, 55,9° y 7,5 dB.
-- `L = 39,0 mH`, `R = 9,0 Ω`, cruce en 770 Hz, 71,8° y 12,8 dB.
-- `L = 39,0 mH`, `R = 15,0 Ω`, cruce en 768 Hz, 73,6° y 12,8 dB.
+- `L = 140 µH`, `R = 6,75 Ω`, cruce en 324 Hz, 120,6° y 5,2 dB.
+- `L = 140 µH`, `R = 11,25 Ω`, cruce en 169 Hz, 108,3° y 8,7 dB.
+- `L = 260 µH`, `R = 6,75 Ω`, cruce en 322 Hz, 118,5° y 7,1 dB.
+- `L = 260 µH`, `R = 11,25 Ω`, cruce en 169 Hz, 107,6° y 9,9 dB.
 
-Las cuatro cumplen el mínimo de esquina (30°/3 dB) con margen de sobra.
+Las cuatro cumplen el mínimo de esquina (30°/3 dB).
 
-El retardo que se le agrega al `Td` es lo que más mueve los márgenes, y con esta carga mueve mucho más rápido que antes.
+El retardo que se le agrega al `Td` ahora mueve poco.
 
-- 2 µs extra, 65,8° y 10,3 dB.
-- 25 µs extra, 57,5° y 8,1 dB.
-- 50 µs extra, 48,5° y 6,2 dB.
-- 75 µs extra, 39,5° y 4,6 dB.
-- El margen de ganancia baja a 6 dB con solo 53 µs extra (antes 49 µs, parecido). El de fase ya llega a 45° con 60 µs (antes 153 µs, un tercio de antes), y el de ganancia se agota con unos 185 µs (antes 280 µs).
+- 2 µs extra, 112,3° y 7,8 dB.
+- 25 µs extra, 110,5° y 7,2 dB.
+- 50 µs extra, 108,6° y 6,8 dB.
+- 75 µs extra, 106,6° y 6,6 dB.
+- El margen de ganancia baja a 6 dB con 203 µs extra, y el de fase no llega a 45° ni con 400 µs.
 
-Antes el límite lo fijaba el margen de ganancia con bastante aire respecto al de fase. Ahora los dos límites quedan cerca uno del otro (53 µs y 60 µs), así que cualquier retardo adicional de más de unos 50 µs obliga a rehacer la sintonización con `fc` más bajo, y hay mucho menos margen que antes para el retardo del aislamiento de las compuertas (#21) más el del filtro del sensor juntos.
+Con el transformador el límite estaba en unos 53 µs. Con esta carga sobra presupuesto para el aislamiento de las compuertas (#21) y el filtro del sensor juntos.
 
-El retardo del aislamiento de las compuertas (#21) se espera de pocos microsegundos como mucho, y con 2 µs el margen queda en 65,8° y 10,3 dB, así que todavía se puede sumar al `Td` sin rehacer la sintonización. El del filtro del sensor pesa bastante más, y con esta carga ya no sobra margen para cualquier filtro. Con `Kp` y `Kr` fijos, el RC de primer orden da lo siguiente en el diseño nominal.
+Con `Kp` y `Kr` fijos, el filtro del sensor hasta sube el margen de ganancia, porque atenúa justo donde la fase llega a -180°. La esquina de abajo es la de `L = 140 µH` y `R = 6,75 Ω`.
 
-- `fF = 5 kHz`, cruce en 981 Hz, 56,0° y 8,6 dB.
-- `fF = 3 kHz`, cruce en 953 Hz, 50,3° y 8,2 dB.
-- `fF = 2 kHz`, cruce en 910 Hz, 44,8° y 7,9 dB.
+- RC de 4,8 kHz, 109,8° y 9,4 dB en el nominal, 116,7° y 6,8 dB en la esquina.
+- RC de 3 kHz, 108,3° y 10,8 dB, y 114,3° y 8,3 dB.
+- RC de 2 kHz, 106,2° y 12,6 dB, y 111,2° y 10,1 dB.
+- Butterworth de segundo orden a 5 kHz, 108,9° y 7,6 dB, y 115,4° y 5,0 dB.
 
-El RC de 2 kHz ya queda por debajo del mínimo de 45° en el nominal, aunque sea por una décima. Un Butterworth de segundo orden a 5 kHz deja el nominal en 50,1° y 6,5 dB, bastante más ajustado que antes (83,4° y 6,2 dB con la carga vieja). En la esquina de `L = 21 mH` y `R = 9 Ω` el RC de 5 kHz queda en 40,1° y 5,5 dB, el RC de 3 kHz en 33,9° y 5,1 dB, el RC de 2 kHz en 28,8° y 4,8 dB y el Butterworth en 30,5° y 3,4 dB. El criterio de esquina es 30°/3 dB, y acá el RC de 2 kHz ya no lo cumple (28,8° < 30°) y el Butterworth pasa raspando (30,5°).
-
-Antes el corte del filtro lo podía fijar el ruido del sensor sin preocuparse de la estabilidad (#29). Con esta carga ya no es así, el RC de 2 kHz queda descartado por margen y el resto corre con bastante menos aire que antes. Si Jefferson necesita un corte de 2 kHz o más lento por ruido, hay que rehacer la sintonización con `fc` más bajo antes de aceptarlo, no se puede dar por bueno con los números de esta sección.
-
+Ninguno compromete la estabilidad, así que el corte lo puede fijar el ruido del sensor (#29) sin mirar el PR.
 ## Verificación por simulación
 
-El mismo lazo discreto de la sección de `Kr` se probó con `L` entre 21 y 39 mH y `R` entre 9 y 15 Ω, con `Kp` y `Kr` fijos, y con un cambio de `R` de 12 a 15 Ω (25 %) a 1,0 A pico. Este modelo no tiene saturación, así que estas cifras valen para el escalón aplicado en el cruce por cero, como lo describe la sección de `Kr`. El escalón aplicado en cualquier fase, que es lo que pasa con un switch real, está en la sección de saturación de arriba y da un resultado muy distinto.
+El mismo lazo discreto de la sección de `Kr` se probó con `L` entre 140 y 260 µH y `R` entre 6,75 y 11,25 Ω, con `Kp` y `Kr` fijos, y con un cambio de `R` de 9 a 11,25 Ω (25 %) a 1,0 A pico. Este modelo no tiene saturación ni rampa, y con esta carga eso no cambia nada porque el índice nunca llega al tope (sección de saturación).
 
-- En todas las combinaciones de `L` y `R` el lazo es estable y el error de la fundamental baja de 10 % desde el primer período. El peor caso es 6,6 % en el primer período (con `R = 15 Ω`, con cualquiera de las dos `L`) y 4,9 % en el segundo.
-- Con el escalón de 0,2 a 0,5 A el error es 5,2 %, 4,5 % y 3,8 % en los tres primeros períodos, y de 0,5 a 1,0 A es 5,1 %, 4,4 % y 3,8 %. Los dos cumplen los 10 % desde el primer período.
-- En el cambio de `R`, con el lazo ya en régimen, el error queda en 1,4 %, 1,2 % y 1,0 % en los tres períodos siguientes, más chico que antes porque `Kp` ya domina casi del todo.
-- Esto es solo el escalón idealizado en el cruce por cero. En 20 instantes del período y en las esquinas de `L` y `R`, el pico de corriente de este mismo modelo sin saturar llega a 1,105 A, por encima de 1,0 A, y el índice de modulación que pediría llega a 8,53 con 18 V, muy por encima de lo que el puente puede entregar. Esa es la saturación real que se trata arriba.
+- En todas las combinaciones de `L` y `R` el lazo es estable y el error de la fundamental baja de 10 % desde el primer período. El peor caso es 8,9 % en el primer período con `R = 11,25 Ω` y 0,5 % en el segundo con `R = 6,75 Ω`, con cualquiera de las dos `L`.
+- Con el escalón de 0,2 a 0,5 A el error es 5,3 %, 0,2 % y 0 % en los tres primeros períodos, y de 0,5 a 1,0 A es 4,5 %, 0,2 % y 0 %.
+- En el cambio de `R`, con el lazo ya en régimen, el error queda en 2,2 % en el período siguiente y en 0 % después.
+- En 20 instantes del período y en las esquinas de `L` y `R`, el pico de corriente sin rampa llega a 1,034 A.
 
-Eso no cubre el rizado de conmutación, la cuantización del ADC, el ruido del sensor ni el tiempo muerto. Se modela la corriente promedio con retardo de un muestreo y nada más, salvo en la sección de saturación de arriba, que sí incluye el recorte y el anti-windup de `pr_discreto.c`. Estos puntos se validan en el modelo de PLECS de Nicolás y en el banco.
-
+Eso no cubre el rizado de conmutación, la cuantización del ADC, el ruido del sensor ni el tiempo muerto. Se modela la corriente promedio con retardo de un muestreo y nada más. El rizado y el aliasing están en sus secciones, y el resto se valida en el modelo de PLECS de Nicolás y en el banco.
 ## Plan de pruebas
 
 El orden es el que se acordó en el reparto, primero sin energizar, después con la potencia por pasos y el PR completo al final, para que cada paso descarte una causa antes de sumar la siguiente. Las pruebas energizadas las hacen Mattio, Jefferson y Nicolás juntos en el mismo lugar, una persona opera y otra toma datos.
@@ -203,18 +217,18 @@ El orden es el que se acordó en el reparto, primero sin energizar, después con
 
 ### Energizado, por pasos
 
-Se arranca con `Vdc = 12 V` y 0,2 A, y se sube a 18 V y a 1,0 A cuando el paso anterior sale bien. Con 1,0 A no se baja de 18 V, por lo de la sección de saturación.
+Se arranca con `Vdc = 12 V` y 0,2 A, y se sube a 1,0 A cuando el paso anterior sale bien. Con esta carga 12 V alcanzan para 1,0 A (índice de 0,75) y dan menos rizado que 18 V, así que no hace falta subir la fuente.
 
-1. Lazo abierto, con un `duty_ref` senoidal fijo de 50 Hz y sin PR. El índice que pide una corriente `I` es `m = |Z|·I/Vdc`, que con 18 V y la carga de 12 Ω y 30 mH da 0,170, 0,424 y 0,848 para 0,2, 0,5 y 1,0 A. Se mide la amplitud y el desfase de la corriente. Vale `Vdc·m/|Z|` solo si el puente fuera ideal, y el puente real pierde tensión por el tiempo muerto (`2·Vdc·TM·fsw` = 0,72 V a 18 V, con el signo de la corriente) y suma hasta 0,4 Ω de `RDS(on)` en serie con la carga. Con eso la predicción del ensayo es de 0,146 A para 0,2 A (-27 %, -26,8°), 0,442 A para 0,5 A (-12 %, -33,1°) y 0,932 A para 1,0 A (-7 %, -35,2°), ya no con un desfase parecido en las tres como antes, porque ahora la carga es bastante más inductiva (la sección del tiempo muerto de `modelo_planta` tiene las cuentas). Con esto se verifican la ganancia del sensor, el signo y los valores medidos de `L` y `R`. Si la amplitud se aleja más de 10 % de esa predicción se detiene la prueba y se revisa antes de cerrar el lazo. La pérdida escala con el tiempo muerto real de los MOSFET, así que si el banco de compuertas da distinto de 1 µs se recalcula la predicción antes de comparar.
-2. Solo la parte proporcional, con `Kr = 0`. Con la carga de 12 Ω y 30 mH y el tiempo muerto, el error de amplitud en régimen tiene que ser de unos 8,4 % con 0,2 A, 7,1 % con 0,5 A y 6,6 % con 1,0 A, con desfase de -2,7° a -2,8° (`verificar_pr.m`, mismo método de onda cuadrada que la sección del tiempo muerto de `modelo_planta`). El error es mucho más chico que con la carga anterior (43 a 57 %) porque `Kp` ya es mucho más grande que `|Z|` y la parte proporcional sola casi cierra el lazo. Si sale muy distinto, la planta o el retardo no son los del modelo.
-3. PR completo con 0,2, 0,5 y 1,0 A pico. Error de amplitud de la fundamental menor a 10 % en una ventana de al menos cinco períodos y en régimen, calculado con `receptor_pc` sobre el histórico exportado. El rizado menor a 0,20 A pico a pico se mide con el osciloscopio sobre la corriente de la carga, porque el histórico no lo ve.
-4. Cambios de amplitud de 0,2 a 0,5 A y de 0,5 a 1,0 A con los switches. Con la rampa de 400 muestras, en la simulación con el código real el peor caso de 20 fases da 4,0 % en el segundo período y 3,5 % en el tercero, con pico de 0,979 A (sección de saturación por escalón). El primer período ya no se compara, porque la amplitud sube durante 20 ms. Eso sirve de referencia para detectar desvíos grandes, y el criterio de aceptación es el del enunciado.
-5. Cambio de `R` de al menos 25 % con 0,5 A pico. La forma de cambiarla la define Jefferson, que arma la carga. En la simulación el error sube a 1,4 % en el primer período y baja a 1,2 % y 1,0 % en los dos siguientes, sin disparar el umbral de falla.
+1. Lazo abierto, con un `duty_ref` senoidal fijo de 50 Hz y sin PR. El índice que pide una corriente `I` es `m = |Z|·I/Vdc`, que con 18 V y la carga de 9 Ω y 200 µH da 0,100, 0,250 y 0,500 para 0,2, 0,5 y 1,0 A. Se mide la amplitud y el desfase de la corriente. Vale `Vdc·m/|Z|` solo si el puente fuera ideal, y el puente real pierde tensión por el tiempo muerto (`2·Vdc·TM·fsw` = 0,72 V a 18 V, con el signo de la corriente) y suma hasta 0,4 Ω de `RDS(on)` en serie con la carga. Con eso la predicción del ensayo es de 0,097 A para 0,2 A (-51 %, -11,1°), 0,381 A para 0,5 A (-24 %, -0,3°) y 0,860 A para 1,0 A (-14 %, -0,3°). Con la carga casi resistiva la pérdida pesa mucho más que antes en las amplitudes chicas, porque a 0,2 A la carga pide 1,8 V de fundamental y el tiempo muerto se come 0,92 V (la sección del tiempo muerto de `modelo_planta` tiene las cuentas). Con esto se verifican la ganancia del sensor, el signo y los valores medidos de `L` y `R`. Si la amplitud se aleja más de 10 % de esa predicción se detiene la prueba y se revisa antes de cerrar el lazo. La pérdida escala con el tiempo muerto real de los MOSFET, así que si el banco de compuertas da distinto de 1 µs se recalcula la predicción antes de comparar.
+2. Solo la parte proporcional, con `Kr = 0`. Con `Kp = 4,5` el proporcional solo deja 66,7 % de error sin tiempo muerto, y con el tiempo muerto 80,8 % con 0,5 A y 74,2 % con 1,0 A, con desfase de -1,2° (`verificar_pr.m`, mismo método de onda cuadrada que la sección del tiempo muerto de `modelo_planta`). Con 0,2 A la tensión que pide el proporcional queda casi igual a la que se come el tiempo muerto y la predicción no sirve, así que este paso se hace solo con 0,5 y 1,0 A. Si sale muy distinto, la planta o el retardo no son los del modelo.
+3. PR completo con 0,2, 0,5 y 1,0 A pico. Error de amplitud de la fundamental menor a 10 % en una ventana de al menos cinco períodos y en régimen, calculado con `receptor_pc` sobre el histórico exportado. El rizado menor a 0,20 A pico a pico se mide con el osciloscopio sobre la corriente de la carga, porque el histórico no lo ve. Con 200 µH a 20 kHz se espera que falle en 0,5 y 1,0 A (sección de rizado).
+4. Cambios de amplitud de 0,2 a 0,5 A y de 0,5 a 1,0 A con los switches. Con la rampa de 400 muestras, en la simulación con el código real el peor caso de 20 fases da 0,5 % en el segundo período y 0 % en el tercero, con pico de 1,012 A (sección de rampa de amplitud). El primer período ya no se compara, porque la amplitud sube durante 20 ms. Eso sirve de referencia para detectar desvíos grandes, y el criterio de aceptación es el del enunciado.
+5. Cambio de `R` de al menos 25 % con 0,5 A pico. La forma de cambiarla la define Jefferson, que arma la carga. En la simulación, a 1,0 A, el error sube a 2,2 % en el primer período y baja a 0 % en los siguientes, sin disparar el umbral de falla.
 
 ### Mediciones que acompañan a todo el ensayo
 
 - Período y jitter del lazo con el GPIO que sube al entrar a la ISR y baja al salir, visto en el osciloscopio. El período tiene que ser de 50 µs (5000 ciclos), y la duración de la ISR y su fase respecto a `pwm_trigger_o` tienen que quedar estables.
-- Retardo efectivo del lazo, desde la captura hasta el cambio en las compuertas, contra los 75 µs del modelo más `τF`. Con unos 53 µs extra el margen de ganancia baja a 6 dB y con 60 µs el de fase a 45°, y si el retardo medido se pasa de ahí se rehace la sintonización con la sección de estabilidad.
+- Retardo efectivo del lazo, desde la captura hasta el cambio en las compuertas, contra los 75 µs del modelo más `τF`. El margen de ganancia baja a 6 dB recién con 203 µs extra, y si el retardo medido se pasa de ahí se rehace la sintonización con la sección de estabilidad.
 - Exportación durante un ensayo en régimen. Al apretar el botón, el período y el jitter no cambian, y la ventana exportada, de 2000 muestras para cinco períodos en un histórico de 2048, calza con lo medido.
 - Evidencia de cada ensayo con la referencia, la corriente medida, la tensión sobre la carga y las señales PWM, distinguiendo pico y RMS, y con el método de extracción de la fundamental descrito.
 
@@ -222,8 +236,8 @@ Se arranca con `Vdc = 12 V` y 0,2 A, y se sube a 18 V y a 1,0 A cuando el paso a
 
 Del lado de Jefferson.
 
-- Medir `L` y `R` reales del transformador y la carga (#31), 30 mH y 12 Ω son los que se dictaron para armar el banco, no todavía una medición con LCR. Si se alejan del nominal se repite la sintonización.
-- Correr `potencia/aliasing_pr.m` con `L = 30 mH` y `R = 12 Ω`, la sección de aliasing de este documento todavía tiene los números de la carga vieja.
+- Medir `L` y `R` reales de los dos inductores y la carga (#31), 200 µH y 9 Ω son nominales, no todavía una medición con LCR. Si `R` se aleja del nominal se recalcula `Kp = R/2`.
+- Decidir con el equipo cómo bajar el rizado bajo 0,20 A pp, más `L` o el puente a 40 kHz (sección de rizado).
 - Ganancia y offset del sensor de corriente (#32), para la conversión de cuentas del ADC a amperes en `lazo_control`.
 - Filtro analógico del sensor, tipo y corte, que sale de medir el ruido (#29). Con él se suma `τF` al `Td` y se recalculan los márgenes.
 - Con las tierras separadas por el aislamiento de las compuertas (#21), el sensor tiene que ser aislado o cruzar la barrera de otra forma (#30), y su offset y su ruido pueden no ser los del supuesto de 0 A en 0,5 V. Se mide con el sensor montado.
@@ -244,7 +258,7 @@ Propios.
 - Medir el retardo efectivo del lazo con el GPIO de la ISR y comparar con `1,5·Ts`.
 - Que el Timer y la portadora cuenten exactamente lo mismo (5000 ciclos a 20 kHz), y medir con el GPIO de la ISR contra `pwm_trigger_o` que la fase no deriva.
 - Fijar `PR_U_MAX`, que tiene 1,0 como tope porque `duty_ref` va en Q2.14 de -1,0 a +1,0, y baja a 0,92 por el tiempo muerto y el bootstrap.
-- Rampeo de `amplitud_ref` listo y verificado contra el código real (sección de saturación por escalón). Falta confirmarlo en el banco con potencia.
+- Rampeo de `amplitud_ref` listo y verificado contra el código real con la carga de 200 µH (sección de rampa de amplitud). Falta confirmarlo en el banco con potencia.
 
 ## Referencias
 
