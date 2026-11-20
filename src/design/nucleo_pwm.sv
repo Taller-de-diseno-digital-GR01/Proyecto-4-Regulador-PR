@@ -8,7 +8,9 @@ module nucleo_pwm #(
     parameter int unsigned MAX_FREQ_00 = 5000,
     parameter int unsigned MAX_FREQ_01 = 2500,
     parameter int unsigned MAX_FREQ_10 = 1250,
-    parameter int unsigned MAX_FREQ_11 = 2500
+    parameter int unsigned MAX_FREQ_11 = 2500,
+    // Ciclos de clk entre el valle y el disparo del ADC, tiene que quedar debajo del MAX más chico o el disparo no sale nunca
+    parameter int unsigned RETARDO_TRIGGER_CICLOS = 0
 ) (
     input logic clk,
     input logic rst_n,
@@ -280,10 +282,10 @@ module nucleo_pwm #(
 
     assign running = corriendo;
 
-    // Disparo del ADC en el centro del pulso, registrado para que no lleve glitches y sin depender de running
+    // Disparo del ADC en el centro del pulso, corrido RETARDO_TRIGGER_CICLOS hacia la subida para compensar lo que tarda el sensor, registrado para que no lleve glitches y sin depender de running
     always_ff @(posedge clk) begin
         if (!rst_n) pwm_trigger_o <= 1'b0;
-        else pwm_trigger_o <= valle;
+        else pwm_trigger_o <= contando_arriba && (portadora == ANCHO_PORTADORA'(RETARDO_TRIGGER_CICLOS));
     end
 
 endmodule
