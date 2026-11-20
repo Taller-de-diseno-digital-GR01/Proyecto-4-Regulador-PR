@@ -40,7 +40,7 @@ Si LD1 se enciende sin haber habilitado, lo primero es medir la salida del acond
 - El XADC convierte con `pwm_trigger_o`, en el valle de la portadora, para no ver el rizado.
 - Cada interrupción lee el ADC, pasa por `supervisor_falla`, calcula el PR, escribe `duty_ref` y guarda la muestra.
 - Corriente `i = (cuenta - 2048) · 1,1118e-3 A`, con 0 A en 0,5 V y 0,2196 V/A a la entrada del ADC.
-- PR con `Kp = 188,88` y `Kr = 3000`, Tustin con precorrección en 50 Hz, salida recortada a ±0,92 con anti-windup. Referencia senoidal de 50 Hz.
+- PR con `Kp = 4,5` y `Kr = 10000`, Tustin con precorrección en 50 Hz, salida recortada a ±0,92 con anti-windup. Referencia senoidal de 50 Hz.
 
 ## Exportación
 
