@@ -352,6 +352,7 @@ proc create_root_design { parentCell } {
   set compuerta_b_baja [ create_bd_port -dir O compuerta_b_baja ]
   set vauxp6 [ create_bd_port -dir I vauxp6 ]
   set vauxn6 [ create_bd_port -dir I vauxn6 ]
+  set an [ create_bd_port -dir O -from 3 -to 0 an ]
 
   # Create instance: microblaze_riscv_0, and set properties
   set microblaze_riscv_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:microblaze_riscv:1.0 microblaze_riscv_0 ]
@@ -377,6 +378,13 @@ proc create_root_design { parentCell } {
 
   # Create instance: xlconstant_0, and set properties
   set xlconstant_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_0 ]
+
+  # Create instance: xlconstant_an, and set properties
+  set xlconstant_an [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_an ]
+  set_property -dict [list \
+    CONFIG.CONST_VAL {0xF} \
+    CONFIG.CONST_WIDTH {4} \
+  ] $xlconstant_an
 
   # Create instance: axi_timer_0, and set properties
   set axi_timer_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_timer:2.0 axi_timer_0 ]
@@ -576,6 +584,8 @@ proc create_root_design { parentCell } {
   [get_bd_pins envoltura_xadc_0/xadc_eoc]
   connect_bd_net -net xlconcat_0_dout  [get_bd_pins xlconcat_0/dout] \
   [get_bd_pins axi_gpio_0/gpio_io_i]
+  connect_bd_net -net xlconstant_an_dout  [get_bd_pins xlconstant_an/dout] \
+  [get_ports an]
   connect_bd_net -net xlconstant_0_dout  [get_bd_pins xlconstant_0/dout] \
   [get_bd_pins rst_clk_100M/dcm_locked] \
   [get_bd_pins rst_clk_100M/aux_reset_in] \
