@@ -24,8 +24,8 @@ void lazo_control_reiniciar_rampa(void)
 }
 
 #ifdef PLANTA_SIMULADA // build de prueba sin potencia, la cuenta del ADC se cambia por la de una carga RL calculada acá
-#define PLANTA_A 0.980198673f // exp(-R*Ts/L) con 12 ohm, 30 mH y 50 us, ZOH exacto como en diseno_pr.md
-#define PLANTA_B 0.029701990f // (Vdc/R)*(1 - PLANTA_A) con 18 V, amperes por unidad de índice de modulación
+#define PLANTA_A 0.105399225f // exp(-R*Ts/L) con 9 ohm, 200 uH y 50 us, ZOH exacto como en diseno_pr.md
+#define PLANTA_B 1.789201551f // (Vdc/R)*(1 - PLANTA_A) con 18 V, amperes por unidad de índice de modulación
 static valor_t planta_corriente;
 static valor_t planta_u; // el índice que rigió durante el período que acaba de terminar
 
