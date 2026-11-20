@@ -21,3 +21,11 @@ Confirmado con Mattio, la carga del banco es de unos 12,5 Ω y 30 mH. Queda cerc
 `sw/lazo_control.h` asume 0,3 V/A y 0,5V de offset a la entrada del ADC (`ADC_AMPERES_POR_CUENTA`, `ADC_OFFSET_CUENTAS`, ya marcados "provisional" en el propio código, y el mismo pendiente que [`pruebas_integracion.md`](../pruebas_integracion.md) deja anotado). Con $A_v=1{,}2$ confirmado y el sensor de 183 mV/A, la ganancia real a la entrada del ADC es de unos 0,22 V/A, no 0,3 V/A. El offset sí coincide, 0,5V. Hay que recalcular esa constante, y de paso `UMBRAL_SOBRECORRIENTE` en `supervisor_falla.h`, para que reflejen la ganancia real.
 
 `ADC_AMPERES_POR_CUENTA` ya quedó corregida a 1,1118e-3 (ganancia real de 0,2196 V/A). `UMBRAL_SOBRECORRIENTE` no necesitaba tocarse, está en amperios físicos y no depende de esa constante.
+
+## Carga nueva de 9 Ω y 200 µH (2026-11-19)
+
+El transformador de 30 mH se cambió por dos inductores de 100 µH en serie, con unos 0,5 Ω cada uno, y la resistencia de 8 Ω sigue. El PR se resintonizó en [`potencia/diseno_pr.md`](../../potencia/diseno_pr.md), con `Kp = 4,5` y `Kr = 10000`, y `pr_params.h`, `PLANTA_SIMULADA` y los docs de `pr_discreto`, `lazo_control`, `supervisor_falla` y `control_principal` ya están al día. Quedan abiertos dos puntos.
+
+- Sin resolver. El rizado de conmutación no cumple los 0,20 A pp del enunciado a 20 kHz con ninguna `Vdc` del rango. Con 18 V da 0,41 A pp a 0,5 A y 0,55 A pp a 1,0 A, y con 12 V 0,34 y 0,37 A. Para cumplir hace falta `L` de al menos 0,56 mH con 18 V (0,38 mH con 12 V), o el puente a 40 kHz con 12 V, que hoy el firmware no permite con el lazo cerrado. Lo decide el equipo, el detalle está en la sección de rizado de `diseno_pr.md`.
+- Sin resolver. [`potencia/diseno_puente_h.md`](../../potencia/diseno_puente_h.md), de Nicolás, sigue con las cifras del transformador (τ de 2,5 ms, techo de falla de 1,38 y 1,84 A, 6 W en la carga, 51 mJ devueltos al bus), y la copia de su sección de protecciones en [`diseño.md`](../diseño.md) también. Con 200 µH la τ es de 22 µs, la corriente llega al techo dentro de los 100 µs del apagado, y el techo sube a 1,84 A con 18 V y 2,45 A con 24 V porque la `R` bajó a 9 Ω. Sigue lejos de los 6,8 A del IRF520N a 100 °C, y la energía devuelta baja a menos de 1 mJ.
+
