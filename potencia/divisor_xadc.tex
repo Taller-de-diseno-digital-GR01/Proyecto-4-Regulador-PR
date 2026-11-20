@@ -1,0 +1,83 @@
+\documentclass[11pt]{article}
+\usepackage[a4paper,landscape,margin=1.4cm]{geometry}
+\usepackage[spanish]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[american]{circuitikz}
+\usepackage{siunitx}
+\sisetup{output-decimal-marker={,}}
+\pagestyle{empty}
+
+\begin{document}
+
+\begin{center}
+{\Large\bfseries Divisor del ACS712 al XADC, sin acondicionador}
+\end{center}
+
+\begin{center}
+\begin{circuitikz}[scale=1.08, transform shape]
+  % ACS712
+  \draw[thick] (0,-0.2) rectangle (3,4.2);
+  \node[align=center, font=\small] at (1.6,1.75) {\textbf{ACS712}\\ $\pm$\SI{5}{A}\\ \SI{183}{mV/A}};
+  \node[anchor=east] at (3,3.4) {VCC};
+  \node[anchor=east] at (3,2.6) {OUT};
+  \node[anchor=east] at (3,0.4) {GND};
+  \node[anchor=west] at (0,3.4) {IP+};
+  \node[anchor=west] at (0,0.8) {IP$-$};
+
+  % camino de potencia
+  \draw (0,3.4) -- (-1.2,3.4) node[left, align=right] {del puente H};
+  \draw (0,0.8) -- (-1.2,0.8) node[left, align=right] {a la carga RL\\ (en serie)};
+
+  % alimentación del sensor
+  \draw (3,3.4) -- (4,3.4) -- (4,4.6) node[above] {\SI{5}{V} del sensor, igual que antes};
+
+  % divisor
+  \draw (3,2.6) to[short, *-] (4,2.6) to[R, l={$R_1$ = \SI{12}{k\ohm}}] (7,2.6);
+  \draw (7,2.6) to[short, *-] (7,2.6);
+  \draw (7,2.6) to[R, l_={$R_2$ = \SI{3}{k\ohm}}] (7,-1);
+  \draw (7,2.6) -- (9,2.6) to[C, l={$C$ = \SI{33}{nF}}] (9,-1);
+  \node[above] at (7,2.75) {$V_x$};
+  \draw (9,2.6) to[short, *-] (12,2.6);
+
+  % JXADC
+  \draw[thick] (12,-1.6) rectangle (15.6,4.2);
+  \node[align=center] at (13.8,3.7) {\textbf{JXADC}\\ Basys3};
+  \node[anchor=west, align=left] at (12,2.6) {pin 1, XA1\_P (J3)};
+  \node[anchor=west, align=left] at (12,1.2) {pin 7, XA1\_N (K3)};
+  \node[anchor=west, align=left] at (12,-1) {pin 5, GND};
+
+  % tierra en un solo punto, el GND del JXADC
+  \draw (3,0.4) -- (3.6,0.4) -- (3.6,-1);
+  \draw (3.6,-1) to[short, *-] (7,-1) to[short, *-] (9,-1) to[short, *-] (12,-1);
+  \draw (12,1.2) -- (11.7,1.2) to[short, -*] (11.7,-1);
+  \draw (10.5,-1) node[ground] {};
+\end{circuitikz}
+\end{center}
+
+\vspace{2mm}
+\noindent
+\begin{minipage}[t]{0.48\textwidth}
+\textbf{Qué da, simulado en ngspice}
+\begin{itemize}
+  \item $V_x = V_\text{OUT}/5$. Con \SI{0}{A} el sensor da \SI{2,5}{V} y el pin del XADC ve \SI{0,500}{V}, el centro del rango de 0 a \SI{1}{V}.
+  \item $+$\SI{1}{A} da \SI{0,537}{V} y $-$\SI{1}{A} da \SI{0,463}{V}, o sea \SI{36,6}{mV/A}.
+  \item Con el sensor pegado a \SI{5}{V} el pin ve \SI{1,000}{V}. El XADC nunca pasa de su rango.
+  \item El filtro queda en \SI{2,0}{kHz} ($R_1 \parallel R_2$ = \SI{2,4}{k\ohm} con \SI{33}{nF}). A \SI{20}{kHz} atenúa 10 veces el rizado de conmutación.
+  \item El sensor ve \SI{15}{k\ohm} de carga, arriba de los \SI{4,7}{k\ohm} mínimos del ACS712.
+\end{itemize}
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.48\textwidth}
+\textbf{Antes de conectarlo a la Basys3}
+\begin{enumerate}
+  \item Todo apagado. El acondicionador y su operacional quedan fuera del circuito.
+  \item Solo el sensor alimentado, con \SI{0}{A} en la carga. En $V_x$ tiene que haber unos \SI{0,5}{V} (el VCC real del sensor entre 10). Si pasa de \SI{1}{V} no se conecta.
+  \item El GND del sensor, de $R_2$ y de $C$ y XA1\_N van todos al GND del JXADC, por un solo camino. Nada de llevarlos aparte a la tierra de la protoboard.
+  \item Resistencias de 1~\% si hay. Con 5~\% la ganancia se puede correr hasta un 8~\%.
+  \item El firmware de \texttt{feature/tope-modulacion} mide el cero al arrancar con el puente apagado. Si después del reset se enciende LD1 sin haber habilitado, $V_x$ en 0 A está fuera de \SI{0,45}{V} a \SI{0,55}{V}.
+\end{enumerate}
+\end{minipage}
+
+\end{document}
