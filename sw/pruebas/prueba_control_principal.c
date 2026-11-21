@@ -103,7 +103,7 @@ int main(void)
   revisar(control_habilitado == 0 && pwm_enable == 0, "con error de arranque se pudo habilitar");
 
   adc_cada = 50;
-  adc_valor = 0u; // sensor suelto, el divisor tira el pin a 0 V
+  adc_valor = 0u; // sensor suelto, el pin del XADC queda en 0 V
   timer_corriendo = 0;
   control_principal_arrancar();
   revisar(!timer_corriendo, "con el offset en 0 V el Timer arrancó igual");
