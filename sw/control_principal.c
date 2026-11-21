@@ -37,7 +37,7 @@ static bool calibrar_offset(void)
     suma += drivers_adc_leer();
   }
   uint32_t offset = (suma + OFFSET_MUESTRAS / 2u) / OFFSET_MUESTRAS;
-  if(offset + OFFSET_TOLERANCIA < ADC_OFFSET_CUENTAS || offset > ADC_OFFSET_CUENTAS + OFFSET_TOLERANCIA) return false; // sensor suelto, sin 5 V o el divisor mal armado, mejor no dejar habilitar
+  if(offset + OFFSET_TOLERANCIA < ADC_OFFSET_CUENTAS || offset > ADC_OFFSET_CUENTAS + OFFSET_TOLERANCIA) return false; // sensor suelto, sin 5 V o el acondicionador mal armado, mejor no dejar habilitar
   adc_offset_cuentas = (uint16_t)offset;
   return true;
 }
