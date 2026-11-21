@@ -34,7 +34,8 @@ static uint16_t duty;
 static bool duty_en_seccion;
 void drivers_pwm_escribir_duty(uint16_t duty_ref) { duty = duty_ref; duty_en_seccion = en_seccion; }
 void drivers_adc_configurar(void) { adc_trigger = 1; }
-uint16_t drivers_adc_leer(void) { return 2048u; }
+static uint16_t adc_valor = 2048u;
+uint16_t drivers_adc_leer(void) { return adc_valor; }
 void drivers_gpio_leds(uint32_t l) { leds = l; }
 uint32_t drivers_gpio_entradas(void) { return entradas; }
 void drivers_depuracion(bool nivel) { (void)nivel; }
@@ -102,14 +103,28 @@ int main(void)
   revisar(control_habilitado == 0 && pwm_enable == 0, "con error de arranque se pudo habilitar");
 
   adc_cada = 50;
+  adc_valor = 0u; // sensor suelto, el pin del XADC queda en 0 V
+  timer_corriendo = 0;
+  control_principal_arrancar();
+  revisar(!timer_corriendo, "con el offset en 0 V el Timer arrancó igual");
+  control_principal_vuelta();
+  revisar(leds == LED_FALLA, "offset fuera de rango sin LED de falla");
+
+  adc_valor = 2000u; // 4,88 V en el sensor, dentro del ±10 %
+  control_principal_arrancar();
+  revisar(adc_offset_cuentas == 2000u, "no tomó el offset medido");
+
+  adc_valor = 2048u;
+  timer_corriendo = 0;
   adc_llamadas = adc_avances = 0;
   control_principal_arrancar();
   revisar(timer_corriendo, "el Timer no arrancó con el XADC publicando");
-  revisar(avances_al_arrancar == 2 && adc_llamadas == 100, "el Timer no arrancó justo en el segundo avance del contador");
+  revisar(avances_al_arrancar == OFFSET_MUESTRAS + 3u && adc_llamadas == 50u * (OFFSET_MUESTRAS + 3u), "el Timer no arrancó justo en el segundo avance después de calibrar"); // uno descartado, los del promedio y los dos de alineación
   revisar(timer_tlr == 4998u, "TLR distinto de 4998 a 20 kHz");
   revisar(pwm_freq == FREQ_SEL_INICIAL && pwm_enable == 0 && adc_trigger, "el PWM o el XADC no quedaron como pide el arranque");
   control_principal_vuelta();
   revisar(leds == 0u, "arranque correcto con algún LED encendido");
+  revisar(adc_offset_cuentas == 2048u, "el offset medido no quedó en adc_offset_cuentas");
 
   const valor_t esperadas[4] = {VALOR(0.0f), VALOR(0.2f), VALOR(0.5f), VALOR(1.0f)};
   for(uint32_t sw = 0; sw < 4; sw++) {

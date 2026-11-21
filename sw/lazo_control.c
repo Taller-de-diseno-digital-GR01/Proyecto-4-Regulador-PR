@@ -9,14 +9,19 @@
 volatile uint32_t control_habilitado;
 volatile valor_t amplitud_ref;
 volatile uint32_t falla;
+uint16_t adc_offset_cuentas = ADC_OFFSET_CUENTAS; // nominal hasta que control_principal lo mida, así las pruebas en la PC no dependen del arranque
 
 #define AMPLITUD_PASO_MAX VALOR(0.0025f) // A por muestra, 1 A tarda 400 muestras (20 ms, un período de 50 Hz) en alcanzarse, diseno_pr.md sección de saturación
+#define SALTO_MAX VALOR(0.3f) // A entre dos muestras seguidas, a 1 A y 50 Hz la referencia solo se mueve 16 mA por muestra, más que eso es una espiga
+#define DUTY_FLANCO_CERCA 10650 // 0,65 en Q2.14, de ahí para arriba el flanco anterior queda a menos de 5,4 µs de la muestra y el ruido que entra por tierra después del RC del acondicionador todavía no se apaga (TODO: Revisar con el osciloscopio)
 
 // Solo los toca la ISR entre una iteración y la siguiente, por eso no llevan volatile
 static uint16_t cuenta = ADC_OFFSET_CUENTAS; // si la primera iteración no trae dato se registra 0 A y no una cuenta inventada
 static uint16_t duty_ref; // el último escrito al PWM, arranca en 0 igual que el registro del periférico
 static bool saturado;
 static valor_t amplitud_actual; // rampea hacia amplitud_ref, así un cambio de switch no pega un escalón completo en el PR
+static valor_t corriente_anterior; // la última muestra que pasó el filtro de saltos
+static bool salto_anterior;
 
 void lazo_control_reiniciar_rampa(void)
 { // control_principal llama esto al habilitar, para arrancar la amplitud desde 0 y no pegar un escalón completo
@@ -33,7 +38,7 @@ static uint16_t planta_simulada(void)
 { // duty_ref es lo que escribió la ISR anterior y el periférico recién lo carga en este valle, por eso entra a la planta una muestra tarde
   planta_corriente = valor_mul(VALOR(PLANTA_A), planta_corriente) + valor_mul(VALOR(PLANTA_B), planta_u);
   planta_u = valor_mul(VALOR((int16_t)duty_ref), VALOR(DUTY_ESCALA));
-  int32_t c = valor_a_entero(valor_mul(planta_corriente, VALOR(1.0f / ADC_AMPERES_POR_CUENTA)) + VALOR(ADC_OFFSET_CUENTAS) + VALOR(0.5f));
+  int32_t c = valor_a_entero(valor_mul(planta_corriente, VALOR(1.0f / ADC_AMPERES_POR_CUENTA)) + VALOR(adc_offset_cuentas) + VALOR(0.5f));
   if(c < 0) c = 0; // satura igual que el XADC, así el supervisor ve lo mismo que vería con el sensor
   else if(c > (int32_t)CUENTA_MASCARA) c = (int32_t)CUENTA_MASCARA;
   return (uint16_t)c;
@@ -50,6 +55,7 @@ void lazo_control_isr(void *ref)
   valor_t amplitud = amplitud_ref;
   bool hay_dato = drivers_adc_dato_nuevo();
   bool en_falla;
+  bool salto = false;
   valor_t corriente = VALOR(0.0f);
   valor_t i_ref = VALOR(0.0f);
   registro_t registro;
@@ -60,8 +66,11 @@ void lazo_control_isr(void *ref)
 #else
     cuenta = drivers_adc_leer();
 #endif
-    corriente = valor_mul(VALOR((int32_t)cuenta - (int32_t)ADC_OFFSET_CUENTAS), VALOR(ADC_AMPERES_POR_CUENTA)); // a int32 antes de restar, en uint16 una cuenta bajo el offset daría la vuelta
-    en_falla = supervisor_falla_revisar(cuenta, corriente);
+    corriente = valor_mul(VALOR((int32_t)cuenta - (int32_t)adc_offset_cuentas), VALOR(ADC_AMPERES_POR_CUENTA)); // a int32 antes de restar, en uint16 una cuenta bajo el offset daría la vuelta
+    en_falla = supervisor_falla_revisar(cuenta, corriente); // el supervisor ve la muestra cruda, una espiga de sobrecorriente igual apaga
+    salto = !salto_anterior && (corriente - corriente_anterior > SALTO_MAX || corriente_anterior - corriente > SALTO_MAX); // dos saltos seguidos ya son la corriente de verdad
+    salto_anterior = salto;
+    if(!salto) corriente_anterior = corriente;
   }
   else en_falla = supervisor_falla_sin_dato(); // cuenta se queda con la última válida
 
@@ -81,7 +90,9 @@ void lazo_control_isr(void *ref)
     }
     i_ref = ref_senoidal_siguiente(amplitud_actual); // avanza también sin dato, para que la fase no se atrase
     if(hay_dato) {
-      duty_ref = pr_discreto_calcular(i_ref, corriente, &saturado);
+      int16_t d = (int16_t)duty_ref; // el que rigió alrededor de este valle
+      bool flanco_cerca = d > DUTY_FLANCO_CERCA || d < -DUTY_FLANCO_CERCA;
+      duty_ref = pr_discreto_calcular(i_ref, (salto || flanco_cerca) ? i_ref : corriente, &saturado); // con error 0 el resonante sigue con la senoidal que ya aprendió en vez de corregir contra una muestra mala
       drivers_pwm_escribir_duty(duty_ref);
     } // sin dato el PR no avanza y el PWM se queda con el duty_ref anterior
   }

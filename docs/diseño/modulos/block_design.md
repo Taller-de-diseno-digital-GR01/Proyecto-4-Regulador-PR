@@ -38,6 +38,7 @@ Fija cómo se arman e interconectan las instancias de la plataforma, con su conf
 - `tx`, la línea serie hacia el puente USB-UART.
 - `depuracion`, la salida de depuración que escribe la rutina periódica, para medir período y jitter con el osciloscopio.
 - `compuerta_a_alta`, `compuerta_a_baja`, `compuerta_b_alta` y `compuerta_b_baja`, de [`periferico_pwm`](periferico_pwm.md), hacia el aislamiento de las compuertas.
+- `an[3:0]`, fijos en `1111` desde `xlconstant_an`. Los ánodos de la Basys3 son activos en bajo, y sin manejarlos el pull-down que Vivado pone a los pines sin usar los dejaba encendidos tenues. Los segmentos se quedan sin conectar, con los cuatro ánodos apagados no se ilumina nada.
 
 ## f) Explicación de la relación con otros módulos
 
@@ -155,6 +156,7 @@ Todos los pines digitales van en LVCMOS33. Los pines del paquete salen del archi
 - `compuerta_b_alta` en K2 (JA8).
 - `compuerta_b_baja` en H1 (JA7).
 - `vauxp6` en J3 (XA1_P) y `vauxn6` en K3 (XA1_N).
+- `an[3:0]` en U2, U4, V4 y W4, los ánodos del display de 7 segmentos.
 
 Las cuatro compuertas quedan en la fila de abajo de JA, junto al GND (pin 11) y los 3,3 V (pin 12) de la misma fila, que van a la cadena de aislamiento. La salida de depuración va en otro conector, así la punta del osciloscopio no se conecta en el conector que maneja el aislamiento. JC queda libre.
 
