@@ -27,6 +27,8 @@ sw/build/
 
 # El Block Design exportado si se versiona, es lo que regenera el proyecto
 !src/bd/*.tcl
+!src/crear_proyecto.tcl
+!src/programar_vitis.tcl
 
 # Proyecto de Vivado y workspace de Vitis, se regeneran desde src/bd y sw
 vivado/

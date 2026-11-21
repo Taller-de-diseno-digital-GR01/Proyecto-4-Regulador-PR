@@ -1,0 +1,251 @@
+% Esquemático de armado de la etapa de potencia, con números de pin
+% Página 1, las cuatro cadenas de compuerta (Basys 3 a VO3120)
+% Página 2, los dos IR2110, el puente H y las fuentes
+% Página 3, patillajes y revisiones antes de energizar
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[letterpaper,margin=1.2cm]{geometry}
+\usepackage{amsmath}
+\usepackage{pdflscape}
+\usepackage{xcolor}
+\usepackage[american]{circuitikz}
+\usepackage{enumitem}
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+
+\newcommand{\tx}[1]{\text{#1}}
+\definecolor{basys}{RGB}{0,70,160}
+\ctikzset{bipoles/length=1.1cm}
+
+% Una cadena de compuerta. #1 desplazamiento en y, #2 pin del Pmod, #3 pin de la FPGA,
+% #4 puerto del BD, #5 transistor, #6 optoacoplador, #7 destino en el IR2110, #8 MOSFET
+\newcommand{\cadena}[8]{%
+\begin{scope}[shift={(0,#1)}]
+  % Lado de la Basys 3, en azul
+  \begin{scope}[color=basys]
+    \draw (0,0) node[ocirc] {} node[left, align=right] {\textbf{#2} (#3)\\ \footnotesize\texttt{#4}};
+    \draw (0,0) -- (0.4,0) to[R, l_=\tx{2,7\,k$\Omega$}] (2.2,0) -- (3.1,0);
+    \draw (0.4,0) node[circ] {} -- (0.4,0.85) to[C, l=\tx{$C_{acel}$}] (2.2,0.85) -- (2.2,0) node[circ] {};
+    \draw (3.1,0) node[npn, anchor=B] (q) {};
+    \node[right, xshift=2pt] at (q.center) {\textbf{#5}};
+    \draw (2.75,0) node[circ] {} to[R, l_=\tx{10\,k$\Omega$}] (2.75,-1.75) -| (q.E);
+    \draw (2.75,-1.75) node[circ] {};
+    \draw ($(2.75,-1.75)!0.5!(q.E |- 0,-1.75)$) node[sground] {};
+    % Etiquetas de los pines del transistor, por nombre porque el orden depende del fabricante
+    \node[font=\scriptsize, above left] at (q.B) {B};
+    \node[font=\scriptsize, right] at (q.C) {C};
+    \node[font=\scriptsize, right] at (q.E) {E};
+    % Colector al cátodo del LED, ánodo por 160 ohm a los 3,3 V
+    \draw (q.C) |- (5.5,0.75);
+    \draw (5.5,1.35) -- (4.7,1.35) to[R, l=\tx{160\,$\Omega$}] (4.7,2.9) node[ocirc] {} node[above] {\tx{3,3 V (JA12)}};
+    % Pines 1 y 4 del VO3120 a la tierra de la Basys 3
+    \draw (5.5,1.95) -- (5.25,1.95) node[sground, scale=0.7] {};
+    \draw (5.5,0.15) -- (5.25,0.15) node[sground, scale=0.7] {};
+    % Entrada del VO3120
+    \draw (5.5,1.95) -- (6,1.95) node[left, font=\scriptsize, pos=0, yshift=6pt, xshift=12pt] {1};
+    \draw (5.5,1.35) -- (6.5,1.35);
+    \draw (5.5,0.75) -- (6.5,0.75);
+    \draw (5.5,0.15) -- (6,0.15);
+    \node[font=\scriptsize] at (5.75,1.53) {2};
+    \node[font=\scriptsize] at (5.75,0.93) {3};
+    \node[font=\scriptsize] at (5.75,0.33) {4};
+    \draw (6.5,1.35) to[empty led, bipoles/length=0.75cm] (6.5,0.75);
+    \node[font=\tiny, right] at (6.55,1.35) {A};
+    \node[font=\tiny, right] at (6.55,0.75) {K};
+  \end{scope}
+  % Cuerpo del VO3120 y barrera
+  \draw[thick] (6,-0.2) rectangle (9,2.3);
+  \node[above] at (7.5,2.3) {\textbf{#6} VO3120};
+  \draw[dashed, gray] (7.5,-0.2) -- (7.5,2.3);
+  \node[font=\scriptsize, left] at (9,1.95) {VCC};
+  \node[font=\scriptsize, left] at (9,1.35) {VO};
+  \node[font=\scriptsize, left] at (9,0.75) {VO};
+  \node[font=\scriptsize, left] at (9,0.15) {VEE};
+  % Lado del puente, en negro
+  \draw (9,1.95) -- (9.5,1.95);
+  \draw (9,1.35) -- (9.5,1.35);
+  \draw (9,0.75) -- (9.5,0.75);
+  \draw (9,0.15) -- (9.5,0.15);
+  \node[font=\scriptsize] at (9.25,2.13) {8};
+  \node[font=\scriptsize] at (9.25,1.53) {7};
+  \node[font=\scriptsize] at (9.25,0.93) {6};
+  \node[font=\scriptsize] at (9.25,0.33) {5};
+  % 15 V con su cerámico de 100 nF a N, pegado a los pines 8 y 5
+  \draw (9.5,1.95) -- (12.3,1.95) node[ocirc] {} node[right] {+15 V};
+  \draw (10.3,1.95) node[circ] {} -- (10.3,2.75) to[C, l=\tx{100\,nF}] (11.8,2.75) node[ground, scale=0.8] {};
+  % Pines 6 y 7 juntos hacia el IR2110
+  \draw (9.5,1.35) -- (9.8,1.35) -- (9.8,0.75) -- (9.5,0.75);
+  \draw (9.8,1.05) node[circ] {} -- (12.3,1.05) node[ocirc] {} node[right, align=left] {#7\\ \footnotesize hacia #8};
+  % Pin 5 a N
+  \draw (9.5,0.15) -- (10.3,0.15) node[ground, scale=0.8] {};
+\end{scope}}
+
+% Un IR2110 con sus componentes. #1 desplazamiento, #2 nombre, #3 entrada HIN, #4 entrada LIN,
+% #5 punto medio, #6 red de HO, #7 red de LO
+\newcommand{\driver}[7]{%
+\begin{scope}[shift={#1}]
+  \draw[thick] (0,-0.3) rectangle (3,5.1);
+  \node[above] at (1.5,5.1) {\textbf{#2} IR2110 (DIP-14)};
+  % Lado izquierdo, lógica
+  \foreach \y/\n/\s in {4.6/9/VDD, 3.6/10/HIN, 2.6/12/LIN, 1.4/11/SD, 0.2/13/VSS} {
+    \draw (0,\y) -- (-0.6,\y);
+    \node[font=\scriptsize, above] at (-0.3,\y) {\n};
+    \node[font=\scriptsize, right] at (0,\y) {\s};
+  }
+  % Lado derecho, salidas y alimentación
+  \foreach \y/\n/\s in {4.6/6/VB, 3.6/5/VS, 2.6/7/HO, 1.4/1/LO, 0.9/3/VCC, 0.2/2/COM} {
+    \draw (3,\y) -- (3.6,\y);
+    \node[font=\scriptsize, above] at (3.3,\y) {\n};
+    \node[font=\scriptsize, left] at (3,\y) {\s};
+  }
+  \node[font=\scriptsize, align=center] at (1.5,-0.75) {4, 8 y 14 sin conectar};
+  % VDD a 15 V con 100 nF a N
+  \draw (-0.6,4.6) -- (-2.6,4.6) node[ocirc] {} node[left] {+15 V};
+  \draw (-1.2,4.6) node[circ] {} -- (-1.2,5.4) to[C, l_=\tx{100\,nF}] (-2.6,5.4) -- (-2.6,5.3) node[ground, scale=0.8] {};
+  % Entradas desde los VO3120
+  \draw (-0.6,3.6) -- (-1.4,3.6) node[ocirc] {} node[left] {#3};
+  \draw (-0.6,2.6) -- (-1.4,2.6) node[ocirc] {} node[left] {#4};
+  % SD a VSS, y VSS a N
+  \draw (-0.6,1.4) -- (-1.1,1.4) -- (-1.1,0.2) node[circ] {};
+  \draw (-0.6,0.2) -- (-1.6,0.2) node[ground] {};
+  % Bootstrap, 15 V por 22 ohm y el 1N4148 hacia VB, 470 nF entre VB y VS
+  \draw (3.6,4.6) -- (4.4,4.6) node[circ] {} -- (4.4,5.6) to[D, l_=\tx{1N4148}, invert] (6.2,5.6)
+        to[R, l_=\tx{22\,$\Omega$}] (8.0,5.6) node[ocirc] {} node[right] {+15 V};
+  \draw (4.4,4.6) to[C, l=\tx{470\,nF}] (4.4,3.6) node[circ] {};
+  \draw (3.6,3.6) -- (6.4,3.6) node[ocirc] {} node[right] {#5};
+  % Salidas a las compuertas
+  \draw (3.6,2.6) -- (6.4,2.6) node[ocirc] {} node[right] {#6};
+  \draw (3.6,1.4) -- (6.4,1.4) node[ocirc] {} node[right] {#7};
+  % VCC a 15 V con 100 nF a COM, COM a N
+  \draw (3.6,0.9) -- (6.4,0.9) node[ocirc] {} node[right] {+15 V};
+  \draw (4.6,0.9) node[circ] {} to[C, l=\tx{100\,nF}, bipoles/length=0.9cm] (4.6,0.2) node[circ] {};
+  \draw (3.6,0.2) -- (5.4,0.2) node[ground] {};
+\end{scope}}
+
+\begin{document}
+
+% Página 1, cadenas de compuerta
+{\Large\textbf{Cadenas de compuerta, de la Basys 3 al IR2110}}\par
+\smallskip
+{\small Azul es el lado de la Basys 3, con su tierra
+\begin{circuitikz}[baseline=-6pt]\draw[basys] (0,0) node[sground, scale=0.6] {};\end{circuitikz}
+GND$_B$ (JA11). Negro es el lado del puente, con la tierra
+\begin{circuitikz}[baseline=-6pt]\draw (0,0) node[ground, scale=0.6] {};\end{circuitikz}
+N (negativo de Vdc y del canal de 15 V). Las dos tierras no se unen en ningún punto.
+Los 3,3 V salen de JA12 y GND$_B$ de JA11, en la misma fila que las cuatro señales.
+$C_{acel}$ es de 220 o 470 pF C0G, se elige midiendo $t_s$.}\par
+\vspace{4mm}
+\begin{center}
+\resizebox{!}{0.83\textheight}{%
+\begin{circuitikz}
+  \cadena{0}{JA10}{G3}{compuerta\_a\_alta}{Q1}{U1}{U5, pin 10 (HIN)}{T$_{A+}$}
+  \cadena{-5.6}{JA9}{H2}{compuerta\_a\_baja}{Q2}{U2}{U5, pin 12 (LIN)}{T$_{A-}$}
+  \cadena{-11.2}{JA8}{K2}{compuerta\_b\_alta}{Q3}{U3}{U6, pin 10 (HIN)}{T$_{B+}$}
+  \cadena{-16.8}{JA7}{H1}{compuerta\_b\_baja}{Q4}{U4}{U6, pin 12 (LIN)}{T$_{B-}$}
+\end{circuitikz}}
+\end{center}
+
+\newpage
+% Página 2, drivers y puente
+\begin{landscape}
+{\Large\textbf{IR2110, puente H y fuentes}}\par
+\smallskip
+{\small Las etiquetas con círculo abierto son la misma red en todo el dibujo (por ejemplo, todos los +15 V van juntos y HO$_A$ del IR2110 va a la resistencia HO$_A$ del puente).
+Todo en negro va a N. Los cerámicos de 100 nF van pegados a los pines que indican.}\par
+\vspace{2mm}
+\begin{center}
+\resizebox{\linewidth}{!}{%
+\begin{circuitikz}
+  % Fuente de Vdc, fusible y electrolítico del bus
+  \draw (0,7) to[battery1, l={\tx{\shortstack{Vdc = 18 V\\ canal 1, límite 0,1 A y\\ después 0,52 A}}}, invert] (0,16)
+        to[fuse, l=\tx{\shortstack{630 mA o 1 A\\ rápido}}] (3.4,16);
+  \draw (3.4,16) to[eC, l_=\tx{\shortstack{470\,$\mu$F\\ 63 V}}] (3.4,7);
+  % Película junto a la pierna A
+  \draw (5.0,16) to[C, l=\tx{\shortstack{100\,nF\\ 100 V}}] (5.0,7);
+  % Pierna A
+  \draw (10.5,16) node[nmos, anchor=D, bodydiode] (TAp) {};
+  \draw (10.5,7.9) node[nmos, anchor=S, bodydiode] (TAn) {};
+  \draw (TAn.S) -- (10.5,7);
+  \node[right=3pt, yshift=8pt] at (TAp.center) {\textbf{T$_{A+}$}};
+  \node[right=3pt, yshift=8pt] at (TAn.center) {\textbf{T$_{A-}$}};
+  \draw (TAp.S) -- (TAn.D);
+  \draw (TAp.G) to[R, l_=\tx{10\,$\Omega$}] ++(-1.9,0) node[ocirc] {} node[left] {HO$_A$};
+  \draw (TAn.G) to[R, l_=\tx{10\,$\Omega$}] ++(-1.9,0) node[ocirc] {} node[left] {LO$_A$};
+  \draw (TAp.G) node[circ] {} -- ++(0,-0.3) to[R, l_=\tx{100\,k$\Omega$}, bipoles/length=0.9cm] ++(0,-1.4) -| (TAp.S);
+  \draw (TAn.G) node[circ] {} -- ++(0,-0.2) to[R, l_=\tx{100\,k$\Omega$}, bipoles/length=0.9cm] (TAn.G |- 0,7) node[circ] {};
+  % Pierna B, espejada
+  \draw (18.5,16) node[nmos, anchor=D, bodydiode, xscale=-1] (TBp) {};
+  \draw (18.5,7.9) node[nmos, anchor=S, bodydiode, xscale=-1] (TBn) {};
+  \draw (TBn.S) -- (18.5,7);
+  \node[left=3pt, yshift=8pt] at (TBp.center) {\textbf{T$_{B+}$}};
+  \node[left=3pt, yshift=8pt] at (TBn.center) {\textbf{T$_{B-}$}};
+  \draw (TBp.S) -- (TBn.D);
+  \draw (TBp.G) to[R, l=\tx{10\,$\Omega$}] ++(1.9,0) node[ocirc] {} node[right] {HO$_B$};
+  \draw (TBn.G) to[R, l=\tx{10\,$\Omega$}] ++(1.9,0) node[ocirc] {} node[right] {LO$_B$};
+  \draw (TBp.G) node[circ] {} -- ++(0,-0.3) to[R, l=\tx{100\,k$\Omega$}, bipoles/length=0.9cm] ++(0,-1.4) -| (TBp.S);
+  \draw (TBn.G) node[circ] {} -- ++(0,-0.2) to[R, l=\tx{100\,k$\Omega$}, bipoles/length=0.9cm] (TBn.G |- 0,7) node[circ] {};
+  % Película junto a la pierna B
+  \draw (23.4,16) to[C, l=\tx{\shortstack{100\,nF\\ 100 V}}] (23.4,7);
+  % Puntos medios y carga
+  \draw (10.5,11.5) node[circ] (A) {};
+  \draw (18.5,11.5) node[circ] (B) {};
+  \draw (A) -- (11.6,11.5) to[R, l=\tx{10\,$\Omega$}] (13.6,11.5) to[L, l=\tx{2\,mH}] (15.8,11.5) -- (B);
+  \node[font=\footnotesize] at (14.5,10.6) {carga RL};
+  \draw (A) node[left, xshift=-2pt] {A = VS$_A$};
+  \draw (B) node[right, xshift=2pt] {B = VS$_B$};
+  % Rieles
+  \draw (3.4,16) -- (23.4,16);
+  \draw (0,7) -- (23.4,7);
+  \foreach \x in {3.4,5.0,10.5,18.5} { \node[circ] at (\x,16) {}; \node[circ] at (\x,7) {}; }
+  \node[circ] at (23.4,16) {};
+  \draw (1.7,7) node[circ] {} -- (1.7,6.6) node[ground] {} node[below=10pt] {N};
+  \node[above] at (14.5,16) {+Vdc};
+
+  % Fuente de 15 V, con el electrolítico de 47 uF junto a los IR2110
+  \draw (27.2,8) to[battery1, l={\tx{\shortstack{15 V, canal 2\\ límite 50 mA}}}, invert] (27.2,12) -- (29.4,12);
+  \draw (29.4,12) node[circ] {} to[eC, l=\tx{\shortstack{47\,$\mu$F\\ 25 V}}] (29.4,8) -- (27.2,8);
+  \draw (29.4,12) -- (29.4,13) node[ocirc] {} node[above] {+15 V};
+  \draw (28.3,8) node[circ] {} -- (28.3,7.6) node[ground] {};
+  \node[align=center, font=\footnotesize] at (28.3,14.6) {el de 47\,$\mu$F va\ junto a los IR2110};
+
+  % Drivers
+  \driver{(3,-0.4)}{U5}{de U1 (6 y 7)}{de U2 (6 y 7)}{A = VS$_A$}{HO$_A$}{LO$_A$}
+  \driver{(18.4,-0.4)}{U6}{de U3 (6 y 7)}{de U4 (6 y 7)}{B = VS$_B$}{HO$_B$}{LO$_B$}
+\end{circuitikz}}
+\end{center}
+\end{landscape}
+
+\newpage
+% Página 3, patillajes y revisiones
+{\Large\textbf{Patillajes y revisiones antes de energizar}}
+
+\subsection*{Patillajes, según las hojas de datos del repo}
+\begin{itemize}[leftmargin=*, itemsep=2pt]
+  \item VO3120 (DIP-8, Vishay p. 1). 1 NC, 2 ánodo, 3 cátodo, 4 NC, 5 VEE, 6 VO, 7 VO, 8 VCC. Los pines 1 y 4 van a GND$_B$ y el 6 y el 7 van juntos.
+  \item IR2110 (DIP-14, IR p. 5). 1 LO, 2 COM, 3 VCC, 4 NC, 5 VS, 6 VB, 7 HO, 8 NC, 9 VDD, 10 HIN, 11 SD, 12 LIN, 13 VSS, 14 NC.
+  \item IRF520N (TO-220, IR p. 8). 1 compuerta, 2 drenador, 3 source, y la aleta es drenador. Las aletas de T$_{A-}$ y T$_{B-}$ son los puntos medios A y B, así que si se tocan entre sí cortocircuitan la carga. Las de las altas están en +Vdc, y tocando la de una baja dejan puenteada esa alta.
+  \item PN2222A (TO-92). En la hoja de Philips es 1 colector, 2 base, 3 emisor, pero el PN2222A de onsemi y otros vienen emisor, base, colector. Antes de montarlo se identifica con el multímetro. En modo diodo la base es el pin que conduce hacia los otros dos, y el colector y el emisor se distinguen en el zócalo de hFE, que da una ganancia alta solo con el orden correcto.
+  \item 1N4148. La banda es el cátodo (Philips p. 7) y va hacia VB.
+  \item Electrolíticos. La franja marca el negativo, a N.
+\end{itemize}
+
+\subsection*{Con todo apagado}
+\begin{itemize}[leftmargin=*, itemsep=2pt]
+  \item Continuidad abierta entre GND$_B$ (JA11) y N. Si marca continuidad, hay un cable que une las dos tierras.
+  \item Sin corto entre +Vdc y N ni entre +15 V y N. Con los electrolíticos la lectura en ohmios arranca baja y sube mientras se cargan con la punta, y entre +Vdc y N en modo diodo aparecen los dos diodos de cuerpo de una pierna en serie, cerca de 1 V en un sentido.
+  \item Unos 10 $\Omega$ entre A y B, la carga.
+  \item SD (pin 11) unido a VSS (pin 13) en los dos IR2110.
+  \item Cada 470 nF entre el pin 6 y el pin 5 de su IR2110, y cada pin 5 en su punto medio.
+\end{itemize}
+
+\subsection*{Orden de encendido}
+\begin{enumerate}[leftmargin=*, itemsep=2pt]
+  \item Basys 3 programada, con \texttt{enable} en 0.
+  \item Canal de 15 V, con el límite en 50 mA. Vdc sigue apagado y desconectado.
+  \item Compuertas y tiempo muerto en el osciloscopio con Vdc apagado. Con Vdc conectado el caimán de tierra de una punta nunca va en A ni en B. Las tierras del osciloscopio están unidas entre sí, así que con otra punta en N ese caimán pone en corto la baja de esa pierna.
+  \item Vdc recién después, con la polaridad verificada, subiendo desde 0 con el límite en 0,1 A y pasando a 0,52 A si la fuente no entró en limitación.
+\end{enumerate}
+El apagado va en orden inverso, primero Vdc, después los 15 V y al final la Basys 3.
+
+\end{document}
