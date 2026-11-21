@@ -9,7 +9,6 @@
 volatile uint32_t control_habilitado;
 volatile valor_t amplitud_ref;
 volatile uint32_t falla;
-uint16_t adc_offset_cuentas = ADC_OFFSET_CUENTAS; // nominal hasta que control_principal lo mida, así las pruebas en la PC no dependen del arranque
 
 #define AMPLITUD_PASO_MAX VALOR(0.0025f) // A por muestra, 1 A tarda 400 muestras (20 ms, un período de 50 Hz) en alcanzarse, diseno_pr.md sección de saturación
 #define SALTO_MAX VALOR(0.3f) // A entre dos muestras seguidas, a 1 A y 50 Hz la referencia solo se mueve 16 mA por muestra, más que eso es una espiga
@@ -38,7 +37,7 @@ static uint16_t planta_simulada(void)
 { // duty_ref es lo que escribió la ISR anterior y el periférico recién lo carga en este valle, por eso entra a la planta una muestra tarde
   planta_corriente = valor_mul(VALOR(PLANTA_A), planta_corriente) + valor_mul(VALOR(PLANTA_B), planta_u);
   planta_u = valor_mul(VALOR((int16_t)duty_ref), VALOR(DUTY_ESCALA));
-  int32_t c = valor_a_entero(valor_mul(planta_corriente, VALOR(1.0f / ADC_AMPERES_POR_CUENTA)) + VALOR(adc_offset_cuentas) + VALOR(0.5f));
+  int32_t c = valor_a_entero(valor_mul(planta_corriente, VALOR(1.0f / ADC_AMPERES_POR_CUENTA)) + VALOR(ADC_OFFSET_CUENTAS) + VALOR(0.5f));
   if(c < 0) c = 0; // satura igual que el XADC, así el supervisor ve lo mismo que vería con el sensor
   else if(c > (int32_t)CUENTA_MASCARA) c = (int32_t)CUENTA_MASCARA;
   return (uint16_t)c;
@@ -66,7 +65,7 @@ void lazo_control_isr(void *ref)
 #else
     cuenta = drivers_adc_leer();
 #endif
-    corriente = valor_mul(VALOR((int32_t)cuenta - (int32_t)adc_offset_cuentas), VALOR(ADC_AMPERES_POR_CUENTA)); // a int32 antes de restar, en uint16 una cuenta bajo el offset daría la vuelta
+    corriente = valor_mul(VALOR((int32_t)cuenta - (int32_t)ADC_OFFSET_CUENTAS), VALOR(ADC_AMPERES_POR_CUENTA)); // a int32 antes de restar, en uint16 una cuenta bajo el offset daría la vuelta
     en_falla = supervisor_falla_revisar(cuenta, corriente); // el supervisor ve la muestra cruda, una espiga de sobrecorriente igual apaga
     salto = !salto_anterior && (corriente - corriente_anterior > SALTO_MAX || corriente_anterior - corriente > SALTO_MAX); // dos saltos seguidos ya son la corriente de verdad
     salto_anterior = salto;
