@@ -7,9 +7,7 @@ module periferico_pwm #(
     parameter int unsigned MAX_FREQ_00 = 5000,
     parameter int unsigned MAX_FREQ_01 = 2500,
     parameter int unsigned MAX_FREQ_10 = 1250,
-    parameter int unsigned MAX_FREQ_11 = 2500,
-    // 1 µs, cubre los 0,1 a 0,91 µs que las compuertas atrasan la conmutación, así la muestra se aleja del flanco anterior sin cruzar al siguiente (TODO: Revisar con el osciloscopio)
-    parameter int unsigned RETARDO_TRIGGER_CICLOS = 100
+    parameter int unsigned MAX_FREQ_11 = 2500
 ) (
     (* X_INTERFACE_INFO = "xilinx.com:signal:clock:1.0 s_axi_aclk CLK",
        X_INTERFACE_PARAMETER = "XIL_INTERFACENAME s_axi_aclk, ASSOCIATED_BUSIF S_AXI, ASSOCIATED_RESET s_axi_aresetn, FREQ_HZ 100000000" *)
@@ -83,8 +81,7 @@ module periferico_pwm #(
     nucleo_pwm #(
         .DEAD_TIME_CICLOS(DEAD_TIME_CICLOS), .PRECARGA_CICLOS(PRECARGA_CICLOS),
         .MAX_FREQ_00(MAX_FREQ_00), .MAX_FREQ_01(MAX_FREQ_01),
-        .MAX_FREQ_10(MAX_FREQ_10), .MAX_FREQ_11(MAX_FREQ_11),
-        .RETARDO_TRIGGER_CICLOS(RETARDO_TRIGGER_CICLOS)
+        .MAX_FREQ_10(MAX_FREQ_10), .MAX_FREQ_11(MAX_FREQ_11)
     ) u_nucleo_pwm (
         .clk(s_axi_aclk), .rst_n(s_axi_aresetn),
         .enable(enable), .freq_sel(freq_sel), .duty_ref(duty_ref), .running(running),

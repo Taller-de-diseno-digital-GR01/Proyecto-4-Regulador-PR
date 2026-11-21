@@ -6,9 +6,6 @@
 #include "buffer_muestras.h"
 #include "drivers.h"
 #include "exportador_uart.h"
-#include "lazo_control.h"
-
-uint16_t adc_offset_cuentas = ADC_OFFSET_CUENTAS; // en la placa vive en lazo_control.c, que esta prueba no enlaza
 
 #define FIFO_BYTES 16u // la FIFO de tx de la UART Lite
 
@@ -65,7 +62,7 @@ static void revisar_trama(uint32_t n)
   revisar(cantidad == n, "cantidad");
   revisar(frecuencia == 20000u, "frecuencia de muestreo");
   revisar(offset == 2048.0f, "offset del ADC");
-  revisar(fabsf(ganancia - ADC_AMPERES_POR_CUENTA) < 1e-9f, "amperes por cuenta"); // float, no se compara exacto
+  revisar(fabsf(ganancia - 1.1118e-3f) < 1e-9f, "amperes por cuenta"); // float, no se compara exacto
   revisar(escala == 1.0f / 16384.0f, "escala de duty"); // Q2.14
   revisar(trama[19] == 1, "duty con signo");
 

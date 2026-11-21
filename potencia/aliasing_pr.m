@@ -41,7 +41,7 @@ function err = conmutado(kp, kr, L, R, vdc, fs, amp, adelanto)
   % puente unipolar con portadora de 2500 cuentas a 100 MHz, la carga RL resuelta exacta entre flancos, sin tiempo muerto ni cuantizacion del ADC
   ts = 1 / fs;
   t_clk = 1e-8;
-  u_max = 0.80;
+  u_max = 0.92;
   w0 = 2 * pi * 50;
   tau = L / R;
   theta = w0 / fs;

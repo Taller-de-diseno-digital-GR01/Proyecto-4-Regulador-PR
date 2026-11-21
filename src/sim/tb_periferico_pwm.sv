@@ -12,7 +12,6 @@ module tb_periferico_pwm #(
     localparam int M01 = RAPIDO ? 32 : 2500;
     localparam int M10 = RAPIDO ? 16 : 1250;
     localparam int M11 = M01;
-    localparam int RT = RAPIDO ? 2 : 100;
     localparam int TIMEOUT = 100;
 
     logic clk = 1'b0;
@@ -30,8 +29,7 @@ module tb_periferico_pwm #(
 
     periferico_pwm #(
         .DEAD_TIME_CICLOS(DT), .PRECARGA_CICLOS(PC),
-        .MAX_FREQ_00(M00), .MAX_FREQ_01(M01), .MAX_FREQ_10(M10), .MAX_FREQ_11(M11),
-        .RETARDO_TRIGGER_CICLOS(RT)
+        .MAX_FREQ_00(M00), .MAX_FREQ_01(M01), .MAX_FREQ_10(M10), .MAX_FREQ_11(M11)
     ) dut (
         .s_axi_aclk(clk), .s_axi_aresetn(rst_n),
         .s_axi_awaddr(awaddr), .s_axi_awprot(awprot),
@@ -267,7 +265,7 @@ module tb_periferico_pwm #(
         siguiente_sentido = m_subiendo;
         if (siguiente_portadora == m_max) siguiente_sentido = 0;
         if (siguiente_portadora == 0) siguiente_sentido = 1;
-        m_trigger = m_subiendo && (m_portadora == RT);
+        m_trigger = (m_portadora == 0);
         if (m_portadora == 0) begin
             m_running = m_enable;
             m_max = m_p2_max; m_ref_a = m_p2_a; m_ref_b = m_p2_b;
@@ -363,7 +361,7 @@ module tb_periferico_pwm #(
             verificar((^{ah,al,bh,bl,trigger,bvalid,rvalid,rdata,awready,wready,arready}) !== 1'bx,
                       "salidas desconocidas");
             verificar(!(ah && al) && !(bh && bl), "solapamiento de compuertas");
-            verificar(trigger === m_trigger, "trigger fuera del valle más RT o de ancho incorrecto");
+            verificar(trigger === m_trigger, "trigger fuera del valle o de ancho incorrecto");
             verificar({ah,al,bh,bl} === {m_alta[0],m_baja[0],m_alta[1],m_baja[1]},
                 $sformatf("PWM: esperado=%b%b%b%b obtenido=%b%b%b%b",
                     m_alta[0],m_baja[0],m_alta[1],m_baja[1],ah,al,bh,bl));

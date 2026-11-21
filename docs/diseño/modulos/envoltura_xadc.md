@@ -26,7 +26,7 @@ Arranca la conversión de `corriente_i` en el XADC con `pwm_trigger_o` o por sof
 
 - `clk`, `logic`, reloj del sistema de 100 MHz, el mismo del bus AXI y del `DCLK` del wizard.
 - `rst_n`, `logic`, reinicio activo en bajo, el `peripheral_aresetn` del Processor System Reset.
-- `pwm_trigger_o`, `logic`, pulso de un ciclo `RETARDO_TRIGGER_CICLOS` después del valle de la portadora (1 µs en `periferico_pwm`), desde [`nucleo_pwm`](nucleo_pwm.md).
+- `pwm_trigger_o`, `logic`, pulso de un ciclo en el valle de la portadora, desde [`nucleo_pwm`](nucleo_pwm.md).
 - Canal de escritura AXI4-Lite, `s_axi_awaddr[3:0]`, `s_axi_awvalid`, `s_axi_wdata[31:0]`, `s_axi_wstrb[3:0]`, `s_axi_wvalid` y `s_axi_bready`.
 - Canal de lectura AXI4-Lite, `s_axi_araddr[3:0]`, `s_axi_arvalid` y `s_axi_rready`.
 - `xadc_busy`, `logic`, el `busy_out` del wizard, en alto mientras convierte [2, p. 13].
@@ -106,7 +106,7 @@ El contador no se borra. `drivers` guarda el valor de la lectura anterior y hay 
 
 El disparo de cada ciclo es `fuente ? pwm_trigger_o : pulso_inicio`, donde `pulso_inicio` es el 1 que dejó una escritura de `inicio` en el ciclo anterior. Solo se atiende con la máquina en `LIBRE` (h.5).
 
-`pwm_trigger_o` pasa por un flip-flop antes de la máquina, así que el flanco de `xadc_convst` sale dos ciclos después del valle de la portadora, 20 ns. La corriente conmuta más tarde que la portadora, porque la cadena de compuertas atrasa las cuatro señales entre 0,1 y 0,91 µs (`potencia/diseno_puente_h.md`, secciones de aislamiento y de tiempo muerto). Vista desde la corriente, la captura cae antes de su valle, entre 0,1 y 0,91 µs. Cerca del valle el rizado casi no tiene pendiente, y la simulación del lazo de `potencia/diseno_pr.md` (sección de aliasing, en `feature/pr-discreto`) da un error de amplitud de la fundamental de −0,01 % con 0,1 µs y de −0,17 % con 0,91 µs, igual con 1,0 A que con 0,2 A pico. Eso queda unas 60 veces por debajo del 10 % del instructivo, así que la envoltura no lleva retardo antes de `CONVST`. El retardo que sí se agregó vive en `nucleo_pwm` (`RETARDO_TRIGGER_CICLOS`), y su motivo es alejar la muestra del ruido del flanco anterior, no el error del rizado.
+`pwm_trigger_o` pasa por un flip-flop antes de la máquina, así que el flanco de `xadc_convst` sale dos ciclos después del valle de la portadora, 20 ns. La corriente conmuta más tarde que la portadora, porque la cadena de compuertas atrasa las cuatro señales entre 0,1 y 0,91 µs (`potencia/diseno_puente_h.md`, secciones de aislamiento y de tiempo muerto). Vista desde la corriente, la captura cae antes de su valle, entre 0,1 y 0,91 µs. Cerca del valle el rizado casi no tiene pendiente, y la simulación del lazo de `potencia/diseno_pr.md` (sección de aliasing, en `feature/pr-discreto`) da un error de amplitud de la fundamental de −0,01 % con 0,1 µs y de −0,17 % con 0,91 µs, igual con 1,0 A que con 0,2 A pico. Eso queda unas 60 veces por debajo del 10 % del instructivo, así que la envoltura no lleva retardo antes de `CONVST`.
 
 ### h.5) Máquina de conversión
 

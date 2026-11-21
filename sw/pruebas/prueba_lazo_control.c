@@ -78,23 +78,6 @@ static void habilitar(valor_t amplitud)
   control_habilitado = 1;
 }
 
-static uint16_t cerca_del_flanco(uint16_t cuenta_final)
-{ // la misma secuencia cada vez y solo cambia la última muestra, así se ve si el PR la usó
-  registro_t r;
-  int16_t d;
-  control_habilitado = 0;
-  iterar(true, ADC_OFFSET_CUENTAS); // duty_ref en 0 y el filtro de saltos en 0 A
-  habilitar(VALOR(1.0f));
-  do { // el resonante crece con la corriente en 0 y pasa por 0,66 antes de llegar al tope de 0,8
-    r = iterar(true, ADC_OFFSET_CUENTAS);
-    d = (int16_t)duty_escrito;
-  } while(d <= 10813 && d >= -10813 && llamadas < 100000u); // 0,66 en Q2.14, apenas arriba de DUTY_FLANCO_CERCA
-  revisar(!(r.cuenta_banderas & BANDERA_SATURADO), "el índice llegó al tope antes de pasar DUTY_FLANCO_CERCA");
-  r = iterar(true, cuenta_final);
-  revisar(!(r.cuenta_banderas & BANDERA_SATURADO), "la muestra cerca del flanco saturó, con el tope las dos corridas dan igual aunque se use la muestra");
-  return duty_escrito;
-}
-
 int main(void)
 {
   registro_t r;
@@ -110,7 +93,7 @@ int main(void)
   revisar(escrituras == 0, "control apagado y el PR escribió duty_ref");
 
   habilitar(VALOR(0.0f));
-  r = iterar(true, ADC_OFFSET_CUENTAS - 90u); // -0,1 A, debajo de SALTO_MAX
+  r = iterar(true, ADC_OFFSET_CUENTAS - 100u);
   revisar((r.cuenta_banderas & 0x7000u) == 0x2000u, "habilitado sin falla, los bits 14 a 12 no dan 010");
   revisar((int16_t)duty_escrito > 0, "corriente negativa y el PR no empujó hacia arriba, ¿la resta dio la vuelta en uint16?");
   revisar(r.duty_ref == duty_escrito, "el registro no trae el duty_ref escrito");
@@ -136,17 +119,6 @@ int main(void)
   r = iterar(true, ADC_OFFSET_CUENTAS);
   revisar(r.duty_ref == 0, "deshabilitado y el registro arrastra el duty_ref de la sesión anterior");
   revisar((r.cuenta_banderas & BANDERA_SATURADO) == 0, "deshabilitado y el registro arrastra la saturación de la sesión anterior");
-
-  habilitar(VALOR(0.0f)); // amplitud 0 y corriente 0 dejan el PR en 0, cualquier duty_ref distinto sale de la muestra
-  for(uint32_t k = 0; k < 3; k++) iterar(true, ADC_OFFSET_CUENTAS);
-  revisar(duty_escrito == 0, "con amplitud y corriente en 0 el PR no se quedó en 0");
-  iterar(true, ADC_OFFSET_CUENTAS + 450u); // 450 * 1,1118e-3 = 0,5 A de un golpe
-  revisar(duty_escrito == 0, "una espiga sola movió el PR");
-  iterar(true, ADC_OFFSET_CUENTAS + 450u);
-  revisar(duty_escrito != 0, "dos muestras seguidas en 0,5 A no se tomaron como corriente de verdad");
-
-  revisar(cerca_del_flanco(ADC_OFFSET_CUENTAS) == cerca_del_flanco(ADC_OFFSET_CUENTAS + 180u), "con el índice arriba de 0,65 el PR usó la muestra cerca del flanco"); // 0,2 A, debajo de SALTO_MAX, así solo el flanco explica que se ignore
-
   control_habilitado = 1; // lo de abajo espera el control andando
 
   for(uint32_t k = 0; k < ITERACIONES_SIN_DATO_MAX; k++) iterar(false, 0u);

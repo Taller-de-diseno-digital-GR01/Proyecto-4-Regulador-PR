@@ -124,18 +124,9 @@ La rutina copia `control_habilitado` y `amplitud_ref` a variables locales al ent
 
 La cuenta, el último `duty_ref`, `saturado` y `amplitud_actual` pasan de una iteración a la siguiente como `static` sin `volatile`, porque solo los toca esta rutina. El registro se arma en la pila de la rutina y se pasa por puntero a `buffer_muestras_guardar`, que lo copia.
 
-### h.10) Muestras descartadas
+### h.10) Prueba en la PC
 
-En el banco, con la carga de 200 µH, la corriente se veía bien en buena parte del período, pero cerca de los picos el PR corregía de golpe, la amplitud bajaba y volvía a subir. La explicación más probable es que en los picos el índice es alto, el flanco anterior queda cerca del instante de muestreo y la muestra viene contaminada por la conmutación. Hay dos casos en que la ISR no le pasa la muestra al PR y le pasa `i_ref` en su lugar, o sea error 0. Con error 0 el proporcional no aporta y el resonante sigue con la senoidal que ya aprendió, así que esa iteración ni corrige ni aplana el pico.
-
-- Flanco cerca. Si el `duty_ref` que rigió alrededor de este valle pasa de `DUTY_FLANCO_CERCA` (0,65 en Q2.14), el flanco anterior queda a menos de 5,4 µs de la muestra. Con 18 V y 1,0 A el índice llega a 0,5 y no se descarta nada. Con 12 V llega a 0,75 y se descarta un 34 % de las muestras alrededor de los picos. Compilando con `PLANTA_SIMULADA` a 12 V el error de la fundamental sigue en 0,07 %.
-- Salto. Si la muestra se aleja más de `SALTO_MAX` (0,3 A) de la última aceptada, se toma como espiga. A 1,0 A y 50 Hz la referencia se mueve 16 mA por muestra. La segunda muestra seguida fuera de rango ya se acepta, porque dos espigas seguidas son más bien la corriente de verdad, y así un cambio real de la carga no deja al PR ciego.
-
-El supervisor sigue viendo la muestra cruda, así que una espiga de más de 1,3 A apaga el puente igual que antes. El registro del buffer no marca las muestras descartadas, porque no quedan bits libres en `cuenta_banderas`. Las de flanco cerca se reconocen desde la PC por el `duty_ref` del registro anterior. Los dos umbrales son provisionales hasta ver en el osciloscopio cuánto dura el ruido de un flanco en la entrada del XADC. El acondicionador ya filtra con 1 kΩ y 33 nF (4,8 kHz, 33 µs), así que una espiga que llegue entera a la muestra entró después de ese RC, por tierra o por modo común.
-
-### h.11) Prueba en la PC
-
-`sw/pruebas/prueba_lazo_control.c` se compila con gcc junto con `buffer_muestras`, `pr_discreto`, `ref_senoidal` y `supervisor_falla` reales, y define sus propias funciones de `drivers` que escriben en variables. Revisa que con el control deshabilitado no se escriba `duty_ref` y que la referencia, el `duty_ref` registrado y `saturado` valgan cero aunque la sesión anterior haya saturado, que una cuenta bajo el offset dé corriente negativa, que sin dato no se recalcule el PR pero la fase y la rampa de amplitud avancen igual, las cuatro banderas en sus bits, que la falla por ausencias y por sobrecorriente apague el PWM una sola vez, y que la salida de depuración suba y baje y el Timer se reconozca una vez por iteración. También revisa que una espiga sola de 0,5 A no mueva el PR y dos seguidas sí, y que con el índice arriba de 0,65 dos corridas iguales que solo cambian la última muestra den el mismo `duty_ref`.
+`sw/pruebas/prueba_lazo_control.c` se compila con gcc junto con `buffer_muestras`, `pr_discreto`, `ref_senoidal` y `supervisor_falla` reales, y define sus propias funciones de `drivers` que escriben en variables. Revisa que con el control deshabilitado no se escriba `duty_ref` y que la referencia, el `duty_ref` registrado y `saturado` valgan cero aunque la sesión anterior haya saturado, que una cuenta bajo el offset dé corriente negativa, que sin dato no se recalcule el PR pero la fase y la rampa de amplitud avancen igual, las cuatro banderas en sus bits, que la falla por ausencias y por sobrecorriente apague el PWM una sola vez, y que la salida de depuración suba y baje y el Timer se reconozca una vez por iteración.
 
 ## i) Diagrama esquemático detallado del diseño
 
