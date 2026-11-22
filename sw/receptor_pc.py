@@ -93,6 +93,7 @@ def analizar(muestras):
     corriente = fundamental(t, muestras["corriente_a"][en])
     referencia = fundamental(t, muestras["i_ref_a"][en])
     i1, r1 = corriente.fasor, referencia.fasor
+    base = r1 if abs(r1) >= 1e-3 else complex(np.nan, np.nan) # referencia en 0 (control apagado, en falla o SW en 00), los errores relativos salen nan en vez de dividir por cero
     residuo = muestras["corriente_a"][en] - corriente.componente # lo que queda sin la fundamental
     return {
         "periodos": round((t[-1] - t[0]) * F_RED_HZ),
@@ -100,9 +101,9 @@ def analizar(muestras):
         "fase_corriente_grados": np.degrees(np.angle(i1)),
         "amplitud_referencia_a": abs(r1),
         "fase_referencia_grados": np.degrees(np.angle(r1)),
-        "error_amplitud_pct": (abs(i1) - abs(r1)) / abs(r1) * 100, # el criterio del 10 %
-        "desfase_grados": np.degrees(np.angle(i1 / r1)), # ángulo del cociente = resta de fases, sin problema de dar la vuelta en 180
-        "error_fasor_pct": abs(i1 - r1) / abs(r1) * 100, # mezcla amplitud y fase, solo de dato
+        "error_amplitud_pct": (abs(i1) - abs(base)) / abs(base) * 100, # el criterio del 10 %
+        "desfase_grados": np.degrees(np.angle(i1 / base)), # ángulo del cociente = resta de fases, sin problema de dar la vuelta en 180
+        "error_fasor_pct": abs(i1 - base) / abs(base) * 100, # mezcla amplitud y fase, solo de dato
         "residuo_pp_a": residuo.max() - residuo.min(),
         "fuera_de_regimen": bool(np.any(muestras["habilitado"][en] == 0) or np.any(muestras["falla"][en])),
     }
@@ -120,6 +121,7 @@ def reportar(r):
     print("ventana de %d períodos de 50 Hz" % r["periodos"])
     print("corriente   %.4f A  %7.2f°" % (r["amplitud_corriente_a"], r["fase_corriente_grados"]))
     print("referencia  %.4f A  %7.2f°" % (r["amplitud_referencia_a"], r["fase_referencia_grados"]))
+    if np.isnan(r["error_amplitud_pct"]): print("la referencia está en 0 en toda la ventana, no hay error contra qué medir")
     print("error de amplitud de la fundamental %+.2f %% (límite 10 %%)" % r["error_amplitud_pct"])
     print("desfase %+.2f°" % r["desfase_grados"])
     print("error del fasor %.2f %%, dato extra" % r["error_fasor_pct"])
