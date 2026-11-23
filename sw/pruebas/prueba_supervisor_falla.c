@@ -26,6 +26,11 @@ int main(void)
     revisar(supervisor_falla_revisar(CUENTA_NORMAL, VALOR(1.31f)), "no detecta sobrecorriente positiva");
     revisar(supervisor_falla_revisar(CUENTA_NORMAL, VALOR(0.0f)), "la falla no quedó enclavada");
     revisar(supervisor_falla_activa(), "supervisor_falla_activa no ve la falla");
+    revisar(supervisor_falla_causa() == FALLA_SOBRECORRIENTE, "causa distinta de sobrecorriente");
+    supervisor_falla_revisar(CUENTA_ADC_MAX, VALOR(0.0f));
+    for (uint32_t k = 0; k <= ITERACIONES_SIN_DATO_MAX; k++)
+        supervisor_falla_sin_dato();
+    revisar(supervisor_falla_causa() == FALLA_SOBRECORRIENTE, "una causa posterior pisó la primera");
 
     supervisor_falla_iniciar();
     revisar(supervisor_falla_revisar(CUENTA_NORMAL, VALOR(-1.31f)), "no detecta sobrecorriente negativa");
@@ -33,6 +38,7 @@ int main(void)
     supervisor_falla_iniciar();
     revisar(!supervisor_falla_revisar(CUENTA_ADC_MIN + 1, VALOR(0.0f)), "falla una cuenta arriba del mínimo");
     revisar(supervisor_falla_revisar(CUENTA_ADC_MIN, VALOR(0.0f)), "no detecta la cuenta en el mínimo");
+    revisar(supervisor_falla_causa() == FALLA_FUERA_ESCALA, "causa distinta de fuera de escala");
 
     supervisor_falla_iniciar();
     revisar(!supervisor_falla_revisar(CUENTA_ADC_MAX - 1, VALOR(0.0f)), "falla una cuenta abajo del máximo");
@@ -42,6 +48,7 @@ int main(void)
     for (uint32_t k = 0; k < ITERACIONES_SIN_DATO_MAX; k++)
         revisar(!supervisor_falla_sin_dato(), "falla antes de pasar el máximo sin dato");
     revisar(supervisor_falla_sin_dato(), "no detecta demasiadas iteraciones sin dato");
+    revisar(supervisor_falla_causa() == FALLA_SIN_DATO, "causa distinta de sin dato");
 
     // Iteraciones aisladas sin dato no deben sumar si en medio llega una muestra
     supervisor_falla_iniciar();
@@ -49,7 +56,7 @@ int main(void)
         supervisor_falla_sin_dato();
         supervisor_falla_revisar(CUENTA_NORMAL, VALOR(0.0f));
     }
-    revisar(!supervisor_falla_activa(), "iteraciones aisladas sin dato terminaron en falla");
+    revisar(!supervisor_falla_activa() && supervisor_falla_causa() == 0, "iteraciones aisladas sin dato terminaron en falla");
 
     printf("prueba_supervisor_falla, %d errores\n", errores);
     return errores != 0;
