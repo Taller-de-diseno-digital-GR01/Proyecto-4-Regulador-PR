@@ -18,9 +18,9 @@ Confirmado con Mattio, la carga del banco es de unos 12,5 Ω y 30 mH. Queda cerc
 
 ## Ganancia asumida en firmware vs ganancia real confirmada
 
-`sw/lazo_control.h` asume 0,3 V/A y 0,5V de offset a la entrada del ADC (`ADC_AMPERES_POR_CUENTA`, `ADC_OFFSET_CUENTAS`, ya marcados "provisional" en el propio código, y el mismo pendiente que [`pruebas_integracion.md`](../pruebas_integracion.md) deja anotado). Con $A_v=1{,}2$ confirmado y el sensor de 183 mV/A, la ganancia real a la entrada del ADC es de unos 0,22 V/A, no 0,3 V/A. El offset sí coincide, 0,5V. Hay que recalcular esa constante, y de paso `UMBRAL_SOBRECORRIENTE` en `supervisor_falla.h`, para que reflejen la ganancia real.
+`sw/lazo_control.h` asume 0,0366 V/A y 0,5 V de offset a la entrada del ADC (`ADC_AMPERES_POR_CUENTA`, `ADC_OFFSET_CUENTAS`), que salen del sensor de 183 mV/A por el divisor de 12k y 3k de la rama sin optoacopladores. El offset es 0,1 · Vcc del sensor, así que 0,5 V vale solo con 5,0 V y hay que confirmarlo con 0 A en el banco.
 
-`ADC_AMPERES_POR_CUENTA` ya quedó corregida a 1,1118e-3 (ganancia real de 0,2196 V/A). `UMBRAL_SOBRECORRIENTE` no necesitaba tocarse, está en amperios físicos y no depende de esa constante.
+`ADC_AMPERES_POR_CUENTA` quedó en 6,6705e-3. `UMBRAL_SOBRECORRIENTE` no necesitaba tocarse, está en amperios físicos y no depende de esa constante.
 
 ## Carga nueva de 9 Ω y 200 µH (2026-11-19)
 

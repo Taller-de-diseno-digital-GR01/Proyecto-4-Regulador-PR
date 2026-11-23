@@ -301,7 +301,7 @@ ausentes. La descripción completa está en [`docs/uso_basys3.md`](docs/uso_basy
 | UART TX | A18, puente USB-UART de la tarjeta |
 
 La entrada del XADC se acondiciona a 0–1 V. La conversión actual usa offset de 2048 cuentas
-y `1,1118e-3 A/cuenta`, calculados a partir de 0,2196 V/A. La calibración de extremo a extremo
+y `6,6705e-3 A/cuenta`, calculados a partir de 0,0366 V/A (sensor de 183 mV/A por el divisor 12k/3k). La calibración de extremo a extremo
 debe quedar asociada a cada ensayo.
 
 ### Exportar y analizar muestras

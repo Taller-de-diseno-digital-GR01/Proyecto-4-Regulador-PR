@@ -25,13 +25,13 @@ LD1 se enciende por cualquiera de estas causas. Se revisan en todas las interrup
 - Más de 3 interrupciones seguidas sin dato nuevo del XADC.
 - Error de arranque, el XADC no avanzó durante el sondeo inicial. En ese caso el Timer ni siquiera arranca.
 
-Si LD1 se enciende sin haber habilitado, lo primero es medir la salida del acondicionador con la potencia apagada. Tiene que dar 0,5 V, y un corrimiento de 0,285 V ya equivale a 1,3 A.
+Si LD1 se enciende sin haber habilitado, lo primero es medir la salida del divisor con la potencia apagada. Tiene que dar 0,5 V, y un corrimiento de 0,0476 V ya equivale a 1,3 A.
 
 ## Pines
 
 - Compuertas en JA. JA7 `compuerta_b_baja` (H1), JA8 `compuerta_b_alta` (K2), JA9 `compuerta_a_baja` (H2), JA10 `compuerta_a_alta` (G3).
 - Depuración en JB1 (A14). Alto mientras corre la ISR, así que el ancho del pulso es la duración del servicio y su período el de muestreo (50 µs).
-- Sensor en JXADC. Pin 1 (J3, `vauxp6`) a la salida del acondicionador, pin 7 (K3, `vauxn6`) a su tierra. Rango de 0 a 1 V.
+- Sensor en JXADC. Pin 1 (J3, `vauxp6`) a la salida del divisor, pin 7 (K3, `vauxn6`) a su tierra. Rango de 0 a 1 V.
 - UART por el USB de la placa (A18), 115200 baudios.
 
 ## Lazo
@@ -39,7 +39,7 @@ Si LD1 se enciende sin haber habilitado, lo primero es medir la salida del acond
 - AXI Timer a 20 kHz y PWM unipolar a 20 kHz con `freq_sel = 01`. Los códigos `00` (10 kHz), `10` (40 kHz) y `11` (20 kHz) existen en el periférico, pero el firmware solo habilita con `01`.
 - El XADC convierte con `pwm_trigger_o`, en el valle de la portadora, para no ver el rizado.
 - Cada interrupción lee el ADC, pasa por `supervisor_falla`, calcula el PR, escribe `duty_ref` y guarda la muestra.
-- Corriente `i = (cuenta - 2048) · 1,1118e-3 A`, con 0 A en 0,5 V y 0,2196 V/A a la entrada del ADC.
+- Corriente `i = (cuenta - 2048) · 6,6705e-3 A`, con 0 A en 0,5 V y 0,0366 V/A a la entrada del ADC.
 - PR con `Kp = 4,5` y `Kr = 10000`, Tustin con precorrección en 50 Hz, salida recortada a ±0,92 con anti-windup. Referencia senoidal de 50 Hz.
 
 ## Exportación
