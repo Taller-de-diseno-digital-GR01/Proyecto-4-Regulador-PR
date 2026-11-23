@@ -12,7 +12,7 @@ FUENTES_SW != ls src/armar_vitis.py sw/*.c sw/*.h sw/config_vitis/*
 
 .DEFAULT_GOAL := help
 
-.PHONY: help bitstream vitis program sim clean
+.PHONY: help bitstream vitis program sim clean receptor
 
 help:
 	@echo "make bitstream        sintetiza e implementa con Vivado, deja el .xsa con bitstream en $(SALIDA_VIVADO)"
@@ -20,6 +20,7 @@ help:
 	@echo "make program          programa el bitstream y baja + corre el .elf en la Basys3 (bitstream + vitis)"
 	@echo "make sim TB=<nombre>  compila y corre src/sim/tb_<nombre>.sv con iverilog"
 	@echo "make clean            borra vivado/ y vitis/, se regeneran desde src/"
+	@echo "make receptor         recibe el histórico de la Basys3 con sw/receptor_pc.py, opcional PUERTO=<puerto> CSV=<archivo>"
 
 $(XSA): $(FUENTES_HW) # sin esto un .xsa viejo se reusaba aunque cambiara el RTL o el Block Design
 	vivado -mode batch -source src/crear_proyecto.tcl -tclargs $(SALIDA_VIVADO)
@@ -41,3 +42,9 @@ sim:
 
 clean:
 	rm -rf vivado vitis
+
+PYTHON ?= python3
+CSV ?= muestras.csv
+
+receptor: # sin PUERTO receptor_pc.py busca la Basys3 sola por el VID/PID del FT2232
+	$(PYTHON) sw/receptor_pc.py $(PUERTO) -o $(CSV)
