@@ -4,7 +4,15 @@ Resumen de lo que hace la placa una vez cargada. El detalle está en los docs de
 
 ## Carga
 
-`make program` sintetiza si hace falta, baja el bitstream y corre `control_pr.elf` por JTAG. Al arrancar el control queda deshabilitado, con `enable = 0` y los dos LEDs apagados.
+`make program` sintetiza si hace falta, baja el bitstream y corre `control_pr.elf` por JTAG. Al arrancar el control queda deshabilitado, con `enable = 0` y los LEDs apagados.
+
+Orden de encendido:
+
+1. Basys 3.
+2. Alimentación del sensor y del acondicionador. J3 tiene que dar 0,5 V respecto del GND del JXADC.
+3. `BTN_RST`, o `make program` recién en este punto.
+
+Si el firmware arranca con el sensor apagado, el XADC lee cerca de 0 V, la cuenta queda en 16 o menos y LD2 se enclava aunque después se encienda el sensor. Al revés tampoco conviene, con la Basys 3 apagada los diodos de protección del pin conducen y el acondicionador le inyecta corriente a la FPGA sin alimentar (en J3 se ven unos 0,4 V en vez de 0,5 V). Para apagar, primero el sensor y después la Basys 3.
 
 ## Botones y switches
 
@@ -16,14 +24,12 @@ Resumen de lo que hace la placa una vez cargada. El detalle está en los docs de
 ## LEDs
 
 - LD0 (U16), control habilitado.
-- LD1 (E19), falla. Queda enclavada hasta `BTN_RST` y la ISR baja `enable` en la misma iteración que la detecta.
+- LD1 (E19), sobrecorriente, corriente medida fuera de ±1,3 A.
+- LD2 (U19), cuenta del ADC fuera de escala, en 16 o menos o en 4079 o más. Con la ganancia real eso son ±2,26 A, así que en la práctica solo salta con el sensor apagado o desconectado, o el JXADC al aire.
+- LD3 (V19), más de 3 interrupciones seguidas sin dato nuevo del XADC.
+- LD4 (W18), error de arranque, el XADC no avanzó durante el sondeo inicial. En ese caso el Timer ni siquiera arranca.
 
-LD1 se enciende por cualquiera de estas causas. Se revisan en todas las interrupciones, aunque el control esté deshabilitado.
-
-- Corriente medida fuera de ±1,3 A.
-- Cuenta del ADC en 16 o menos, o en 4079 o más. Con la ganancia real eso son ±2,26 A, así que en la práctica solo salta con el sensor desconectado o el JXADC al aire.
-- Más de 3 interrupciones seguidas sin dato nuevo del XADC.
-- Error de arranque, el XADC no avanzó durante el sondeo inicial. En ese caso el Timer ni siquiera arranca.
+Las fallas de LD1 a LD3 se revisan en todas las interrupciones, aunque el control esté deshabilitado. Quedan enclavadas hasta `BTN_RST` y la ISR baja `enable` en la misma iteración que la detecta. Se enciende solo el LED de la primera causa que disparó, aunque después se sumen otras.
 
 Si LD1 se enciende sin haber habilitado, lo primero es medir la salida del acondicionador con la potencia apagada. Tiene que dar 0,5 V, y un corrimiento de 0,285 V ya equivale a 1,3 A.
 
