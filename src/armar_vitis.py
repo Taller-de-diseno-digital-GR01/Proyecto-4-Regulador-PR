@@ -27,9 +27,12 @@ app = cliente.create_app_component(
 )
 
 # UserConfig.cmake y lscript.ld versionados ya traen los .c de sw/ y el mapa de memoria real, pisan los que genera la plantilla
-destino = os.path.join(workspace, "control_pr")
-shutil.copy("sw/config_vitis/UserConfig.cmake", os.path.join(destino, "UserConfig.cmake"))
+destino = os.path.join(workspace, "control_pr", "src") # en 2026.1 la plantilla los lee de src/, en la raíz del componente se ignoran
+with open("sw/config_vitis/UserConfig.cmake") as f: # las rutas ../../../sw/ son relativas a la raíz del componente, desde src/ quedan corridas, se pasan a absolutas
+    config = f.read().replace('"../../../sw/', '"' + os.path.abspath("sw") + '/')
+with open(os.path.join(destino, "UserConfig.cmake"), "w") as f:
+    f.write(config)
 shutil.copy("sw/config_vitis/lscript.ld", os.path.join(destino, "lscript.ld"))
 
 app.build()
-cliente.dispose()
+vitis.dispose() # en 2026.1 el cliente ya no tiene dispose()
