@@ -6,9 +6,12 @@
 #include "exportador_uart.h"
 #include "lazo_control.h"
 #include "ref_senoidal.h"
+#include "supervisor_falla.h"
 
 #define LED_HABILITADO 1u
-#define LED_FALLA 2u
+#define LED_SOBRECORRIENTE 2u
+#define LED_FUERA_ESCALA 4u
+#define LED_ARRANQUE 16u
 
 static int errores;
 static uint32_t pwm_freq, pwm_enable, pwm_encendidas, leds, entradas;
@@ -70,7 +73,10 @@ uint32_t drivers_interrupciones_guardar_y_deshabilitar(void)
   revisar(!en_seccion, "sección crítica anidada");
   en_seccion = true;
   secciones++;
-  if(isr_justo_antes) falla = 1; // la ISR enclavó la falla entre la lectura de la vuelta y el enmascarado
+  if(isr_justo_antes) { // la ISR enclavó la falla entre la lectura de la vuelta y el enmascarado
+    supervisor_falla_revisar(0u, VALOR(0.0f));
+    falla = 1;
+  }
   return 8u;
 }
 
@@ -97,7 +103,7 @@ int main(void)
   revisar(adc_llamadas == 1 + SONDEO_MAX_LECTURAS, "el sondeo no se cortó en SONDEO_MAX_LECTURAS");
   revisar(!timer_corriendo, "con el XADC sin publicar el Timer arrancó igual");
   control_principal_vuelta();
-  revisar(leds == LED_FALLA, "error de arranque sin LED de falla");
+  revisar(leds == LED_ARRANQUE, "error de arranque sin LD4");
   pulsar(1u);
   revisar(control_habilitado == 0 && pwm_enable == 0, "con error de arranque se pudo habilitar");
 
@@ -143,15 +149,17 @@ int main(void)
   isr_justo_antes = true;
   pulsar(1u);
   revisar(control_habilitado == 0 && pwm_encendidas == 1, "habilitó con una falla enclavada dentro de la sección crítica");
-  revisar(leds == LED_FALLA, "falla sin LED de falla");
+  revisar(leds == LED_FUERA_ESCALA, "cuenta fuera de escala sin LD2 o con otro LED");
   isr_justo_antes = false;
+  supervisor_falla_iniciar();
   falla = 0;
 
   pulsar(1u);
   revisar(control_habilitado == 1, "no volvió a habilitar después de limpiar la falla de la prueba");
+  supervisor_falla_revisar(2048u, VALOR(2.0f));
   falla = 1; // como la ISR, que ya bajó enable
   control_principal_vuelta();
-  revisar(control_habilitado == 0 && leds == LED_FALLA, "la falla no bajó control_habilitado o no encendió led[1]");
+  revisar(control_habilitado == 0 && leds == LED_SOBRECORRIENTE, "la sobrecorriente no bajó control_habilitado o no encendió solo LD1");
   antes = pwm_encendidas;
   pulsar(1u);
   revisar(control_habilitado == 0 && pwm_encendidas == antes, "en falla el botón volvió a habilitar");

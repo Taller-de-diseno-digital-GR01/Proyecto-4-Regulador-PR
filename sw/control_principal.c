@@ -13,7 +13,8 @@
 #define SW_DESPL 2u
 #define SW_MASCARA 0x3u
 #define LED_HABILITADO (1u << 0)
-#define LED_FALLA (1u << 1)
+#define LED_CAUSA_DESPL 1u // LD1 sobrecorriente, LD2 fuera de escala, LD3 sin dato, mismo orden que los bits de supervisor_falla
+#define LED_ARRANQUE (1u << 4)
 
 static const valor_t amplitudes[4] = {VALOR(0.0f), VALOR(0.2f), VALOR(0.5f), VALOR(1.0f)}; // A pico por código de SW[1:0], h.3
 
@@ -96,5 +97,5 @@ void control_principal_vuelta(void)
   if(flancos & BTN_EXPORTAR) exportador_uart_pedir();
   exportador_uart_avanzar();
 
-  drivers_gpio_leds((control_habilitado ? LED_HABILITADO : 0u) | ((en_falla || !arranque_correcto) ? LED_FALLA : 0u));
+  drivers_gpio_leds((control_habilitado ? LED_HABILITADO : 0u) | (en_falla ? supervisor_falla_causa() << LED_CAUSA_DESPL : 0u) | (arranque_correcto ? 0u : LED_ARRANQUE)); // causa solo con en_falla, así sale junto con la falla publicada aunque la ISR la escriba antes
 }
