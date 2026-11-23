@@ -138,7 +138,7 @@ int main(void)
   falla = 0;
   habilitar(VALOR(1.0f));
   antes = escrituras;
-  iterar(true, ADC_OFFSET_CUENTAS + 1700u); // 1700 * 1,1118e-3 = 1,89 A, arriba del umbral de 1,3 A
+  iterar(true, ADC_OFFSET_CUENTAS + 250u); // 250 * 6,6705e-3 = 1,67 A, arriba del umbral de 1,3 A
   revisar(falla == 1, "no publicó la falla por sobrecorriente");
   revisar(apagados == 2, "la sobrecorriente no apagó el PWM");
   revisar(escrituras == antes, "con sobrecorriente el PR escribió en la misma iteración");
