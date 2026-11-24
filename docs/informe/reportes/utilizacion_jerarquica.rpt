@@ -1,0 +1,98 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+---------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2026.1 (win64) Build 6511674 Tue Jun 16 11:02:23 MDT 2026
+| Date         : Wed Nov 11 16:26:19 2026
+| Host         : NICOMENA running 64-bit major release  (build 9200)
+| Command      : report_utilization -hierarchical -file utilizacion_jerarquica.rpt
+| Design       : sistema_wrapper
+| Device       : xc7a35tcpg236-1
+| Speed File   : -1
+| Design State : Routed
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+Utilization Design Information
+
+Table of Contents
+-----------------
+1. Utilization by Hierarchy
+
+1. Utilization by Hierarchy
+---------------------------
+
++-------------------------------------------------------------------------+----------------------------------------------------------------------------------------+------------+------------+---------+------+------+--------+--------+------------+
+|                                 Instance                                |                                         Module                                         | Total LUTs | Logic LUTs | LUTRAMs | SRLs |  FFs | RAMB36 | RAMB18 | DSP Blocks |
++-------------------------------------------------------------------------+----------------------------------------------------------------------------------------+------------+------------+---------+------+------+--------+--------+------------+
+| sistema_wrapper                                                         |                                                                                  (top) |       5567 |       5396 |     128 |   43 | 3651 |      8 |      0 |          7 |
+|   (sistema_wrapper)                                                     |                                                                                  (top) |          0 |          0 |       0 |    0 |    0 |      0 |      0 |          0 |
+|   sistema_i                                                             |                                                                                sistema |       5567 |       5396 |     128 |   43 | 3651 |      8 |      0 |          7 |
+|     periferico_pwm_0                                                    |                                                             sistema_periferico_pwm_0_0 |        151 |        151 |       0 |    0 |  199 |      0 |      0 |          1 |
+|       inst                                                              |                                              sistema_periferico_pwm_0_0_periferico_pwm |        151 |        151 |       0 |    0 |  199 |      0 |      0 |          1 |
+|         u_interfaz_axi_pwm                                              |                                            sistema_periferico_pwm_0_0_interfaz_axi_pwm |         49 |         49 |       0 |    0 |   64 |      0 |      0 |          0 |
+|         u_nucleo_pwm                                                    |                                                  sistema_periferico_pwm_0_0_nucleo_pwm |        102 |        102 |       0 |    0 |  135 |      0 |      0 |          1 |
+|     axi_gpio_0                                                          |                                                                   sistema_axi_gpio_0_0 |         45 |         45 |       0 |    0 |   72 |      0 |      0 |          0 |
+|     axi_smc                                                             |                                                                      sistema_axi_smc_0 |        135 |        135 |       0 |    0 |   65 |      0 |      0 |          0 |
+|       inst                                                              |                                                              sistema_axi_smc_0_bd_5ad3 |        135 |        135 |       0 |    0 |   65 |      0 |      0 |          0 |
+|         sc_ul                                                           |                                                      sistema_axi_smc_0_bd_5ad3_sc_ul_0 |        135 |        135 |       0 |    0 |   65 |      0 |      0 |          0 |
+|           inst                                                          |                                              sistema_axi_smc_0_sc_ultralite_v1_0_1_top |        135 |        135 |       0 |    0 |   65 |      0 |      0 |          0 |
+|             gen_axilite_1xn.fanout_inst                                 |                                      sistema_axi_smc_0_sc_ultralite_v1_0_1_fanout_lite |        135 |        135 |       0 |    0 |   63 |      0 |      0 |          0 |
+|               rdata_mux                                                 |                          sistema_axi_smc_0_sc_ultralite_v1_0_1_mux_hot__parameterized0 |         82 |         82 |       0 |    0 |   32 |      0 |      0 |          0 |
+|     axi_timer_0                                                         |                                                                  sistema_axi_timer_0_0 |        194 |        194 |       0 |    0 |  173 |      0 |      0 |          0 |
+|       U0                                                                |                                                        sistema_axi_timer_0_0_axi_timer |        194 |        194 |       0 |    0 |  173 |      0 |      0 |          0 |
+|         AXI4_LITE_I                                                     |                                                    sistema_axi_timer_0_0_axi_lite_ipif |        120 |        120 |       0 |    0 |   62 |      0 |      0 |          0 |
+|           I_SLAVE_ATTACHMENT                                            |                                                 sistema_axi_timer_0_0_slave_attachment |        120 |        120 |       0 |    0 |   62 |      0 |      0 |          0 |
+|             (I_SLAVE_ATTACHMENT)                                        |                                                 sistema_axi_timer_0_0_slave_attachment |         11 |         11 |       0 |    0 |   54 |      0 |      0 |          0 |
+|             I_DECODER                                                   |                                                  sistema_axi_timer_0_0_address_decoder |        109 |        109 |       0 |    0 |    8 |      0 |      0 |          0 |
+|               (I_DECODER)                                               |                                                  sistema_axi_timer_0_0_address_decoder |        103 |        103 |       0 |    0 |    8 |      0 |      0 |          0 |
+|         TC_CORE_I                                                       |                                                          sistema_axi_timer_0_0_tc_core |         75 |         75 |       0 |    0 |  111 |      0 |      0 |          0 |
+|           COUNTER_0_I                                                   |                                                     sistema_axi_timer_0_0_count_module |         51 |         51 |       0 |    0 |   65 |      0 |      0 |          0 |
+|             COUNTER_I                                                   |                                                        sistema_axi_timer_0_0_counter_f |         51 |         51 |       0 |    0 |   33 |      0 |      0 |          0 |
+|     axi_uartlite_0                                                      |                                                               sistema_axi_uartlite_0_0 |         87 |         77 |       0 |   10 |  107 |      0 |      0 |          0 |
+|       U0                                                                |                                                  sistema_axi_uartlite_0_0_axi_uartlite |         87 |         77 |       0 |   10 |  107 |      0 |      0 |          0 |
+|         UARTLITE_CORE_I                                                 |                                                 sistema_axi_uartlite_0_0_uartlite_core |         61 |         51 |       0 |   10 |   81 |      0 |      0 |          0 |
+|           UARTLITE_RX_I                                                 |                                                   sistema_axi_uartlite_0_0_uartlite_rx |         32 |         27 |       0 |    5 |   50 |      0 |      0 |          0 |
+|     mdm_1                                                               |                                                                        sistema_mdm_1_0 |        143 |        138 |       0 |    5 |  199 |      0 |      0 |          0 |
+|       U0                                                                |                                                              sistema_mdm_1_0_MDM_RISCV |        143 |        138 |       0 |    5 |  199 |      0 |      0 |          0 |
+|         MDM_Core_I1                                                     |                                                               sistema_mdm_1_0_MDM_Core |        110 |        108 |       0 |    2 |  151 |      0 |      0 |          0 |
+|           JTAG_CONTROL_I                                                |                                                           sistema_mdm_1_0_JTAG_CONTROL |        110 |        108 |       0 |    2 |  151 |      0 |      0 |          0 |
+|             (JTAG_CONTROL_I)                                            |                                                           sistema_mdm_1_0_JTAG_CONTROL |        109 |        107 |       0 |    2 |  151 |      0 |      0 |          0 |
+|     microblaze_riscv_0                                                  |                                                           sistema_microblaze_riscv_0_0 |       4704 |       4551 |     128 |   25 | 2654 |      0 |      0 |          6 |
+|       U0                                                                |                                                     sistema_microblaze_riscv_0_0_riscv |       4704 |       4551 |     128 |   25 | 2654 |      0 |      0 |          6 |
+|         riscv_core_I                                                    |                                                sistema_microblaze_riscv_0_0_riscv_core |       4704 |       4551 |     128 |   25 | 2654 |      0 |      0 |          6 |
+|           Base.Core                                                     |                                                 sistema_microblaze_riscv_0_0_riscv_GTi |       4703 |       4550 |     128 |   25 | 2650 |      0 |      0 |          6 |
+|             Use_Debug_Logic.Master_Core.Debug_Perf                      |                                               sistema_microblaze_riscv_0_0_riscv_debug |        199 |        199 |       0 |    0 |  385 |      0 |      0 |          0 |
+|               (Use_Debug_Logic.Master_Core.Debug_Perf)                  |                                               sistema_microblaze_riscv_0_0_riscv_debug |        192 |        192 |       0 |    0 |  360 |      0 |      0 |          0 |
+|             Data_Flow_I                                                 |                     sistema_microblaze_riscv_0_0_microblaze_riscv_v1_0_9_Data_Flow_gti |       3321 |       3192 |     128 |    1 | 1762 |      0 |      0 |          6 |
+|               (Data_Flow_I)                                             |                     sistema_microblaze_riscv_0_0_microblaze_riscv_v1_0_9_Data_Flow_gti |         75 |         75 |       0 |    0 |   64 |      0 |      0 |          0 |
+|               (Operand_Select_I)                                        |                sistema_microblaze_riscv_0_0_microblaze_riscv_v1_0_9_Operand_Select_gti |        456 |        456 |       0 |    0 |  117 |      0 |      0 |          0 |
+|               Data_Flow_Logic_I                                         |                   sistema_microblaze_riscv_0_0_microblaze_riscv_v1_0_9_Data_Flow_Logic |          1 |          1 |       0 |    0 |   65 |      0 |      0 |          0 |
+|               Register_File_I                                           |                 sistema_microblaze_riscv_0_0_microblaze_riscv_v1_0_9_Register_File_gti |         64 |          0 |      64 |    0 |    0 |      0 |      0 |          0 |
+|               Using_Div_Unit.Div_unit_I1                                |                      sistema_microblaze_riscv_0_0_microblaze_riscv_v1_0_9_Div_unit_gti |        177 |        177 |       0 |    0 |  120 |      0 |      0 |          0 |
+|                 (Using_Div_Unit.Div_unit_I1)                            |                      sistema_microblaze_riscv_0_0_microblaze_riscv_v1_0_9_Div_unit_gti |         49 |         49 |       0 |    0 |  120 |      0 |      0 |          0 |
+|               Using_FPU.FPU_I                                           |                               sistema_microblaze_riscv_0_0_microblaze_riscv_v1_0_9_Fpu |       2086 |       2085 |       0 |    1 | 1066 |      0 |      0 |          2 |
+|                 (Using_FPU.FPU_I)                                       |                               sistema_microblaze_riscv_0_0_microblaze_riscv_v1_0_9_Fpu |        182 |        182 |       0 |    0 |  372 |      0 |      0 |          0 |
+|                 Use_FPU.FPU_ADDSUB_1                                    |                        sistema_microblaze_riscv_0_0_microblaze_riscv_v1_0_9_FPU_ADDSUB |        293 |        293 |       0 |    0 |  105 |      0 |      0 |          0 |
+|                 Use_FPU.FPU_DIV_SQRT_1                                  |                                              sistema_microblaze_riscv_0_0_FPU_DIV_SQRT |        157 |        156 |       0 |    1 |  125 |      0 |      0 |          0 |
+|                   (Use_FPU.FPU_DIV_SQRT_1)                              |                                              sistema_microblaze_riscv_0_0_FPU_DIV_SQRT |         96 |         95 |       0 |    1 |  125 |      0 |      0 |          0 |
+|                 Use_FPU.FPU_MUL_1                                       |                           sistema_microblaze_riscv_0_0_microblaze_riscv_v1_0_9_FPU_MUL |        953 |        953 |       0 |    0 |  282 |      0 |      0 |          2 |
+|                   (Use_FPU.FPU_MUL_1)                                   |                           sistema_microblaze_riscv_0_0_microblaze_riscv_v1_0_9_FPU_MUL |        300 |        300 |       0 |    0 |  282 |      0 |      0 |          0 |
+|                   FPGA_Impl1.sel_fsb1_sel1_lut                          |                                  sistema_microblaze_riscv_0_0_MB_LUT6__parameterized20 |         82 |         82 |       0 |    0 |    0 |      0 |      0 |          0 |
+|                   Use_Single_DSP48E1.dsp_module_upper                   |                                sistema_microblaze_riscv_0_0_dsp_module__parameterized9 |        421 |        421 |       0 |    0 |    0 |      0 |      0 |          1 |
+|                     Using_DSP48E1.DSP48E1_I1                            |                                sistema_microblaze_riscv_0_0_MB_DSP48E1__parameterized7 |        421 |        421 |       0 |    0 |    0 |      0 |      0 |          1 |
+|                   adder_result_fsb                                      |                                                       sistema_microblaze_riscv_0_0_clz |         61 |         61 |       0 |    0 |    0 |      0 |      0 |          0 |
+|                 Use_FPU.Using_FPGA_1.Ex_A_Sub_Detect_2                  |                                              sistema_microblaze_riscv_0_0_MB_MUXCY_299 |         57 |         57 |       0 |    0 |    0 |      0 |      0 |          0 |
+|                 Use_FPU.fpu_conv_I1                                     |                          sistema_microblaze_riscv_0_0_microblaze_riscv_v1_0_9_fpu_conv |        331 |        331 |       0 |    0 |  177 |      0 |      0 |          0 |
+|                   (Use_FPU.fpu_conv_I1)                                 |                          sistema_microblaze_riscv_0_0_microblaze_riscv_v1_0_9_fpu_conv |        295 |        295 |       0 |    0 |  177 |      0 |      0 |          0 |
+|               Using_FPU.FP_Register_File_I                              | sistema_microblaze_riscv_0_0_microblaze_riscv_v1_0_9_Register_File_gti__parameterized0 |         64 |          0 |      64 |    0 |    0 |      0 |      0 |          0 |
+|               Using_MEM.WB_Mux_I                                        |                                                    sistema_microblaze_riscv_0_0_WB_Mux |         64 |         64 |       0 |    0 |    0 |      0 |      0 |          0 |
+|               csr_I                                                     |                                                       sistema_microblaze_riscv_0_0_csr |         52 |         52 |       0 |    0 |  280 |      0 |      0 |          0 |
+|             Decode_I                                                    |                        sistema_microblaze_riscv_0_0_microblaze_riscv_v1_0_9_Decode_gti |       1088 |       1064 |       0 |   24 |  363 |      0 |      0 |          0 |
+|               (Decode_I)                                                |                        sistema_microblaze_riscv_0_0_microblaze_riscv_v1_0_9_Decode_gti |        376 |        376 |       0 |    0 |  214 |      0 |      0 |          0 |
+|               No_Short_Pipe_5.Using_FPGA.Gen_Bits[2].MEM_EX_Result_Inst |                                                sistema_microblaze_riscv_0_0_MB_FDRE_86 |         53 |         53 |       0 |    0 |    1 |      0 |      0 |          0 |
+|               PC_Module_I                                               |                     sistema_microblaze_riscv_0_0_microblaze_riscv_v1_0_9_PC_Module_gti |         50 |         42 |       0 |    8 |   59 |      0 |      0 |          0 |
+|               PreFetch_Buffer_I                                         |                sistema_microblaze_riscv_0_0_microblaze_riscv_v1_0_9_PreFetch_Buffer_ff |        395 |        379 |       0 |   16 |   38 |      0 |      0 |          0 |
+|                 INSTR_BUFFER_I1                                         |                                          sistema_microblaze_riscv_0_0_OneHot_Buffer_FF |        395 |        379 |       0 |   16 |   38 |      0 |      0 |          0 |
+|                   (INSTR_BUFFER_I1)                                     |                                          sistema_microblaze_riscv_0_0_OneHot_Buffer_FF |        314 |        298 |       0 |   16 |   32 |      0 |      0 |          0 |
++-------------------------------------------------------------------------+----------------------------------------------------------------------------------------+------------+------------+---------+------+------+--------+--------+------------+
+* Note: The sum of lower-level cells may be larger than their parent cells total, due to cross-hierarchy LUT combining
+
+
