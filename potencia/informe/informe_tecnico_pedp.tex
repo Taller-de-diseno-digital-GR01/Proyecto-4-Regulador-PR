@@ -70,17 +70,20 @@ Cada ensayo se registra por dos caminos. El histórico del controlador se toma p
 
 \begin{table}[!ht]
 	\centering
-	\caption{Archivos de captura, todos en \texttt{muestras\_Inversor/}.}
+	\caption{Archivos de captura, con rutas relativas a \texttt{muestras\_Inversor/}.}
 	\label{tab:archivos}
+	\small
 	\begin{tabularx}{\columnwidth}{Lcc}
 		\toprule
 		Archivo & Muestreo & Ventana \\
 		\midrule
-		CSV del receptor (\texttt{*A\_*.csv}) & \SI{50}{\micro s} & \SI{102}{ms} \\
-		\texttt{osc\_*.csv}, fundamental & \SI{100}{\micro s} & \SI{200}{ms} \\
-		\texttt{rizado/scope\_a2} a \texttt{a4} & \SI{0.1}{\micro s} & \SI{100}{\micro s} \\
-		\texttt{tiempo\_muerto\_*.png} & \SI{1}{ns} & \SI{10}{\micro s} \\
-		\texttt{encendido} y \texttt{apagado\_\allowbreak compuertas.png} & \SI{10}{\micro s} & \SI{500}{ms} \\
+		CSV del receptor, \texttt{*A\_*.csv} en la raíz y en \texttt{muestras\_\allowbreak prueba\_25/}, \texttt{muestras\_\allowbreak recorte/} y \texttt{muestras\_\allowbreak sensor/} & \SI{50}{\micro s} & \SI{102}{ms} \\
+		\texttt{Muestras Osciloscopio/\allowbreak osc\_*.csv}, fundamental & \SI{100}{\micro s} & \SI{200}{ms} \\
+		\texttt{Muestras Osciloscopio/\allowbreak rizado/\allowbreak scope\_a2.csv} a \texttt{scope\_a4.csv} & \SI{0.1}{\micro s} & \SI{100}{\micro s} \\
+		\texttt{Muestras Osciloscopio/\allowbreak transitorios/\allowbreak scope\_g\_\allowbreak cambio\_\allowbreak consigna.png} & \SI{8}{\micro s} & \SI{200}{ms} \\
+		\texttt{Muestras Osciloscopio/\allowbreak transitorios/\allowbreak scope\_g1\_\allowbreak cambio\_\allowbreak carga\_1A.png} & \SI{4}{\micro s} & \SI{100}{ms} \\
+		\texttt{Muestras Compuertas/\allowbreak scope\_a\_\allowbreak piernaB\_\allowbreak tiempo\_\allowbreak muerto\_\allowbreak alta\_\allowbreak apaga.png} y \texttt{scope\_a1\_\allowbreak piernaB\_\allowbreak tiempo\_\allowbreak muerto\_\allowbreak baja\_\allowbreak apaga.png} & \SI{1}{ns} & \SI{10}{\micro s} \\
+		\texttt{Muestras Compuertas/\allowbreak scope\_a5\_\allowbreak habilitar.png} y \texttt{scope\_a6\_\allowbreak deshabilitar.png} & \SI{10}{\micro s} & \SI{500}{\micro s} \\
 		\bottomrule
 	\end{tabularx}
 \end{table}
