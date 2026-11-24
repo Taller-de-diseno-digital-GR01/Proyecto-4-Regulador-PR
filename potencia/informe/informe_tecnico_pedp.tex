@@ -159,7 +159,33 @@ Quedan además \pendiente{temperatura de los MOSFET, de la carga y de la fuente 
 
 \section{Simulación en PLECS}
 \label{sec:plecs_res}
-El modelo conmutado del documento de diseño se corre con los valores medidos de la Sección~\ref{sec:caract}, con el regulador, la saturación y el instante de muestreo del firmware, en los mismos puntos de los ensayos. \pendiente{lazo cerrado en PLECS con R, L y Vdc medidos, en los tres puntos nominales, los dos cambios de amplitud y el cambio de R}
+El modelo del inversor se armó en PLECS 5.0 (Fig.~\ref{fig:plecs}). Tiene el puente con cuatro MOSFET con diodo en antiparalelo y resistencia de conducción $R_{DS(on)}$, la carga $RL$ entre los puntos medios de las piernas, y un modulador unipolar con la referencia retenida en los valles de la portadora y el tiempo muerto armado con dos portadoras corridas $\pm2f_{sw}T_M$. Todos los parámetros salen de \texttt{potencia/sim/parametros.m}, y los ensayos se corren por la interfaz RPC de PLECS desde \texttt{potencia/sim/lazo\_abierto.py}. El documento de diseño describe el modelo completo y su validación contra el análisis.
+
+\begin{figure}[!ht]
+	\centering
+	\IfFileExists{fig/plecs_modelo.png}{\includegraphics[width=\columnwidth]{plecs_modelo}}{\pendiente{captura del esquema de PLECS en fig/plecs\_modelo.png}}
+	\caption{Modelo del inversor en PLECS.}
+	\label{fig:plecs}
+\end{figure}
+
+Con la carga montada se corrió en lazo abierto, con \SI{12}{V}, $R=\SI{9.6}{\ohm}$, $L=\SI{200}{\micro H}$, tiempo muerto de \SI{1}{\micro s} y $R_{DS(on)}=\SI{0.2}{\ohm}$, aplicando el índice $m=|Z|I/V_{dc}$ sin compensar (Tabla~\ref{tab:plecs_abierto}). La corriente queda \num{34}, \num{16} y \SI{10}{\percent} por debajo de lo pedido, con un desfase de $-\ang{0.36}$, y esa diferencia es la que tiene que compensar el regulador.
+
+\begin{table}[!ht]
+	\centering
+	\caption{Lazo abierto en PLECS con la carga montada y \SI{12}{V}.}
+	\label{tab:plecs_abierto}
+	\begin{tabular}{cccc}
+		\toprule
+		Pedida (A) & $m$ & Corriente (A) & Diferencia (\%) \\
+		\midrule
+		\num{0.2} & \num{0.160} & \num{0.1315} & $-34$ \\
+		\num{0.5} & \num{0.400} & \num{0.4190} & $-16$ \\
+		\num{1.0} & \num{0.800} & \num{0.8989} & $-10$ \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+El lazo cerrado se validó con el modelo conmutado de Octave (\texttt{potencia/simular\_conmutado.m}), que tiene el mismo puente, la misma modulación y el mismo tiempo muerto, y agrega el PR con su saturación y la escala del ADC del firmware. Con \SI{12}{V} predice un error de la fundamental física de \num{3.47}, \num{2.83} y \SI{0.59}{\percent} y un rizado de \num{0.258}, \num{0.388} y \SI{0.395}{A} pico a pico en \num{0.2}, \num{0.5} y \SI{1.0}{A}, y con \SI{18}{V} y \SI{1.0}{A} un error de \SI{1.95}{\percent} con \SI{0.597}{A} de rizado. Esas son las predicciones de la Sección~\ref{sec:comparacion}.
 
 \section{Comparación entre teoría, simulación y experimento}
 \label{sec:comparacion}

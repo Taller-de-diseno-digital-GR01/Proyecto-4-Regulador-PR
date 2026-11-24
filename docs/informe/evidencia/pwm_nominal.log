@@ -1,0 +1,50 @@
+PWM: RAPIDO=0 DT=100 PRECARGA=7000 MAX=5000/2500/1250 SEED=1592594996
+PRUEBA AX01 AX02 / reset y valores iniciales
+PASS [AX01 AX02 / reset y valores iniciales]
+PRUEBA AX03 AX04 AX05 AX06 AX10 AX11 / orden de AW y W
+PASS [AX03 AX04 AX05 AX06 AX10 AX11 / orden de AW y W]
+PRUEBA AX / maestro con BREADY y RREADY anticipados
+PASS [AX / maestro con BREADY y RREADY anticipados]
+PRUEBA AX07 PW17 / B retenida y siguiente escritura esperando
+PASS [AX07 PW17 / B retenida y siguiente escritura esperando]
+PRUEBA AX08 AX09 / instantanea R y segunda AR bloqueada
+PASS [AX08 AX09 / instantanea R y segunda AR bloqueada]
+PRUEBA AX12 / lectura en el flanco de ejecucion de escritura
+PASS [AX12 / lectura en el flanco de ejecucion de escritura]
+PRUEBA AX13 AX14 AX15 AX16 AX17 AX18 / mascara y campos reservados
+PASS [AX13 AX14 AX15 AX16 AX17 AX18 / mascara y campos reservados]
+PRUEBA AX19 / todos los offsets sin registro y no alineados
+PASS [AX19 / todos los offsets sin registro y no alineados]
+PRUEBA AX20 / reset con AW aislada y W aislada
+PASS [AX20 / reset con AW aislada y W aislada]
+PRUEBA AX21 / reset con respuestas B y R pendientes
+PASS [AX21 / reset con respuestas B y R pendientes]
+PRUEBA AX22 / atributos de proteccion
+PASS [AX22 / atributos de proteccion]
+PRUEBA PW01 PW09 PW15 / frecuencias y trigger con puente apagado
+PASS [PW01 PW09 PW15 / frecuencias y trigger con puente apagado]
+PRUEBA PW02 / running y precarga exacta de ambas piernas
+PASS [PW02 / running y precarga exacta de ambas piernas]
+PRUEBA PW17 / PWM activo con B retenida por varios periodos
+PASS [PW17 / PWM activo con B retenida por varios periodos]
+PRUEBA AX08 / lectura de running retenida durante apagado
+PASS [AX08 / lectura de running retenida durante apagado]
+PRUEBA PW04 PW05 PW06 PW07 PW08 / referencias, signo y saturacion
+PASS [PW04 PW05 PW06 PW07 PW08 / referencias, signo y saturacion]
+PRUEBA PW03 / deshabilitacion durante modulacion y durante precarga
+PASS [PW03 / deshabilitacion durante modulacion y durante precarga]
+PRUEBA PW09 PW10 PW11 / cambios conjuntos de frecuencia y referencia
+PASS [PW09 PW10 PW11 / cambios conjuntos de frecuencia y referencia]
+PRUEBA PW12 / escrituras a dos, uno y cero ciclos del valle
+PASS [PW12 / escrituras a dos, uno y cero ciclos del valle]
+PRUEBA PW13 PW14 / conmutaciones y pulsos menores al tiempo muerto
+PASS [PW13 PW14 / conmutaciones y pulsos menores al tiempo muerto]
+PRUEBA PW16 / reset en varias fases y con compuertas activas
+PASS [PW16 / reset en varias fases y con compuertas activas]
+PRUEBA AX / accesos aleatorios concurrentes con PWM habilitado
+PASS [AX / accesos aleatorios concurrentes con PWM habilitado]
+PRUEBA cierre / respuestas completas y cobertura no vacia
+PASS [cierre / respuestas completas y cobertura no vacia]
+RESUMEN grupos=23 comprobaciones=6552388 errores=0 AW=242 W=242 B=240 AR=323 R=322 triggers=246 resets=8
+PWM: APROBADO
+src/sim/tb_periferico_pwm.sv:632: $finish called at 10780427000 (1ps)

@@ -2,11 +2,11 @@
 % Se carga con run('parametros.m') desde los comandos de inicialización del modelo
 
 % Carga RL del montaje (valores nominales, la resistencia del inductor y del cableado se suman a R al medirlas)
-R = 10;
-L = 2e-3;
+R = 9.6;
+L = 200e-6;
 
-% Tensión del bus de continua, la de operación acordada
-Vdc = 18;
+% Tensión del bus de continua, provisional, pendiente de confirmar
+Vdc = 12;
 
 % Reloj de la FPGA y cuenta máxima de la portadora con freq_sel = 01 (núcleo del PWM)
 fclk = 100e6;
