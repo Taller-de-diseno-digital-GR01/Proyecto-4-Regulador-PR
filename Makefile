@@ -20,7 +20,7 @@ help:
 	@echo "make program          programa el bitstream y baja + corre el .elf en la Basys3 (bitstream + vitis)"
 	@echo "make sim TB=<nombre>  compila y corre src/sim/tb_<nombre>.sv con iverilog"
 	@echo "make clean            borra vivado/ y vitis/, se regeneran desde src/"
-	@echo "make receptor         recibe el histórico de la Basys3 con sw/receptor_pc.py, opcional PUERTO=<puerto> CSV=<archivo>"
+	@echo "make receptor         recibe el histórico de la Basys3 con sw/receptor_pc.py, opcional PUERTO=<puerto> CSV=<archivo> CENTRAR=1"
 
 $(XSA): $(FUENTES_HW) # sin esto un .xsa viejo se reusaba aunque cambiara el RTL o el Block Design
 	vivado -mode batch -source src/crear_proyecto.tcl -tclargs $(SALIDA_VIVADO)
@@ -47,4 +47,4 @@ PYTHON ?= python3
 CSV ?= muestras.csv
 
 receptor: # sin PUERTO receptor_pc.py busca la Basys3 sola por el VID/PID del FT2232
-	$(PYTHON) sw/receptor_pc.py $(PUERTO) -o $(CSV)
+	$(PYTHON) sw/receptor_pc.py $(PUERTO) -o $(CSV) $(if $(CENTRAR),--centrar)
