@@ -1,14 +1,13 @@
-function verificar_pr()
+function verificar_pr(R, L, vdc, kp)
   % cifras de potencia/diseno_pr.md, en el mismo orden
-  L = 200e-6;
-  R = 9;
-  vdc = 18;
+  if nargin < 3, R = 9; L = 200e-6; vdc = 18; end
   fs = 20000;
   kr = 10000;
   ts = 1 / fs;
   td = 1.5 * ts; % un muestreo de computo mas medio de actualizacion
   w0 = 2 * pi * 50;
-  kp = R / 2; % la carga es casi resistiva hasta 7 kHz, el cruce en 1 kHz deja 1.8 dB y lo que manda es el margen de ganancia
+  if nargin < 4, kp = R / 2; end
+  % la carga es casi resistiva hasta 7 kHz, el cruce en 1 kHz deja 1.8 dB y lo que manda es el margen de ganancia
 
   z = R + 1i * w0 * L;
   fprintf('|Z| = %.2f ohm, desfase %.1f grados\n', abs(z), -angle(z) * 180 / pi);

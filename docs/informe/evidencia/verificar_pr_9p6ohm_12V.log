@@ -1,0 +1,61 @@
+|Z| = 9.60 ohm, desfase -0.4 grados
+indice con 12 V, 0.160, 0.400 y 0.800 para 0.2, 0.5 y 1.0 A
+Kp = 4.50 V/A, KP = 0.3750
+
+Margenes segun Kp, el ultimo es el de cruce en 1 kHz
+Kp 3.00, cruce 188 Hz, 101.7 grados, 11.7 dB
+Kp 4.50, cruce 200 Hz, 111.0 grados, 8.2 dB
+Kp 6.00, cruce 223 Hz, 121.0 grados, 5.8 dB
+Kp 9.68, cruce 1365 Hz, 126.1 grados, 1.6 dB
+
+Kr, margenes y error del escalon de 0.2 a 1.0 A por periodo
+Kr 3000, cruce 86 Hz, 115.0 grados, 8.3 dB
+  error 23.7 2.3 0.2 0.0 0.0  %, desfase max 1.2 grados
+Kr 5000, cruce 115 Hz, 114.0 grados, 8.3 dB
+  error 15.4 0.0 0.0 0.0 0.0  %, desfase max 0.6 grados
+Kr 10000, cruce 200 Hz, 111.0 grados, 8.2 dB
+  error 7.5 0.3 0.0 0.0 0.0  %, desfase max 0.1 grados
+|z| del resonante 0.9908, tau 5.4 ms
+
+Nominal y esquinas, Kp fijo
+nominal, cruce 200 Hz, 111.0 grados, 8.2 dB
+L 140 uH, R 7.20 ohm, cruce 291 Hz, 118.7 grados, 5.6 dB
+L 140 uH, R 12.00 ohm, cruce 159 Hz, 107.1 grados, 9.2 dB
+L 260 uH, R 7.20 ohm, cruce 291 Hz, 117.0 grados, 7.4 dB
+L 260 uH, R 12.00 ohm, cruce 159 Hz, 106.5 grados, 10.3 dB
+
+Retardo extra
+2 us, cruce 200 Hz, 110.9 grados, 8.2 dB
+25 us, cruce 200 Hz, 109.2 grados, 7.6 dB
+50 us, cruce 200 Hz, 107.4 grados, 7.3 dB
+75 us, cruce 200 Hz, 105.6 grados, 7.1 dB
+MG en 6 dB con 398 us, MF en 45 grados con 400 us, MG en 0 con 400 us
+
+Filtro del sensor, nominal y esquina baja de L y R
+RC 4.8 kHz nominal, cruce 200 Hz, 108.6 grados, 9.9 dB
+RC 4.8 kHz esquina, cruce 291 Hz, 115.2 grados, 7.3 dB
+RC 3 kHz nominal, cruce 200 Hz, 107.2 grados, 11.4 dB
+RC 3 kHz esquina, cruce 289 Hz, 113.1 grados, 8.8 dB
+RC 2 kHz nominal, cruce 199 Hz, 105.2 grados, 13.1 dB
+RC 2 kHz esquina, cruce 287 Hz, 110.3 grados, 10.6 dB
+Butterworth 5 kHz nominal, cruce 200 Hz, 107.8 grados, 8.1 dB
+Butterworth 5 kHz esquina, cruce 291 Hz, 114.0 grados, 5.5 dB
+
+Escalon en las esquinas
+L 140 uH, R 7.20 ohm, 5.4 0.4 0.0  %
+L 140 uH, R 12.00 ohm, 9.5 0.1 0.0  %
+L 260 uH, R 7.20 ohm, 5.4 0.4 0.0  %
+L 260 uH, R 12.00 ohm, 9.5 0.1 0.0  %
+0.2 a 0.5 A, 5.7 0.2 0.0  %
+0.5 a 1.0 A, 4.8 0.2 0.0  %
+R de 9.6 a 12 ohm a 1.0 A, 2.4 0.0 0.0  %
+
+Solo P, error 68.1 %, desfase -1.2 grados
+
+Tiempo muerto, perdida 0.48 V, fundamental 0.61 V
+0.2 A, lazo abierto 0.131 A (-35 %), -0.2 grados, solo P 0.042 A, error 79.0 %, 41.4 grados
+0.5 A, lazo abierto 0.419 A (-16 %), -0.3 grados, solo P 0.113 A, error 77.4 %, -1.2 grados
+1.0 A, lazo abierto 0.899 A (-10 %), -0.3 grados, solo P 0.268 A, error 73.2 %, -1.2 grados
+Pico del escalon de 0.2 a 1.0 A en 20 instantes y en las esquinas, 1.034 A
+Indice maximo del escalon con 12 V, 0.82, y con R en 12 ohm, 1.02
+Con 12 V, 0.80 en regimen y 0.82 en el escalon
