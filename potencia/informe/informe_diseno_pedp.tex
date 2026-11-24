@@ -248,6 +248,8 @@ El regulador se ejecuta en el MicroBlaze V y el puente lo maneja un periférico 
 	\item La amplitud de la referencia sale de dos interruptores de la placa, con \num{0.2}, \num{0.5} y \SI{1.0}{A} pico, y un botón habilita el control. Otro botón exporta por UART el histórico de \num{2048} muestras, que cubre \num{5.12} períodos de \SI{50}{Hz}.
 \end{itemize}
 
+La implementación en la Basys~3 (\texttt{xc7a35t}) con Vivado, del 24 de noviembre, usa \num{5561} LUT (\SI{26.74}{\percent}), \num{3664} flip-flops (\SI{8.81}{\percent}), \num{8} RAMB36 y \num{7} DSP, y cierra el reloj de \SI{10}{ns} con holgura de \SI{0.302}{ns} en setup y \SI{0.019}{ns} en hold. Esos reportes no traen retardos de entrada y salida de la tarjeta, y la simulación temporizada del periférico PWM con netlist y SDF del 24 de noviembre pasó su autochequeo sin errores. Esa simulación es del periférico solo y sin retardos de entrada y salida, así que los retardos de las compuertas y del disparo del XADC que usa este informe siguen siendo los del diseño y los medidos en banco.
+
 El control solo se habilita con la frecuencia de \SI{20}{kHz}. Las de \num{10} y \SI{40}{kHz} existen para mostrar el PWM sin cerrar el lazo, y el cuarto código de \texttt{freq\_sel} (11) queda igual que \SI{20}{kHz}.
 
 \section{Modelo de la planta}
