@@ -270,6 +270,19 @@ La diferencia más grande es la medición de la corriente. Un error de ganancia 
 \subsection{Limitaciones del modelo}
 El lazo promedio no tiene rizado, cuantización ni ruido. El modelo conmutado no tiene el filtro del sensor ni los retardos de los drivers, y supone un sensor con ganancia y cero exactos, que es justo lo que no se cumplió en banco. Las armónicas impares del tiempo muerto \cite[sec.~8-5]{mohan2003power} no las corrige el resonante, que solo actúa en \SI{50}{Hz}, y deforman la corriente en los cruces por cero sin afectar la fundamental.
 
+\subsection{Limitaciones de las mediciones}
+No se volvió al laboratorio, así que lo que dependía de medir queda como limitación, y cada una dice qué criterio del enunciado deja sin demostrar.
+\begin{itemize}
+	\item Tiempo muerto de la pierna A. Los \SI{1.23}{\micro s} y los \SI{430}{ns} salen de lo anotado en el banco y no hay captura. Se presentan como medición anotada y no como evidencia archivada. Solo la pierna B tiene captura, con \SI{1}{\micro s} en los dos flancos.
+	\item Cambios de consigna de \num{0.2} a \num{0.5} y de \num{0.5} a \SI{1.0}{A}, y cambio de resistencia a \SI{0.5}{A}. No hay registro. Solo existen la imagen del cambio de \num{0.5} a \SI{0.2}{A} y la del cambio de carga a \SI{1.0}{A} con la acción saturada, con amplitudes leídas de la cuadrícula. Los transitorios se sostienen con la simulación y con lo observado a ojo en el banco, sin tiempo de establecimiento ni sobrepico medidos.
+	\item Rizado. Las capturas no tienen consigna ni bus anotados y restan dos puntas. Los \num{0.25} a \SI{0.66}{A} pico a pico se reportan con ese alcance, y el valor más alto queda como discrepancia sin causa identificada.
+	\item Ganancia del sensor. No hubo calibración en el mismo minuto. El sesgo de \num{14.6} y \SI{18.7}{\percent} queda como diferencia medida entre sensor y osciloscopio, con el sesgo del valle (de \num{3} a \SI{10}{\percent} según el modelo) y la ganancia como causas posibles, sin repartir el resto. El criterio de \SI{10}{\percent} queda demostrado según el sensor y sin demostrar según el osciloscopio.
+	\item Cero del sensor. Con el puente conmutando solo se deduce, unas \num{2560} cuentas a partir del proporcional, y la causa del desplazamiento de \num{800} cuentas no se aisló.
+	\item Inductancia y resistencia. Solo se midió uno de los dos inductores, \SI{106.2}{\micro H}, y se supone el otro igual. La resistencia no se midió a cuatro hilos ni en caliente.
+	\item Tensión de bus a \SI{1.0}{A}. No se anotó. El límite de la fuente queda como hipótesis y el punto de \SI{1.0}{A} no se demuestra con ninguna carga.
+	\item Rutina de control y falla. Solo se afirma el período de \SI{50}{\micro s}. El ancho máximo y el jitter, la precarga de \SI{70}{\micro s}, el último pulso truncado, la fase entre ADC, temporizador y PWM, el filtro antialias y la prueba de falla no se midieron.
+\end{itemize}
+
 \subsection{Mejoras al procedimiento}
 Medir el cero del sensor con el puente conmutando y la referencia nula, no con el puente apagado. Calibrar la ganancia contra el osciloscopio en el mismo minuto que el CSV, con modo de alta resolución o un muestreo de al menos \SI{1}{MS/s} para que el rizado no se pliegue. Registrar la tensión del bus en cada captura. Medir con LCR el segundo inductor y la resistencia en caliente. Y medir el rizado con una sola punta diferencial o con el cable BNC solo, sin restar dos puntas cuyos extremos saltan con el bus.
 
@@ -280,6 +293,8 @@ El regulador PR cumple el criterio de \SI{10}{\percent} a \num{0.2} y \SI{0.5}{A
 La medición independiente con el osciloscopio da una corriente física entre \num{14.6} y \SI{18.7}{\percent} mayor que la del sensor, y un cero que depende del estado del puente. Hasta calibrar el sensor no se puede afirmar que la corriente física cumpla el \SI{10}{\percent}.
 
 El rizado medido, de \num{0.25} a \SI{0.66}{A} pico a pico, no cumple los \SI{0.20}{A}, como predicen el análisis y la simulación, aunque el valor más alto supera lo simulado y queda sin explicar. El tiempo muerto y el período de la rutina son los de diseño.
+
+Quedan sin demostrar, y no se repitieron en el laboratorio, los cambios de consigna y de resistencia a \SI{0.5}{A}, el tiempo muerto de la pierna A con captura, la calibración de la ganancia y del cero en el mismo minuto y el ancho y el jitter de la rutina. Los transitorios se apoyan en la simulación, y la discusión de limitaciones dice qué se midió y qué solo se anotó.
 
 \appendix
 \section{Archivos para reproducir los resultados}
@@ -295,6 +310,8 @@ Todas las rutas son relativas a la raíz del repositorio.
 	\item \texttt{sw/receptor\_pc.py}, que recibe los registros exportados, y \texttt{potencia/analizar\_csv.m}, \texttt{potencia/analizar\_osc.m} y \texttt{potencia/figuras\_banco.py}, que los procesan.
 	\item \texttt{muestras\_Inversor/} y \texttt{potencia/\allowbreak mediciones/\allowbreak 2026-11-24/\allowbreak registro.md}, los registros y capturas de banco del 23 y 24 de noviembre.
 \end{itemize}
+
+De lo anterior tiene evidencia archivada el régimen a \num{0.2} y \SI{0.5}{A}, el cero, la comparación de ganancia, el tiempo muerto de la pierna B, la habilitación y parada, el cambio de \num{0.5} a \SI{0.2}{A}, el cambio de carga a \SI{1.0}{A} y las tres capturas de rizado. Solo está anotado en el registro del banco el tiempo muerto de la pierna A, el período de la rutina y la lectura de \SI{3.27}{V} pico a pico del rizado. No existe ningún respaldo de los cambios de consigna de \num{0.2} a \num{0.5} y de \num{0.5} a \SI{1.0}{A}, ni del cambio de resistencia a \SI{0.5}{A}.
 
 \printbibliography
 
