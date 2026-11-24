@@ -786,6 +786,19 @@ La salida JB1 de la ISR se repite cada 50 µs, el período de muestreo de diseñ
 
 En banco se leyeron 3,27 V pp sobre las resistencias, unos 0,35 A pp, con 12,5 V; la consigna de esa lectura no quedó anotada. Las tres capturas archivadas (`Muestras Osciloscopio/rizado/scope_a2.csv` a `scope_a4.csv`, 0,1 µs por punto y dos períodos de conmutación) muestran el rizado unipolar a 40 kHz, con tramos continuos de 2,4, 4,4 y 6,3 V pp, es decir 0,25, 0,46 y 0,66 A pp. También tienen saltos y picos en las conmutaciones que una corriente a través de 200 µH no puede producir; son efecto de medir la diferencia entre dos puntas cuyos extremos saltan con el bus, y se excluyen del pico a pico. Tampoco quedó anotada la consigna de cada captura. En todos los casos el rizado supera 0,20 A pp, El de 0,25 A pp cabe en lo que predicen 12.6 y 12.10 para 12 V (0,19 a 0,40 A pp). Los de 0,46 y 0,66 A pp lo superan, y el de 0,66 supera también la predicción de 18 V (0,55 A pp ideal, 0,60 conmutada). Sin la consigna ni el bus de cada captura, y con una medición que resta dos puntas, esa diferencia no se puede atribuir al modelo ni al montaje.
 
+#### 12.8.6 Limitaciones de las mediciones
+
+No se vuelve al laboratorio, así que lo que dependía de medir queda como limitación. Cada punto dice qué no se midió y qué criterio del enunciado se queda sin demostrar.
+
+- Pierna A del tiempo muerto. Los 1,23 µs y los 430 ns salen de lo anotado en el banco y no hay captura. Se presentan como medición anotada y no como evidencia archivada. El tiempo muerto de 1 µs solo está demostrado con captura en la pierna B.
+- Cambios de consigna 0,2 a 0,5 A y 0,5 a 1,0 A, y cambio de R a 0,5 A. No hay registro. Solo existe la imagen del cambio 0,5 a 0,2 A y la del cambio de carga a 1,0 A con la acción saturada, con amplitudes leídas de la cuadrícula. El comportamiento ante cambios de amplitud y de R se sostiene con la simulación (PLECS, Octave conmutado y modelo promediado) y con lo observado a ojo en el banco, dicho como tal, sin tiempo de establecimiento ni sobrepico medidos.
+- Rizado. Las tres capturas no tienen consigna ni bus anotados y restan dos puntas. Los 0,25 a 0,66 A pp se reportan con ese alcance, y el 0,66 queda como discrepancia sin causa identificada. Lo que sí se sostiene es que el rizado supera 0,20 A pp, y el criterio de rizado queda incumplido.
+- Ganancia del sensor. No hubo calibración contra el osciloscopio en el mismo minuto. El sesgo de 14,6 y 18,7 % queda como diferencia medida entre sensor y osciloscopio. El sesgo del valle (3 a 10 % según el modelo) y la ganancia del sensor son causas posibles y no se repartió el resto. El criterio de 10 % de error de la fundamental queda demostrado según el sensor y sin demostrar según el osciloscopio.
+- Cero del sensor con el puente conmutando. Queda la deducción de unas 2560 cuentas a partir del proporcional y la causa del desplazamiento de 800 cuentas sin aislar. No se midió el cero directamente con el puente en marcha.
+- Segundo inductor y R en caliente. Solo se midió uno de los dos inductores, 106,2 µH, y se supone el otro igual. La R no se midió a cuatro hilos ni caliente. Los modelos usan 200 µH y 11,8 Ω.
+- Tensión de bus en la captura de 1,0 A. No se anotó. La hipótesis del límite de la fuente (0,47 A medios contra 0,52 A de límite con 12,5 V) queda como hipótesis, y el punto de 1,0 A no se demuestra con ninguna carga.
+- ISR y falla. Solo se afirma el período de 50 µs en JB1. El ancho máximo y el jitter de la ISR, la precarga de 70 µs, el último pulso truncado, la fase ADC/Timer/PWM, el filtro antialias y la prueba de falla se marcan como no medidos.
+
 ### 12.9 Simulación conmutada y sensibilidades en Octave
 
 Con `potencia/simular_conmutado.m` se simuló el lazo cerrado completo con puente H unipolar a 20 kHz, tiempo muerto de 1 µs con conducción por diodo según el signo de la corriente, carga de 9 Ω y 200 µH, bus de 18 V, paso de 0,5 µs, muestra en el valle, orden aplicada en el valle siguiente, PR con los coeficientes del firmware y ADC cuantizado a 1,1118 mA por cuenta. Cada caso dura 0,5 s y la ventana de análisis es `[0,4; 0,5)` s, cinco períodos. La salida completa está en `evidencia/modelo_conmutado.txt`. No incluye el filtro del sensor ni retardos de drivers, y el diodo se toma ideal.
@@ -930,6 +943,8 @@ El resonante ideal explica el error estacionario casi nulo del modelo promediado
 
 El error de continua tampoco conserva el valor de la sintonización antigua. En el modelo de baja frecuencia, el resonante ideal tiene ganancia nula en continua y la acción proporcional actual da `Kp/(R+Kp) = 1/3`. Un sesgo de medida `δi` puede inducir aproximadamente `−δi/3` de corriente continua física en ese modelo. Por ejemplo, 102 cuentas con la escala nominal representan cerca de 0,113 A de sesgo de lectura y del orden de 0,038 A de corriente física de continua inducida. Esto refuerza la necesidad de calibrar, sin presentar ese ejemplo como un resultado medido.
 
+En banco, la diferencia de 14,6 y 18,7 % entre el sensor y el osciloscopio no se puede repartir entre el sesgo del valle y la ganancia del sensor, porque no hubo calibración en el mismo minuto y las capturas del osciloscopio son de 100 µs por punto, con el rizado plegado (12.8.6). El cero tampoco se midió con el puente conmutando, solo se dedujo del proporcional. Por eso el 10 % de error queda demostrado según el sensor y sin demostrar según el osciloscopio, y no se repitió porque no se vuelve al laboratorio.
+
 ### 13.4 Transitorios y rampa
 
 La rampa limita la velocidad de variación de la amplitud aplicada y reduce la exigencia de tensión respecto de un escalón ideal. Por ello hay que distinguir el cambio del interruptor de consigna de la referencia que utiliza el PR. Los modelos numéricos muestran transiciones estables bajo las hipótesis declaradas, pero no permiten atribuir un sobrepico físico máximo ni un tiempo de establecimiento experimental.
@@ -941,6 +956,8 @@ El ensayo resistivo debe variar la resistencia externa a 0,5 A pico y mantener L
 El obstáculo principal de la carga actual es el rizado. Un PR puede corregir la fundamental sin reducir suficientemente la componente a frecuencia de conmutación. La predicción de aproximadamente 0,548 A pp a 1 A pico excede ampliamente 0,20 A pp. La validación de baja frecuencia, incluso con márgenes favorables, no resuelve esa diferencia.
 
 Un filtro en la cadena de medida puede suavizar lo que ve el ADC, pero no reduce por sí mismo el rizado físico de la carga. Tampoco una muestra síncrona permite reconstruir sus máximos. Debe medirse con suficiente ancho de banda y compararse con la predicción RL y el modelo conmutado final. Si el dimensionamiento cambia, se actualizan conjuntamente parámetros, análisis, simulaciones e informe.
+
+El rizado medido se leyó restando dos puntas y sin consigna ni bus anotados, así que el 0,66 A pp que supera incluso la predicción de 18 V queda como discrepancia sin causa identificada. Lo que sí soporta la medición es que el rizado pasa de 0,20 A pp en todas las capturas. Tampoco se probó la mitigación de 12 V con 40 kHz, y no se hará.
 
 ### 13.6 Comparación entre predicción, simulación y medición
 
@@ -958,6 +975,8 @@ Un filtro en la cadena de medida puede suavizar lo que ve el ADC, pero no reduce
 | Valle→CONVST | 30 ns en lógica estacionaria | Diagnóstico RTL conjunto | PENDIENTE |
 | Parada | Puede truncar el último pulso | RTL: 17,750 µs frente a 36,490 µs regular | PENDIENTE |
 | ISR | Período de 50 µs | Timer configurado | Período de 50 µs en JB1, ancho máximo y jitter PENDIENTES |
+
+Las diferencias de esta tabla deben leerse con las limitaciones de 12.8.6. En 1,0 A, la saturación de 35 % del banco contra 7 a 9 % de las simulaciones se atribuye al límite de la fuente solo como hipótesis, porque no se anotó el bus. En los transitorios, la tabla compara contra simulación porque no hay registro de tres de los cuatro ensayos. En el tiempo muerto, la pierna A se reporta como anotada. Donde la medición dice PENDIENTE, el ensayo no se hizo y no se repitió.
 
 ### 13.7 Estado de cumplimiento del enunciado
 
@@ -998,6 +1017,8 @@ La limitación técnica más relevante es que la carga de 200 µH cambia el prob
 
 La trazabilidad todavía requiere reunir las herramientas y documentos en la rama de entrega, vincular la ejecución de Vivado con una revisión concreta y completar el flujo de Vitis. El uso de memoria local sin la caché solicitada debe justificarse expresamente. Las mejoras prioritarias son cerrar el dimensionamiento de la carga, confirmar el sensor y su filtro, ejecutar las verificaciones pendientes y conservar los datos crudos de los ensayos. Un IP empaquetado o mejoras de automatización pueden facilitar reutilización, pero no sustituyen estas validaciones.
 
+Hay cosas que no se pudieron demostrar y no se repitieron porque no se vuelve al laboratorio (12.8.6). Faltan la captura del tiempo muerto de la pierna A, el registro de los cambios 0,2 a 0,5 A, 0,5 a 1,0 A y de R a 0,5 A, la calibración de la ganancia y el cero en el mismo minuto, el ancho y el jitter de la ISR y la prueba de falla. La consecuencia para el enunciado es que el error de fundamental queda demostrado solo según el sensor, el rizado queda incumplido y los transitorios se sostienen con simulación. La mejora más barata habría sido anotar consigna, bus y escalas en cada captura.
+
 ## 16. Conclusiones y aprendizaje obtenido
 
 1. El periférico PWM y su interfaz AXI4-Lite cuentan con autochequeos aprobados, incluidos parámetros nominales. La evidencia respalda su comportamiento funcional en los escenarios ensayados, sin extender esa conclusión a retardos físicos o al montaje de potencia.
@@ -1008,6 +1029,7 @@ La trazabilidad todavía requiere reunir las herramientas y documentos en la ram
 6. En banco, según el sensor, el PR deja la fundamental a 0,2 y 0,5 A con menos de 0,5 % de error y menos de 0,1° de fase, con la carga original y con 2,5 Ω añadidos. El osciloscopio da entre 14,6 y 18,7 % más corriente física, así que el criterio de 10 % no se puede dar por cumplido hasta calibrar la ganancia y el cero, que además se mueve unas 800 cuentas con el estado del puente. A 1,0 A no se llega, con 12,5 V probablemente por el límite de 0,52 A de la fuente y con 18 V por el de 1 A.
 7. El rizado medido, de 0,25 a 0,66 A pp, no cumple 0,20 A pp, como predecían el análisis y las simulaciones. El valor más alto supera todas las predicciones y no tiene causa identificada. La mitigación de 12 V con 40 kHz sigue sin probarse.
 8. Quedan pendientes la simulación temporizada del PWM, el ancho y el jitter de la ISR, la captura del tiempo muerto de la pierna A, los cambios de consigna 0,2→0,5 y 0,5→1,0 A, el cambio de R a 0,5 A y la medición del segundo inductor. El aprendizaje principal es mantener separados el modelo, la verificación digital y la medición física, y anotar en cada captura la consigna, el bus y las escalas, porque sin eso varias medidas de este informe no se pueden interpretar.
+9. Lo anterior no se repitió en el laboratorio. Cada pendiente se declara en 12.8.6 con el criterio que deja sin demostrar, y los transitorios, el efecto de R y el sesgo del valle se sostienen con las simulaciones y no con registros de banco.
 
 ## 17. Referencias
 
