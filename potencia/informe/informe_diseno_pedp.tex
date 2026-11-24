@@ -1,0 +1,523 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Documento de diseño e investigación del Proyecto 4, EL-4201 Procesamiento Electrónico de Potencia
+% Compilar con make. Los datos que todavía no existen van con \pendiente{...}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass[journal]{IEEEtran}
+\input{preambulo}
+
+\begin{document}
+\deactivatequoting
+\title{Diseño del control de corriente de un inversor monofásico en puente H con regulador PR discreto}
+
+\author{Jefferson~Chinchilla~Q.,~\IEEEmembership{Estudiante,~ITCR,}
+	Nicolás~Mena~V.,~\IEEEmembership{Estudiante,~ITCR,}
+	y~Mattio~Coghi~Q.,~\IEEEmembership{Estudiante,~ITCR}
+}
+
+\markboth{Procesamiento Electrónico de Potencia, IIS2026}%
+{Proyecto 4: control de corriente con regulador PR}
+
+\maketitle
+
+\begin{abstract}
+	Se diseñó un inversor monofásico en puente H con modulación PWM unipolar a \SI{20}{kHz} y un regulador proporcional-resonante discreto para que la corriente de una carga $RL$ siga una referencia de \SI{50}{Hz} de \num{0.2}, \num{0.5} y \SI{1.0}{A} pico. La carga son dos resistencias de \SI{4.7}{\ohm} en serie con dos inductores de \SI{100}{\micro H}, y el bus trabaja con \SI{12.5}{V} hasta \SI{0.5}{A} y con \SI{18}{V} en \SI{1.0}{A}. Con esa carga casi resistiva la ganancia proporcional se fija por margen de ganancia, $K_p=R/2$, y el resonante con $K_r=\num{10000}$ cumple el \SI{10}{\percent} desde el primer período de un escalón. El lazo nominal cruza en \SI{200}{Hz} con \ang{111} de margen de fase y \SI{8.2}{dB} de margen de ganancia. La inductancia de \SI{200}{\micro H} deja el rizado de conmutación entre \num{0.26} y \SI{0.60}{A} pico a pico, por encima del límite de \SI{0.20}{A}, y el documento justifica por qué se mantuvo \SI{20}{kHz}.
+\end{abstract}
+
+\begin{IEEEkeywords}
+	Controlador proporcional-resonante, inversor en puente H, modulación unipolar, tiempo muerto.
+\end{IEEEkeywords}
+
+\section{Introducción}
+\label{sec:intro}
+\IEEEPARstart{L}{a} corriente que entrega un inversor a una carga inductiva se controla con un lazo cerrado, y cuando la referencia es senoidal un regulador PI deja error de amplitud y de fase, porque su ganancia solo es infinita en continua. El regulador proporcional-resonante (PR) pone la ganancia infinita en la frecuencia de la referencia y se ejecuta sin transformar a ejes sincrónicos, lo que lo hace barato de correr en un procesador sin hardware de control dedicado \cite{teodorescu2006}.
+
+Este documento cubre el diseño del componente de potencia del Proyecto 4. Se describen el puente H y su cadena de compuertas, la carga y el sensor de corriente, el modelo de la planta, la sintonización y discretización del PR, y el plan de validación. El PR se ejecuta en un MicroBlaze V sobre una Basys~3, y esa parte digital se documenta en el informe del curso de Taller de Diseño Digital. Aquí solo se tratan las interfaces con ella, la señal PWM, el instante de muestreo y el período de control. Los resultados de banco van en el informe técnico.
+
+Los criterios que debe cumplir el sistema son un error relativo de amplitud de la fundamental menor a \SI{10}{\percent} en una ventana de al menos cinco períodos de \SI{50}{Hz} para referencias de \num{0.2}, \num{0.5} y \SI{1.0}{A} pico, y un rizado de conmutación menor a \SI{0.20}{A} pico a pico. Además se evalúan los cambios de referencia de \num{0.2} a \num{0.5} y de \num{0.5} a \SI{1.0}{A}, y un cambio de la resistencia externa de al menos \SI{25}{\percent} con \SI{0.5}{A}.
+
+\section{Parámetros del sistema}
+\label{sec:param}
+La carga son dos resistencias de \SI{4.7}{\ohm} y \SI{5}{W} en serie, que miden \SI{9.6}{\ohm} juntas con el multímetro, y dos inductores toroidales de \SI{100}{\micro H} en serie (Microjpm AD22987, \SI{6}{A} según el vendedor), para $L=\SI{200}{\micro H}$. La resistencia de los devanados y del cableado se suma a $R$ y está \pendiente{medir la resistencia de los devanados y de la carga total}. Con $R=\SI{9.6}{\ohm}$, a \SI{50}{Hz} $|Z|=\SI{9.60}{\ohm}$ y la corriente atrasa \ang{0.4}, así que la carga es prácticamente resistiva en la frecuencia de la referencia. Su constante de tiempo es $\tau=L/R=\SI{20.8}{\micro s}$.
+
+El bus trabaja con $V_{dc}=\SI{12.5}{V}$ en \num{0.2} y \SI{0.5}{A} y en el cambio de carga, y con \SI{18}{V} en \SI{1.0}{A}. Con \SI{12.5}{V}, \SI{1.0}{A} pide un índice de unos \num{0.85} contando el tiempo muerto y la $R_{DS(on)}$ (Sección~\ref{sec:tm_modelo}), demasiado cerca del tope de \num{0.92} del regulador, mientras que con \SI{18}{V} pide \num{0.61}. Para \num{0.2} y \SI{0.5}{A} se prefiere \SI{12.5}{V}, porque el rizado crece con $V_{dc}$ (Sección~\ref{sec:rizado}). Las protecciones se dimensionan con \SI{24}{V}, el máximo del enunciado, para que un ajuste equivocado de la fuente no las deje cortas.
+
+La frecuencia de conmutación es $f_{sw}=\SI{20}{kHz}$, y el lazo muestrea una vez por período de portadora, $T_s=\SI{50}{\micro s}$. El tiempo muerto es $T_M=\SI{1}{\micro s}$ y la precarga del bootstrap dura \SI{70}{\micro s}.
+
+\section{Etapa de potencia}
+\label{sec:potencia}
+
+\subsection{Puente H y modulación}
+\label{sec:puente}
+El puente tiene dos piernas, cada una con un MOSFET alto y uno bajo (Fig.~\ref{fig:puente}). La carga ve $v_o=v_A-v_B$, con valores $+V_{dc}$, \num{0} y $-V_{dc}$. En la modulación unipolar las dos piernas se comparan contra la misma portadora triangular, la A contra $d$ y la B contra $-d$, de modo que el promedio sobre un período de conmutación es $\bar v_o=V_{dc}\,d$ mientras $|d|\le1$ \cite{mohan2003power}. Cada transistor conmuta a $f_{sw}$, pero la tensión sobre la carga pulsa a $2f_{sw}$, porque en cada semiciclo hay dos pulsos por período. Con el índice de modulación $m_a=V_{m,ref}/V_{m,portadora}\le1$, la fundamental de la tensión es $V_1\approx m_aV_{dc}$, y el primer armónico importante queda en $2f_{sw}$ (Fig.~\ref{fig:unipolar}).
+
+\begin{figure}[!ht]
+	\centering
+	\includegraphics[width=0.9\columnwidth]{unipolar_pwm}
+	\caption{Funcionamiento del PWM unipolar.}
+	\label{fig:unipolar}
+\end{figure}
+
+\begin{figure}[!ht]
+	\centering
+	\includegraphics[width=\columnwidth]{puente_h}
+	\caption{Puente H con la carga $RL$, el fusible y los capacitores del bus.}
+	\label{fig:puente}
+\end{figure}
+
+\subsection{MOSFET y pérdidas}
+\label{sec:mosfet}
+Los cuatro interruptores son IRF520N de canal N, de \SI{100}{V} y \SI{9.7}{A} continuos \cite{irf520n}. Con $V_{dc}$ hasta \SI{24}{V} se pide $V_{DS}\ge\SI{40}{V}$, que cubre el sobrepico $L\,di/dt$ de la inductancia parásita del bus y la energía que la carga devuelve en parte de cada período. Con el regulador saturado en \num{0.92}, la corriente queda acotada en $0.92\,V_{dc}/R$, que da \SI{1.20}{A} con \SI{12.5}{V}, \SI{1.73}{A} con \SI{18}{V} y \SI{2.30}{A} con \SI{24}{V}. El peor caso queda casi tres veces por debajo de los \SI{6.8}{A} que el dispositivo soporta a \SI{100}{\celsius}. Como $\tau=\SI{20.8}{\micro s}$, la corriente llega a ese techo dentro de los \SI{100}{\micro s} que tarda el software en apagar el puente.
+
+Con \SI{24}{V} y \SI{1}{A} pico, cada transistor disipa unos \SI{0.31}{W} a \SI{20}{kHz} y \SI{0.52}{W} a \SI{40}{kHz}. El término mayor es la recuperación inversa del diodo de cuerpo, $Q_{rr}V_{dc}f_{sw}$, y la conducción ($I_{rms}^2R_{DS(on)}$, \SI{0.1}{W}) y la conmutación ($\tfrac12V_{dc}I(t_r+t_f)f_{sw}$, \SI{24}{mW} a \SI{20}{kHz}) pesan menos. Con $R_{\theta JA}=\SI{62}{\celsius/W}$ la unión sube unos \SI{32}{\celsius} sobre el ambiente sin disipador. Las tres cifras son cotas, porque los datos de la hoja están medidos con corrientes mayores a las de este montaje.
+
+\subsection{Drivers, aislamiento y bootstrap}
+\label{sec:drivers}
+Cada pierna usa un IR2110, con las cuatro entradas referidas a la tierra de potencia, y el lado flotante de la compuerta alta se alimenta con un bootstrap \cite{ir2110}. Cada salida llega a su MOSFET por \SI{10}{\ohm}, que limita el pico de compuerta a \SI{1.5}{A} contra los \SI{2}{A} mínimos que garantiza el driver. El capacitor de bootstrap es de \SI{470}{nF}, unas tres veces el mínimo de \SI{156}{nF} que sale de la carga de compuerta y las corrientes de reposo en el peor caso (\SI{10}{kHz}), y su diodo es un 1N4148 con \SI{22}{\ohm} en serie que limita la primera carga a \SI{0.65}{A} \cite{1n4148}.
+
+La tierra de la Basys~3 y la del puente están separadas. Cada una de las cuatro compuertas cruza la barrera con un optoacoplador VO3120 \cite{vo3120}, activado por un PN2222A desde el pin del Pmod \cite{pn2222a}. La polaridad es tal que un pin en alta impedancia, un cable suelto o la placa sin alimentar dejan el LED apagado y la compuerta apagada. Una falla del lado de la FPGA no puede encender las cuatro compuertas y cortocircuitar las piernas. Los \SI{15}{V} del lado del puente salen de un canal aparte de la fuente, porque $V_{dc}$ varía de \num{12} a \SI{24}{V}.
+
+La compuerta alta solo se repone mientras conduce la baja de la misma pierna. Con \SI{20}{kHz} y $T_M=\SI{1}{\micro s}$, el capacitor deja de recargarse cuando $d$ llega a $1-(T_M f_{clk}+100)/\mathrm{MAX}=\num{0.92}$, y por eso el regulador recorta su salida en $0.92$. El cálculo exige que la baja conduzca al menos \SI{1}{\micro s} por período.
+
+Al pasar a operación, cada pierna enciende primero su compuerta baja durante \SI{70}{\micro s}, para que el capacitor llegue al \SI{99.4}{\percent} de su carga final en el peor caso de tolerancias (\SI{22}{\ohm} más \SI{5}{\percent}, \SI{470}{nF} más \SI{20}{\percent}, $5\tau\approx\SI{68}{\micro s}$). Mientras tanto la carga ve \SI{0}{V}, y no hay camino entre $V_{dc}$ y tierra.
+
+\subsection{Tiempo muerto}
+\label{sec:tm}
+Para que los dos transistores de una pierna no conduzcan a la vez se exige $T_M>t_{off}-t_{on}$ en el peor caso. El retardo común a los dos flancos se cancela en la resta, y lo que cuenta es la diferencia entre dos cadenas distintas. Sumando el peor caso de cada eslabón se obtiene \SI{813}{ns}.
+
+\begin{itemize}
+	\item PN2222A, \SI{250}{ns} de apagado.
+	\item VO3120, \SI{0.3}{\micro s} de diferencia entre dos unidades, porque $t_{PHL}$ y $t_{PLH}$ van de \num{0.1} a \SI{0.4}{\micro s}.
+	\item IR2110, \SI{125}{ns} de apagado.
+	\item IRF520N, unos \SI{138}{ns}, estimados con la resistencia de compuerta total de \SI{17.5}{\ohm} y su capacidad de entrada.
+\end{itemize}
+
+Se fijó $T_M=\SI{1}{\micro s}$, que deja \SI{187}{ns} (\SI{23}{\percent}) para un tiempo de almacenamiento del transistor mayor al de la hoja y para el cableado. El flanco más lento de la cadena, el apagado, tarda unos \SI{0.91}{\micro s} entre el pin y el corte del MOSFET. Verificar el \SI{1}{\micro s} en el osciloscopio, con la potencia apagada, es una condición antes de energizar (Sección~\ref{sec:plan}).
+
+\subsection{Protecciones}
+\label{sec:prot}
+Cada falla tiene su escala de tiempo, y la cubre la protección que alcanza a actuar. La conducción simultánea en una pierna dura nanosegundos y la evitan el tiempo muerto y la polaridad de la cadena. La sobrecorriente con la carga conectada dura cientos de microsegundos y la corta el software. Una falla sostenida la corta el límite de la fuente y el fusible.
+
+\begin{itemize}
+	\item Un electrolítico de \SI{470}{\micro F} y \SI{63}{V} en el bus y un capacitor de película de \SI{100}{nF} por pierna, junto a los transistores, que entrega la corriente de los flancos.
+	\item Un fusible rápido de \SI{630}{mA} a la entrada. Con \SI{1}{A} pico y \SI{18}{V} la fuente entrega en promedio $(0.5\cdot9.6+2)/18\approx\SI{0.38}{A}$, contando unos \SI{2}{W} de pérdidas en el puente, y el fusible queda al \SI{60}{\percent} de su nominal.
+	\item Límite de corriente de la fuente de \SI{0.52}{A} en los ensayos, y de \SI{0.1}{A} en la primera energización, que sube $V_{dc}$ desde cero.
+	\item Límite de \SI{50}{mA} en el canal de \SI{15}{V}. Si entra en limitación, el VO3120 apaga las compuertas por subtensión.
+\end{itemize}
+
+El software baja las cuatro compuertas cuando la corriente medida supera \SI{1.3}{A}, y entre que la corriente cruza el umbral y las compuertas quedan en bajo pasan hasta dos períodos, \SI{100}{\micro s}. Con \SI{12.5}{V} y la carga conectada el techo de \SI{1.20}{A} no llega al umbral, y la falla solo puede saltar con \SI{18}{V} o más. No existe un apagado por hardware a partir de una medición de corriente. Con la carga en cortocircuito no hay resistencia que acote la corriente, y el pico de la descarga del electrolítico llega a \SI{60}{A}, por encima de los \SI{38}{A} pulsados del IRF520N. Ese caso no queda cubierto para los MOSFET, y se mitiga solo limitando la fuente.
+
+\section{Carga RL y sensor de corriente}
+\label{sec:carga}
+
+\subsection{Criterios de diseño de la carga}
+\label{sec:criterios}
+La carga se dimensionó con cinco criterios.
+
+\begin{itemize}
+	\item Margen de tensión. El índice pico que pide una referencia es $m_a=I\,|Z|/V_{dc}$. El regulador recorta en \num{0.92} y se pidió un margen del \SI{20}{\percent} bajo ese tope, $m_a\le0.736$, que con \SI{1.0}{A} y \SI{18}{V} da $|Z|\le\SI{13.2}{\ohm}$.
+	\item Rizado. $L\ge V_{dc}/(8\,\Delta i_{max}f_{sw})$, con $\Delta i_{max}=\SI{0.20}{A}$ (Ec.~\ref{eq:rizado}), que con \SI{18}{V} y \SI{20}{kHz} da \SI{0.56}{mH}.
+	\item Disipación. Las resistencias externas son de \SI{5}{W} y se cargan hasta el \SI{50}{\percent}. Con $I_{rms}^2=\SI{0.5}{A^2}$ a \SI{1.0}{A} pico y $N$ resistencias en serie, $0.5\,R_{ext}/N\le\SI{2.5}{W}$, de donde $R_{ext}\le5N\,\si{\ohm}$, \SI{10}{\ohm} con dos.
+	\item Tiempo muerto. La pérdida de tensión de \SI{0.72}{V} con \SI{18}{V} tiene una fundamental de \SI{0.92}{V} (Sección~\ref{sec:tm_modelo}), y se pidió que no pase de la mitad de la tensión que exige la referencia menor, $R\ge0.92/(0.5\cdot0.2)=\SI{9.2}{\ohm}$.
+	\item Corriente del inductor. Con el regulador saturado la corriente solo la limita la resistencia, $I_{max}=0.92\,V_{dc}/R$, y el inductor debe soportarla sin saturarse.
+\end{itemize}
+
+Evaluados con la carga montada, $R=\SI{9.6}{\ohm}$ más los devanados y $L=\SI{200}{\micro H}$.
+
+\begin{itemize}
+	\item $|Z|=\SI{9.60}{\ohm}\le\SI{13.2}{\ohm}$ se cumple.
+	\item $R\ge\SI{9.2}{\ohm}$ se cumple solo con las resistencias externas.
+	\item Cada resistencia de \SI{4.7}{\ohm} disipa \SI{2.35}{W} a \SI{1.0}{A} pico, el \SI{47}{\percent} de su nominal, dentro del margen que pide el enunciado para resistencias de \SI{5}{W}.
+	\item $I_{max}=\SI{2.30}{A}$ con \SI{24}{V}, contra los \SI{6}{A} que el vendedor da para cada inductor.
+	\item $L\ge\SI{0.56}{mH}$ no se cumple. La Sección~\ref{sec:rizado_just} discute la consecuencia y por qué se mantuvo.
+\end{itemize}
+
+\subsection{Rizado con \SI{200}{\micro H}}
+\label{sec:rizado_just}
+Con \SI{200}{\micro H} el rizado máximo lineal es $V_{dc}/(8Lf_{sw})$, \SI{0.39}{A} con \SI{12.5}{V} y \SI{0.56}{A} con \SI{18}{V}, y el modelo conmutado con tiempo muerto predice \num{0.26}, \num{0.39} y \SI{0.40}{A} pico a pico para \num{0.2}, \num{0.5} y \SI{1.0}{A} con \SI{12}{V}, y \SI{0.60}{A} en \SI{1.0}{A} con \SI{18}{V} (Sección~\ref{sec:conmutado}). El límite de \SI{0.20}{A} pico a pico no se cumple en ningún punto.
+
+Hay dos formas de cumplirlo. Una es subir $L$ a \SI{0.39}{mH} con \SI{12.5}{V} o a \SI{0.56}{mH} con \SI{18}{V}, que con estos inductores son cuatro o seis en serie. La otra es conmutar a \SI{40}{kHz}, donde el rizado con \SI{12}{V} baja a \num{0.10}, \num{0.18} y \SI{0.19}{A}. Esta segunda no sale gratis. A \SI{40}{kHz} el tope del índice baja a \num{0.84} por el tiempo muerto y la recarga del bootstrap, que es casi lo que pide \SI{1.0}{A} con \SI{12.5}{V}, y el lazo de control está implementado para \SI{20}{kHz}, con el temporizador de la rutina, el período de muestreo de los coeficientes y el histórico de cinco períodos fijados a esa frecuencia.
+
+Se mantuvo \SI{20}{kHz} con \SI{200}{\micro H}. El transformador que se probó primero como inductor no funcionó en el banco, y se consiguieron estos inductores toroidales de \SI{100}{\micro H} con \SI{6}{A} nominales, holgados frente a los \SI{2.30}{A} del peor caso. Con dos en serie se llegó a \SI{200}{\micro H}. El rizado no afecta la fundamental, porque el regulador corrige la componente de \SI{50}{Hz} y el rizado se separa en el análisis (Sección~\ref{sec:proc}). Lo que sí cambia es la lectura del sensor, porque con $\tau$ comparable al tramo entre pulsos la muestra del valle queda por debajo del promedio del período (Sección~\ref{sec:alias}).
+
+\subsection{Cambio de carga}
+\label{sec:cambio_carga}
+El enunciado pide un cambio de al menos \SI{25}{\percent} en la resistencia externa con \SI{0.5}{A} pico. Se agrega una resistencia de \SI{2.7}{\ohm} en serie, un cambio de $2.7/9.6=\SI{28.1}{\percent}$ sobre la resistencia externa medida. Con \SI{12.5}{V} el índice pasa a unos \num{0.56}, lejos del tope, y la resistencia agregada disipa $0.125\cdot2.7=\SI{0.34}{W}$. La resistencia se pone en paralelo con un puente que la cortocircuita, y el cambio se hace abriendo el puente con el lazo corriendo, así la corriente no se interrumpe en ningún momento.
+
+\subsection{Sensor y acondicionamiento}
+\label{sec:sensor}
+La corriente se mide con un ACS712ELCTR-05B (\SI{185}{mV/A} típico, \num{180} a \SI{190}{mV/A}), un sensor de efecto Hall bidireccional con aislamiento propio \cite{acs712}, que a \SI{0}{A} entrega $V_{cc}/2=\SI{2.5}{V}$. El sensor necesita \SI{5}{V} y lleva una fuente aparte. El XADC de la Basys~3 solo acepta \SI{0}{} a \SI{1}{V} en el Pmod JXADC, así que un amplificador restador quita el cero del sensor, aplica una ganancia $A_v$ y suma un offset de \SI{0.5}{V}, de modo que \SI{0}{A} cae a mitad de la escala útil. La salida del amplificador pasa por un filtro RC antialias, que queda a la entrada del XADC.
+
+\begin{figure}[!ht]
+	\centering
+	\includegraphics[width=\columnwidth]{circuito_medidor_de_corriente}
+	\caption{Circuito de referencia del ACS712 para medir la corriente.}
+	\label{fig:medidor}
+\end{figure}
+
+\begin{figure}[!ht]
+	\centering
+	\includegraphics[width=\columnwidth]{circuito_acondicionador}
+	\caption{Circuito acondicionador entre el sensor y el JXADC, con $R_1=\SI{12}{k\ohm}$ y $R_7=\SI{15}{k\ohm}$.}
+	\label{fig:acond}
+\end{figure}
+
+Con $V_{off}=V_{cc}R_6/(R_5+R_6)$ y $R_+=R_5\parallel R_6$ en la entrada no inversora, y $V_m=V_{cc}R_3/(R_2+R_3)$ y $R_-=R_2\parallel R_3$ en la inversora, la ganancia es $A_v=(1+R_1/R_-)\,R_+/(R_++R_7)$. Si las dos ramas están balanceadas, $R_+/R_7=R_1/R_-=k$, la ganancia se reduce a $A_v=k$ y
+\begin{equation}
+	V_o=A_v\,(V_{sensor}-V_m)+V_{off}.
+	\label{eq:acond}
+\end{equation}
+
+La ganancia deja \SI{0.10}{V} de margen en cada extremo del rango de \SI{0}{} a \SI{1}{V}, una excursión de $\pm\SI{0.40}{V}$ alrededor de \SI{0.5}{V}. La corriente máxima con la carga conectada es el techo con \SI{18}{V}, $0.92\cdot18/9.6=\SI{1.73}{A}$, y $A_v\le0.40/(0.185\cdot1.73)=1.25$. Se tomó $A_v=1.2$, porque con $R_-=R_2\parallel R_3=\SI{10}{k\ohm}$ da $R_1=\SI{12}{k\ohm}$, un valor comercial. El offset de \SI{0.5}{V} sale de $R_5=9R_6$, con $R_6=\SI{20}{k\ohm}$ y $R_5=\SI{180}{k\ohm}$, que dan $R_+=\SI{18}{k\ohm}$, y el balance pide $R_7=R_+/A_v=\SI{15}{k\ohm}$. Con $V_{sensor}=\SI{2.5}{V}$ resulta $V_+=\SI{1.591}{V}$ y $V_o=\SI{0.50}{V}$.
+
+La sensibilidad del sensor medida fue de \SI{183}{mV/A}, dentro de los \num{180} a \SI{190}{mV/A} de la hoja \cite{acs712}, y la de todo el camino queda en $1.2\cdot\SI{183}{mV/A}=\SI{0.2196}{V/A}$. El software convierte cuentas a corriente con $\SI{1}{V}/(4096\cdot\SI{0.2196}{V/A})=\SI{1.1118e-3}{A}$ por cuenta, con signo negativo porque el primario quedó conectado al revés, y la escala cubre $\pm\SI{2.28}{A}$. El cero del sensor sigue a la mitad de su alimentación y no tiene cota en la hoja, así que el offset se mide en el banco con \SI{0}{A}. El software usa \num{2808} cuentas, \SI{0.686}{V} en la entrada del XADC.
+
+El filtro antialias usa $R_4=\SI{1}{k\ohm}$ y $C_1=\SI{33}{nF}$, con corte en \SI{4823}{Hz}, un retardo de \SI{33}{\micro s} y un atraso de $\arctan(50/4823)=\ang{0.59}$ sobre la señal de \SI{50}{Hz}. Se pidió un corte entre \num{2} y \SI{5}{kHz}, porque un corte menor atenúa más ruido pero agrega más retardo al lazo. El ruido del sensor es de \SI{21}{mV} pico a pico con \SI{2}{kHz} de ancho de banda y crece con la raíz del ancho de banda, así que con \SI{4823}{Hz} equivale a unos \SI{33}{mV}, \SI{0.18}{A} pico a pico. La Tabla~\ref{tab:antialias} compara tres capacitores, y la Sección~\ref{sec:estab} muestra que ninguno compromete la estabilidad.
+
+\begin{table}[!ht]
+	\centering
+	\caption{Opciones del filtro antialias con $R_4=\SI{1}{k\ohm}$.}
+	\label{tab:antialias}
+	\begin{tabular}{ccccc}
+		\toprule
+		$C_1$ (nF) & $f_c$ (Hz) & $t_d$ ($\mu$s) & Fase a \SI{50}{Hz} (°) & Ruido (A p-p) \\
+		\midrule
+		\num{80} & \num{1989} & \num{80} & \num{1.44} & \num{0.11} \\
+		\num{53} & \num{3003} & \num{53} & \num{0.95} & \num{0.14} \\
+		\num{33} & \num{4823} & \num{33} & \num{0.59} & \num{0.18} \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+\section{Equipo y seguridad}
+\label{sec:banco}
+
+\subsection{Equipo y valores nominales}
+\label{sec:equipo}
+El montaje usa dos fuentes de banco con límite de corriente. Una entrega $V_{dc}$ y, por un canal aparte, los \SI{15}{V} de los drivers, y la otra los \SI{5}{V} del sensor y del acondicionador \pendiente{marca y modelo de las dos fuentes}. La plataforma digital es una Basys~3 con el MicroBlaze V a \SI{100}{MHz}. Las magnitudes se miden con un osciloscopio Keysight DSO-X 2002A, puntas Keysight, un cable BNC con caimanes 1:1 para la tensión sobre las resistencias de carga y un multímetro 34405A, y las compuertas se capturan además con un analizador lógico. La Tabla~\ref{tab:nominales} reúne los valores de diseño.
+
+\begin{table}[!ht]
+	\centering
+	\caption{Valores de diseño del montaje.}
+	\label{tab:nominales}
+	\begin{tabular}{lc}
+		\toprule
+		Magnitud & Valor \\
+		\midrule
+		Tensión de bus $V_{dc}$ & \SI{12.5}{V}, y \SI{18}{V} en \SI{1.0}{A} \\
+		Alimentación de los drivers & \SI{15}{V} \\
+		Frecuencia de conmutación & \SI{20}{kHz} \\
+		Período de muestreo & \SI{50}{\micro s} \\
+		Tiempo muerto & \SI{1}{\micro s} \\
+		Precarga del bootstrap & \SI{70}{\micro s} \\
+		Resistencia externa & $2\times\SI{4.7}{\ohm}$, \SI{9.6}{\ohm} medidos \\
+		Inductancia $L$ & $2\times\SI{100}{\micro H}$ \\
+		Impedancia a \SI{50}{Hz} & \SI{9.60}{\ohm}, \ang{0.4} \\
+		Resistencia del cambio de carga & \SI{2.7}{\ohm} \\
+		Fusible de entrada & \SI{630}{mA} \\
+		Límite de la fuente, ensayos & \SI{0.52}{A} \\
+		Umbral de falla & \SI{1.3}{A} \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+\subsection{Procedimiento y seguridad}
+\label{sec:seguridad}
+Las pruebas energizadas las hacen tres integrantes en el mismo lugar. Una persona opera, otra toma datos y otra vigila la fuente y la carga. La secuencia de puesta en marcha es la siguiente.
+
+\begin{enumerate}
+	\item Con $V_{dc}$ apagado y los \SI{15}{V} encendidos se comprueban las cuatro compuertas y el tiempo muerto (Sección~\ref{sec:plan}). Toda la cadena de compuertas funciona sin $V_{dc}$.
+	\item Se sube $V_{dc}$ desde \SI{0}{V} con el límite de la fuente en \SI{0.1}{A}. Si una pierna quedó en cortocircuito, la fuente entra en limitación con pocos voltios y el electrolítico no llega a cargarse.
+	\item Con el puente funcionando, se sube el límite a \SI{0.52}{A}, por debajo de la nominal del fusible, para que ante una falla sostenida limite primero la fuente.
+	\item Los ensayos empiezan en \SI{12.5}{V} y \SI{0.2}{A}. Para \SI{1.0}{A} se deshabilita el control, se sube $V_{dc}$ a \SI{18}{V} y se vuelve a habilitar.
+\end{enumerate}
+
+La desconexión ante falla la hace el software, que baja las cuatro compuertas cuando la corriente supera \SI{1.3}{A}, cuando la cuenta del ADC cae fuera de \num{16} a \num{4079}, o cuando faltan más de tres muestras seguidas. Cada causa enciende su propio LED y la falla no rearma sola. Una resistencia de \SI{100}{k\ohm} entre compuerta y fuente mantiene apagado cada MOSFET si el driver pierde su alimentación. El orden de apagado es bajar $V_{dc}$ y después los \SI{15}{V}.
+
+Con los VO3120 la tierra de la Basys~3 y la del puente están separadas, y la tierra de las puntas del osciloscopio está unida a la del enchufe. Todos los caimanes de tierra que tocan el lado de potencia van al mismo nodo, y las señales del lado de la Basys~3 se capturan aparte, para no unir las dos tierras a través del osciloscopio.
+
+\section{Interfaz con la plataforma digital}
+\label{sec:interfaz}
+El regulador se ejecuta en el MicroBlaze V y el puente lo maneja un periférico PWM propio. Para el lado de potencia, las señales que importan son pocas.
+
+\begin{itemize}
+	\item Las cuatro compuertas salen por el Pmod JA, activas en alto, todas desde flip-flops. El periférico recibe un único $d$ con signo en formato Q2.14, y la pierna B se compara contra $-d$.
+	\item El valor de $d$ que se escribe a mitad de período entra a la portadora en el valle siguiente. La portadora corre aunque el puente esté apagado, y un registro de estado indica cuándo el puente conmuta de verdad.
+	\item Un pulso de disparo sale en el valle de la portadora y lanza la conversión del XADC, con lo que la corriente se muestrea una vez por período de conmutación.
+	\item Un temporizador interrumpe cada \num{5000} ciclos de \SI{100}{MHz}, \SI{50}{\micro s}. En cada interrupción se lee la corriente, se calcula el PR y se escribe $d$.
+	\item La amplitud de la referencia sale de dos interruptores de la placa, con \num{0.2}, \num{0.5} y \SI{1.0}{A} pico, y un botón habilita el control. Otro botón exporta por UART el histórico de \num{2048} muestras, que cubre \num{5.12} períodos de \SI{50}{Hz}.
+\end{itemize}
+
+El control solo se habilita con la frecuencia de \SI{20}{kHz}. Las de \num{10} y \SI{40}{kHz} existen para mostrar el PWM sin cerrar el lazo, y el cuarto código de \texttt{freq\_sel} (11) queda igual que \SI{20}{kHz}.
+
+\section{Modelo de la planta}
+\label{sec:modelo}
+
+\subsection{Tensión promedio y función de transferencia}
+\label{sec:ft}
+La ley de tensiones sobre la carga da $v_o=Ri+L\,di/dt$. Con $\bar v_o=V_{dc}d$, la planta que ve el controlador es
+\begin{equation}
+	\frac{I(s)}{D(s)}=\frac{V_{dc}}{Ls+R},
+	\label{eq:planta}
+\end{equation}
+con un polo en $R/L=\SI{48000}{rad/s}$, un corte de \SI{7.6}{kHz}. La constante de tiempo, $\tau=\SI{20.8}{\micro s}$, es menor que el período de conmutación. El modelo promedio sigue valiendo para la componente de \SI{50}{Hz} y para el lazo, que cruza en \SI{200}{Hz}, pero no describe la forma de la corriente dentro de un período, que se calcula con la solución exponencial exacta entre flancos (Sección~\ref{sec:rizado}). El núcleo del PWM carga $d$ en el valle de la portadora y lo mantiene un período, y la planta discreta con retenedor de orden cero es
+\begin{equation}
+	i[k+1]=a\,i[k]+b\,d[k],\quad a=e^{-T_s/\tau},\quad b=\tfrac{V_{dc}}{R}(1-a),
+	\label{eq:discreta}
+\end{equation}
+con $a=\num{0.091}$, de modo que la corriente llega casi a su valor final en una sola muestra. El valor de $d$ que se calcula en la muestra $k$ entra al PWM en el valle siguiente, así que el lazo lleva un período de cómputo más medio de actualización, un retardo $T_d=1.5\,T_s=\SI{75}{\micro s}$. Es el modelo habitual de los lazos digitales de corriente y se mantiene como supuesto hasta medir el retardo real.
+
+\subsection{Rizado de conmutación}
+\label{sec:rizado}
+Durante un pulso de $+V_{dc}$ la bobina ve $V_{dc}(1-d)$, y el pulso dura $d/(2f_{sw})$, de donde, con la aproximación lineal,
+\begin{equation}
+	\Delta i_{pp}=\frac{V_{dc}\,d(1-d)}{2Lf_{sw}},\qquad
+	\Delta i_{max}=\frac{V_{dc}}{8Lf_{sw}}.
+	\label{eq:rizado}
+\end{equation}
+La fórmula es una derivación propia, y la duplicación efectiva de la frecuencia es la que traen los libros \cite{mohan2003power,hart2011}. Con $\tau=\SI{20.8}{\micro s}$, del orden de los \SI{25}{\micro s} entre pulsos, la corriente no sube en rampa y la fórmula lineal sobrestima un poco. La Fig.~\ref{fig:rizado} muestra el rizado en el pico de la senoidal con la solución exponencial exacta, y la Tabla~\ref{tab:conmutado} lo da con el modelo conmutado completo.
+
+\begin{figure}[!ht]
+	\centering
+	\includegraphics[width=\columnwidth]{rizado_carga_actual}
+	\caption{Rizado de conmutación previsto en el pico de la senoidal, con la solución exponencial de la carga $RL$, \SI{20}{kHz} y \SI{200}{\micro H}. La línea de trazos es el límite de \SI{0.20}{A} pico a pico.}
+	\label{fig:rizado}
+\end{figure}
+
+\subsection{Elección de la frecuencia de conmutación}
+\label{sec:fsw}
+La frecuencia queda entre un piso que pone el rizado y un techo que ponen el tiempo muerto y el bootstrap. Con \SI{200}{\micro H} el piso es $f_{sw}\ge V_{dc}/(8L\cdot\SI{0.20}{A})$, \SI{39}{kHz} con \SI{12.5}{V} y \SI{56}{kHz} con \SI{18}{V}. El techo lo fija la pérdida por tiempo muerto, $\Delta d=2T_Mf_{sw}$, que es \num{0.04} a \SI{20}{kHz} y \num{0.08} a \SI{40}{kHz}, y con ella el índice máximo del regulador baja de \num{0.92} a \num{0.84}. Las pérdidas no limitan, con \SI{0.31}{W} por transistor a \SI{20}{kHz} y \SI{0.52}{W} a \SI{40}{kHz}. La resolución del PWM tampoco, con \num{2500} cuentas por media portadora a \SI{20}{kHz} y \num{1250} a \SI{40}{kHz}.
+
+Con esta carga piso y techo se cruzan, y no hay frecuencia del núcleo que cumpla el rizado con margen en los tres puntos. Se eligió \SI{20}{kHz}, la frecuencia para la que están hechos el temporizador, los coeficientes y el histórico, y el rizado se trata en la Sección~\ref{sec:rizado_just}. Con modulación unipolar cada transistor conmuta a \SI{20}{kHz} y la tensión sobre la carga tiene su componente predominante en \SI{40}{kHz}.
+
+\subsection{Efecto del tiempo muerto y de $R_{DS(on)}$}
+\label{sec:tm_modelo}
+Durante el tiempo muerto la corriente de la bobina circula por un diodo de cuerpo, y el valor de la pierna lo fija el signo de la corriente y no el PWM. La tensión promedio pierde $\Delta v=2V_{dc}T_Mf_{sw}$ en el sentido de la corriente, \SI{0.50}{V} con \SI{12.5}{V} y \SI{0.72}{V} con \SI{18}{V}, una onda cuadrada en fase con ella cuya fundamental vale $4\Delta v/\pi$, \SI{0.64}{V} y \SI{0.92}{V} \cite{mohan2003power}. Además, en cualquier estado conducen dos MOSFET en serie con la carga, que suman hasta \SI{0.4}{\ohm} a $R$. Con ambos efectos, el índice que pide una corriente $I$ es aproximadamente $d=(|Z'|I+4\Delta v/\pi)/V_{dc}$, con $Z'$ la impedancia con los \SI{0.4}{\ohm}, y la corriente en lazo abierto resulta menor que la pedida (Tabla~\ref{tab:lazo_abierto}). La pérdida es casi una tensión fija, y pesa más cuanto menos tensión pide la referencia.
+
+\begin{table}[!ht]
+	\centering
+	\caption{Lazo abierto en PLECS con \SI{12}{V}, $R=\SI{9.6}{\ohm}$, $L=\SI{200}{\micro H}$, tiempo muerto de \SI{1}{\micro s} y $R_{DS(on)}=\SI{0.2}{\ohm}$, con el índice $m=|Z|I/V_{dc}$ sin compensar.}
+	\label{tab:lazo_abierto}
+	\begin{tabular}{cccc}
+		\toprule
+		Pedida (A) & $m$ & Corriente (A) & Diferencia (\%) \\
+		\midrule
+		\num{0.2} & \num{0.160} & \num{0.1315} & $-34$ \\
+		\num{0.5} & \num{0.400} & \num{0.4190} & $-16$ \\
+		\num{1.0} & \num{0.800} & \num{0.8989} & $-10$ \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+El desfase de la corriente respecto de la orden es de $-\ang{0.36}$ en los tres casos. Cerca del cruce por cero, mientras $|V_{dc}d|<\Delta v$, el tiempo muerto se lleva toda la tensión aplicada y la corriente queda en cero, y esa deformación la ve el regulador como error en \SI{50}{Hz} y en las armónicas impares.
+
+\subsection{Modelo conmutado en PLECS}
+\label{sec:plecs}
+El modelo conmutado se armó en PLECS 5.0 y reproduce el puente, la modulación del núcleo del PWM, el tiempo muerto y la carga (Fig.~\ref{fig:plecs}). Los componentes llevan nombres de variables y ningún número propio, y todos los valores salen de un solo archivo de Octave (\texttt{potencia/sim/parametros.m}) que los comandos de inicialización del modelo ejecutan antes de cada simulación. De ese archivo salen $R$, $L$, $V_{dc}$ y $R_{DS(on)}$, y también el reloj de \SI{100}{MHz}, \texttt{MAX} y \texttt{DEAD\_TIME\_CICLOS}, de los que se calculan $f_{sw}$, $T_s$ y $T_M$ con los mismos números que fija el núcleo del PWM.
+
+$V_{dc}$ es una fuente ideal. Cada transistor es un MOSFET con diodo en antiparalelo, un interruptor ideal con resistencia de conducción $R_{DS(on)}$, porque durante el tiempo muerto la corriente de la bobina pasa por el diodo de cuerpo. La carga va entre los puntos medios de las dos piernas, con un amperímetro y $L$ y $R$ en serie, y un voltímetro mide $v_o$. La referencia es una senoidal de amplitud $m$ pasada por un retenedor de orden cero que muestrea en los valles de la portadora, igual que el núcleo, que carga $d$ en el valle y lo sostiene un período.
+
+La portadora va de $-1$ a $1$, así que la alta de A conduce con $c<d$ y la de B con $c<-d$, y las bajas con la condición opuesta. El tiempo muerto se arma con dos portadoras iguales corridas $\pm2f_{sw}T_M$, una para las altas y otra para las bajas, lo que deja un hueco de $T_M$ en cada flanco, centrado en el cruce ideal. El núcleo apaga en el cruce y enciende $T_M$ después, así que en el modelo cada flanco queda corrido \SI{0.5}{\micro s} respecto del hardware, con la misma pérdida promedio por período. Los ensayos se corren desde Python por la interfaz RPC de PLECS (\texttt{potencia/sim/lazo\_abierto.py} y \texttt{rizado.py}). La fundamental y el desfase se calculan proyectando sobre un seno y un coseno de \SI{50}{Hz} en cuatro períodos completos, y el rizado se mide restando a la corriente su promedio por período de conmutación.
+
+\begin{figure}[!ht]
+	\centering
+	\IfFileExists{fig/plecs_modelo.png}{\includegraphics[width=\columnwidth]{plecs_modelo}}{\pendiente{captura del esquema de PLECS en fig/plecs\_modelo.png}}
+	\caption{Modelo del inversor en PLECS. Arriba, el puente con la carga $RL$ y los medidores de corriente y tensión. Abajo, la referencia retenida en los valles, las dos portadoras corridas para el tiempo muerto y los cuatro comparadores de las compuertas.}
+	\label{fig:plecs}
+\end{figure}
+
+El modelo se validó contra el análisis con una carga de \SI{10}{\ohm} y \SI{2}{mH}, \SI{18}{V} y una referencia de \SI{0.2}{A} (Tabla~\ref{tab:plecs}). Sin tiempo muerto ni $R_{DS(on)}$ el modelo entrega la corriente que fija la impedancia de la carga, así que el puente y el modulador no agregan error. Con tiempo muerto la amplitud queda a \SI{2}{\percent} del análisis y el desfase no, por el tramo de corriente nula descrito arriba. La Tabla~\ref{tab:lazo_abierto} es el mismo modelo con la carga montada.
+
+\begin{table}[!ht]
+	\centering
+	\caption{Validación del modelo en PLECS contra el análisis, con \SI{10}{\ohm}, \SI{2}{mH}, \SI{18}{V} y \SI{0.2}{A}.}
+	\label{tab:plecs}
+	\begin{tabular}{lcccc}
+		\toprule
+		Caso & $I$ PLECS (A) & $\varphi$ (°) & $I$ análisis (A) & $\varphi$ (°) \\
+		\midrule
+		Sin $T_M$ ni $R_{DS}$ & \num{0.2000} & \num{3.60} & \num{0.2000} & \num{3.60} \\
+		Solo $R_{DS(on)}$ & \num{0.1923} & \num{3.46} & \num{0.1923} & \num{3.46} \\
+		Solo $T_M$ & \num{0.1104} & \num{3.48} & \num{0.1086} & \num{1.95} \\
+		Los dos & \num{0.1062} & \num{3.35} & \num{0.1044} & \num{1.88} \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+\section{Diseño del regulador PR}
+\label{sec:pr}
+
+\subsection{Estructura}
+\label{sec:estructura}
+Se usa la estructura ideal $G_c(s)=K_p+K_r\,s/(s^2+\omega_0^2)$ con $\omega_0=2\pi\cdot\SI{50}{Hz}$. La versión amortiguada cambia exactitud en \SI{50}{Hz} por tolerancia a que la frecuencia se corra, y aquí la referencia la genera el propio procesador a \SI{50}{Hz} exactos, así que la ideal no pierde nada \cite{teodorescu2006}. El lazo abierto es $L(s)=G_c(s)\,e^{-sT_d}/(Ls+R)$.
+
+\subsection{Ganancia proporcional}
+\label{sec:kp}
+El criterio habitual fija $K_p$ con ganancia unitaria en un cruce de $f_s/20=\SI{1}{kHz}$, $K_p=\sqrt{R^2+(\omega_cL)^2}$. Con \SI{200}{\micro H} eso da unos \SI{9.7}{V/A}, y el criterio deja de servir. La carga es resistiva hasta su polo en \SI{7.6}{kHz}, así que la ganancia del lazo queda casi plana en $K_p/R$ desde \SI{50}{Hz} hasta cerca de Nyquist, mientras el retardo de $1.5\,T_s$ sigue restando fase. La fase llega a $-\ang{180}$ con la ganancia todavía cerca de uno y el margen de ganancia queda en \SI{1.6}{dB}.
+
+Lo que manda es el margen de ganancia, que sale casi directo de $K_p/R$. Con $K_r=\num{10000}$ y $R=\SI{9.6}{\ohm}$, $K_p=\SI{3}{V/A}$ deja \SI{11.7}{dB}, \SI{4.5}{V/A} deja \SI{8.2}{dB} y \SI{6}{V/A} deja \SI{5.8}{dB}. Se eligió $K_p=R/2=\SI{4.5}{V/A}$ con la resistencia nominal de diseño de \SI{9}{\ohm}, que deja \SI{8.2}{dB} con la carga montada y \SI{5.6}{dB} en la peor esquina (Sección~\ref{sec:estab}). Con $K_p$ debajo de $R$ la parte proporcional sola deja \SI{68}{\percent} de error de amplitud, y el seguimiento lo hace casi todo el resonante.
+
+\subsection{Ganancia resonante}
+\label{sec:kr}
+$K_r$ fija qué tan rápido converge el error en \SI{50}{Hz}. Se simuló un lazo discreto completo (planta por retenedor de orden cero exacto, un muestreo de retardo, regulador con Tustin precorregido) con un escalón de \num{0.2} a \SI{1.0}{A} aplicado en un cruce por cero, midiendo el error de amplitud de la fundamental en ventanas de un período. Con $K_r=3000$ el error es de \num{23.7}, \num{2.3} y \SI{0.2}{\percent} en los tres primeros períodos, con $K_r=5000$ de \num{15.4}, \num{0} y \SI{0}{\percent}, y con $K_r=\num{10000}$ de \num{7.5}, \num{0.3} y \SI{0}{\percent}. Se eligió $K_r=\num{10000}$, el único que cumple el \SI{10}{\percent} desde el primer período, con un desfase que no pasa de \ang{0.1}. Subirlo casi no toca los márgenes, porque solo mueve el cruce de \num{86} a \SI{200}{Hz}, lejos de donde la fase llega a $-\ang{180}$.
+
+\subsection{Discretización}
+\label{sec:disc}
+El resonante discretizado es un filtro de segundo orden, $r[k]=b_0e[k]+b_1e[k-1]+b_2e[k-2]-a_1r[k-1]-a_2r[k-2]$. Con Tustin simple el polo se corre por debajo de \SI{50}{Hz}, y el método de discretización pesa en el desempeño de los resonantes \cite{yepes2010}. Se usa Tustin con precorrección en $\omega_0$, $s=\frac{\omega_0}{\tan(\omega_0T_s/2)}\frac{z-1}{z+1}$, que cuesta lo mismo, deja el polo exactamente en \SI{50}{Hz} a cualquier $f_s$ y da los coeficientes en forma cerrada. Con $\theta=\omega_0T_s$,
+\begin{equation}
+	b_0=\frac{K_r\sin\theta}{2\omega_0},\ b_1=0,\ b_2=-b_0,\ a_1=-2\cos\theta,\ a_2=1.
+	\label{eq:coef}
+\end{equation}
+Dividiendo entre $V_{dc}=\SI{18}{V}$ para que la salida sea índice de modulación, los coeficientes son $K_P=\num{0.25}$, $b_0=\num{1.3888e-2}$, $b_2=-\num{1.3888e-2}$ y $a_1=-\num{1.99975}$. Con el bus en \SI{18}{V} el regulador físico es exactamente el de diseño. Con \SI{12.5}{V}, $K_p$ y $K_r$ físicos quedan multiplicados por $12.5/18=\num{0.69}$, la fase del lazo no cambia porque la relación $K_r/K_p$ se mantiene, y el margen de ganancia sube \SI{3.2}{dB}.
+
+$a_1$ queda muy cerca de $-2$ y la diferencia con $-2$ fija la frecuencia del polo, así que hay que representarla bien. En punto flotante de \num{32} bits el paso en ese valor es de \num{1.2e-7}, que corre el polo \SI{0.012}{Hz} y deja la ganancia del resonante en \SI{50}{Hz} en miles. Por eso el controlador corre en punto flotante, con la FPU del procesador.
+
+\subsection{Saturación y rampa de amplitud}
+\label{sec:sat}
+La salida del regulador se recorta a $\pm0.92$, y si hubo recorte el estado del resonante se corrige para que no acumule energía mientras el puente está saturado (anti-windup). En régimen, \SI{1.0}{A} con \SI{18}{V} pide unos \num{0.61}, y el escalón de \num{0.2} a \SI{1.0}{A} con \SI{12}{V} llega a \num{0.82} en el peor de \num{20} instantes del período. La amplitud de la referencia cambia con una rampa de \num{400} muestras (\SI{20}{ms}) entre el valor anterior y el que pide el interruptor, que se diseñó para una carga anterior más inductiva y se conserva porque no estorba.
+
+\subsection{Estabilidad}
+\label{sec:estab}
+Se pide al menos \ang{45} y \SI{6}{dB} en el nominal y al menos \ang{30} y \SI{3}{dB} en las esquinas de $L$ (\SI{\pm30}{\percent}) y $R$ (\SI{\pm25}{\percent}) con $K_p$ sin retocar. El diseño nominal, con $K_p=\SI{4.5}{V/A}$ físicos, cruza en \SI{200}{Hz} con \ang{111.0} y \SI{8.2}{dB} (Fig.~\ref{fig:bode}). La peor esquina es $L=\SI{140}{\micro H}$ con $R=\SI{7.2}{\ohm}$, con \ang{118.7} y \SI{5.6}{dB}, porque una $R$ menor sube $K_p/R$. Las cuatro esquinas cumplen, y la $L$ casi no mueve los márgenes.
+
+\begin{figure}[!ht]
+	\centering
+	\includegraphics[width=\columnwidth]{bode_carga_actual}
+	\caption{Lazo abierto con $K_p=\SI{4.5}{V/A}$, $K_r=\num{10000}$, $L=\SI{200}{\micro H}$ y $T_d=\SI{75}{\micro s}$.}
+	\label{fig:bode}
+\end{figure}
+
+El retardo agregado a los \SI{75}{\micro s} del modelo mueve poco. Con \SI{25}{\micro s} extra quedan \ang{109.2} y \SI{7.6}{dB}, con \SI{75}{\micro s} \ang{105.6} y \SI{7.1}{dB}, y el margen de ganancia llega a \SI{6}{dB} recién con unos \SI{400}{\micro s} de más. El retardo de la cadena de compuertas, menos de \SI{1}{\micro s}, no pesa. El filtro del sensor hasta sube el margen de ganancia, porque atenúa justo donde la fase llega a $-\ang{180}$. Con el RC de \SI{4.8}{kHz} el nominal queda en \ang{108.6} y \SI{9.9}{dB} y la peor esquina en \ang{115.2} y \SI{7.3}{dB}.
+
+\subsection{Muestreo y aliasing}
+\label{sec:alias}
+La señal de \SI{50}{Hz} y el cruce de \SI{200}{Hz} quedan muy por debajo de $f_s/2$. Lo que el criterio $f_s>2BW$ no mira es el resto de lo que entra al ADC. Si la conversión cae en el valle o en el pico de la portadora, el rizado de conmutación es un múltiplo exacto de $f_s$ en ese instante y se pliega a continua. Por eso el núcleo del PWM emite un pulso de disparo en el valle, y el XADC convierte cuando lo recibe.
+
+Con \SI{200}{\micro H} lo que se pliega ya no es el promedio. En el valle la tensión sobre la carga es cero y la corriente decae con $\tau=\SI{20.8}{\micro s}$, del orden del propio tramo, así que la muestra queda por debajo del promedio del período. El regulador lleva la muestra a la referencia y la corriente verdadera queda por encima. Se simuló el puente conmutado con \SI{9.6}{\ohm}, \SI{200}{\micro H}, \SI{12}{V}, la portadora de \num{2500} cuentas y el PR, sin tiempo muerto ni filtro. El error de amplitud de la fundamental de la corriente verdadera es de \SI{2.95}{\percent} con \SI{1.0}{A} y \SI{5.97}{\percent} con \SI{0.2}{A} con la captura en el valle, y sube a \num{3.9} y \SI{7.0}{\percent} si la captura cae \SI{200}{ns} después. En el centro del pulso o en una fase cualquiera el error llega a \SI{16}{\percent}, así que el valle sigue siendo el instante correcto. El filtro del sensor promedia parte del rizado antes del ADC y no está en esta simulación.
+
+El ruido de banda ancha del sensor y de la conmutación no se sincroniza con nada, y solo lo frena el filtro analógico, que agrega un retardo $\tau_F=1/(2\pi f_F)$ al lazo (Sección~\ref{sec:estab}).
+
+\section{Simulación del lazo}
+\label{sec:sim}
+
+\subsection{Modelo promediado}
+Se simuló el lazo discreto promedio con $R=\SI{9.6}{\ohm}$, $L=\SI{200}{\micro H}$, $K_p=\SI{4.5}{V/A}$ y $K_r=\num{10000}$, con el error de amplitud de la fundamental medido en ventanas de un período (Tabla~\ref{tab:err_sim}). En las esquinas de $L$ y $R$ el peor error es \SI{9.5}{\percent} en el primer período y \SI{0.4}{\percent} en el segundo, y el pico de corriente del escalón de \num{0.2} a \SI{1.0}{A} llega a \SI{1.034}{A} en el peor de \num{20} instantes. Este modelo no tiene rizado, cuantización, ruido ni tiempo muerto (Fig.~\ref{fig:trans}).
+
+\begin{table}[!ht]
+	\centering
+	\caption{Error de amplitud de la fundamental por período tras el cambio, en porcentaje, en el modelo promediado.}
+	\label{tab:err_sim}
+	\begin{tabular}{lccc}
+		\toprule
+		Cambio & 1 & 2 & 3 \\
+		\midrule
+		\num{0.2} a \SI{0.5}{A} & \num{5.7} & \num{0.2} & \num{0} \\
+		\num{0.5} a \SI{1.0}{A} & \num{4.8} & \num{0.2} & \num{0} \\
+		$R$ de \num{9.6} a \SI{12}{\ohm}, \SI{1.0}{A} & \num{2.4} & \num{0} & \num{0} \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+\begin{figure}[!ht]
+	\centering
+	\includegraphics[width=\columnwidth]{transitorios_promediados}
+	\caption{Cambios de referencia y de carga en el modelo promediado.}
+	\label{fig:trans}
+\end{figure}
+
+\subsection{Modelo conmutado}
+\label{sec:conmutado}
+El modelo conmutado en Octave resuelve el puente unipolar con tiempo muerto de \SI{1}{\micro s}, la carga exacta entre flancos, el ADC con la escala del firmware y el PR con saturación, y se corrió con \SI{9.6}{\ohm}, \SI{200}{\micro H} y \SI{12}{V} con los coeficientes normalizados con \SI{18}{V}, como en el firmware (Tabla~\ref{tab:conmutado}). La corriente que ve el ADC sigue la referencia con menos de \SI{0.02}{\percent} de error, y la corriente física queda entre \num{0.6} y \SI{4.8}{\percent} arriba, por el efecto del muestreo en el valle de la Sección~\ref{sec:alias}. Con la $R$ subida \SI{25}{\percent} y \SI{1.0}{A}, a \SI{12}{V} el regulador satura y el error llega a \SI{11.3}{\percent}, otra razón para correr \SI{1.0}{A} con \SI{18}{V}. Con \SI{9}{\ohm} y \SI{18}{V} el rizado de \SI{1.0}{A} es de \SI{0.60}{A} pico a pico y el error físico de \SI{1.95}{\percent}.
+
+\begin{table}[!ht]
+	\centering
+	\caption{Modelo conmutado con \SI{9.6}{\ohm}, \SI{200}{\micro H} y \SI{12}{V}. Error y desfase de la fundamental de la corriente física, y rizado máximo.}
+	\label{tab:conmutado}
+	\begin{tabular}{lccc}
+		\toprule
+		Caso & Error (\%) & Fase (°) & Rizado (A p-p) \\
+		\midrule
+		\SI{0.2}{A} & \num{3.47} & \num{0.69} & \num{0.258} \\
+		\SI{0.5}{A} & \num{2.83} & \num{0.64} & \num{0.388} \\
+		\SI{1.0}{A} & \num{0.59} & \num{0.60} & \num{0.395} \\
+		$R$ \SI{+33}{\percent}, \SI{0.5}{A} & \num{4.82} & \num{0.67} & \num{0.378} \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+\begin{figure}[!ht]
+	\centering
+	\includegraphics[width=\columnwidth]{conmutado_05A_9p6ohm_12V}
+	\caption{Corriente en el modelo conmutado con \SI{0.5}{A}, \SI{9.6}{\ohm} y \SI{12}{V}.}
+	\label{fig:conmutado}
+\end{figure}
+
+El modelo de PLECS se usa en lazo abierto (Tabla~\ref{tab:lazo_abierto}), y el lazo cerrado se valida con este modelo de Octave, que tiene el mismo puente, la misma modulación y el mismo tiempo muerto, y agrega el PR, la saturación y la escala del ADC del firmware.
+
+\section{Plan de validación}
+\label{sec:plan}
+Cada paso descarta una causa antes de sumar la siguiente. Primero se prueba sin energizar y después se sube la potencia por pasos.
+
+\subsection{Antes de energizar}
+Se verifican las cuatro compuertas y el tiempo muerto con la potencia apagada, con osciloscopio y con analizador lógico. Los criterios son el período de \SI{50}{\micro s} en cada pierna, el tiempo muerto de \SI{1}{\micro s} en los dos flancos de las dos piernas, ninguna conducción simultánea de alta y baja de una misma pierna, incluso al arrancar y al apagar, y la precarga de \SI{70}{\micro s} al habilitar. Se miden también la resistencia de cada elemento de la carga y la inductancia, y con \SI{0}{A} en la carga se exporta un registro para fijar el cero del sensor.
+
+\subsection{Calibración del sensor}
+La ganancia del sensor se comprueba contra una medición independiente, la tensión sobre las resistencias externas dividida entre su resistencia medida, que es puramente resistiva. Con el lazo a \SI{0.5}{A} se toman en el mismo minuto el registro del controlador y una captura de esa tensión, y el cociente entre las dos fundamentales corrige la ganancia antes de los ensayos.
+
+\subsection{Pasos energizados}
+\begin{enumerate}
+	\item PR completo con \num{0.2} y \SI{0.5}{A} pico con \SI{12.5}{V}, y \SI{1.0}{A} pico con \SI{18}{V}.
+	\item Cambios de amplitud de \num{0.2} a \num{0.5} y de \num{0.5} a \SI{1.0}{A}, con la $V_{dc}$ del punto de llegada.
+	\item Cambio de la resistencia externa de \SI{9.6}{} a \SI{12.3}{\ohm} con \SI{0.5}{A} pico y \SI{12.5}{V} (Sección~\ref{sec:cambio_carga}).
+	\item Desconexión ante falla, con una compuerta y el LED de falla en la misma captura.
+\end{enumerate}
+
+\subsection{Montaje y adquisición}
+\label{sec:montaje}
+Cada ensayo se registra por dos caminos. El controlador exporta por la UART a \num{115200} baudios un histórico de \num{2048} muestras, una por período de portadora, con la referencia, la corriente medida, el índice y las banderas de saturación y falla. El osciloscopio captura la tensión sobre las resistencias externas, que es la corriente física por \SI{9.6}{\ohm}, en dos ventanas, una de al menos cinco períodos de \SI{50}{Hz} para la fundamental y otra de unos pocos períodos de conmutación, cerca del pico de la corriente, para el rizado. En otra captura se toma la tensión entre las salidas de las dos piernas, que es la tensión aplicada a la carga y la evidencia del PWM unipolar. El período y el jitter de la rutina de control se miden con un pin de depuración que sube al entrar a la rutina y baja al salir.
+
+\subsection{Procesamiento}
+\label{sec:proc}
+La corriente se ajusta por mínimos cuadrados a $a\sin(\omega_0t)+b\cos(\omega_0t)+c$ sobre períodos enteros, con al menos cinco, y se obtienen la amplitud pico $\sqrt{a^2+b^2}$, la fase y la componente continua. Lo mismo se hace con la referencia. El error de amplitud es $(|I_1|-|R_1|)/|R_1|$ y el desfase es la diferencia de fases. El valor RMS se calcula sobre la señal completa, y el de la fundamental es su pico entre $\sqrt2$. El rizado se mide en la captura corta restando a la corriente su promedio por período de conmutación, el mismo procedimiento que se usa en los modelos conmutados, y se informa como pico a pico. El mismo código procesa el registro del controlador, las capturas del osciloscopio y la salida de las simulaciones.
+
+\section{Conclusiones}
+\label{sec:conclusiones}
+La carga casi resistiva de \SI{200}{\micro H} cambió el criterio de sintonización. $K_p$ ya no sale de un cruce elegido sino del margen de ganancia, y el resonante con $K_r=\num{10000}$ hace casi todo el seguimiento. En simulación el lazo cumple el error de la fundamental desde el primer período de los escalones, con márgenes holgados en las esquinas y frente a retardos de cientos de microsegundos.
+
+El costo de esa inductancia es el rizado, que queda entre \num{0.26} y \SI{0.60}{A} pico a pico según el punto, sobre el límite del enunciado, y un sesgo de unos pocos por ciento entre la corriente que ve el ADC y la física. Correr \SI{1.0}{A} con \SI{18}{V} y el resto con \SI{12.5}{V} deja el índice lejos del tope en los tres puntos.
+
+\appendix
+\section{Archivos para reproducir los resultados}
+\label{app:archivos}
+Todas las rutas son relativas a la raíz del repositorio.
+
+\begin{itemize}
+	\item \texttt{potencia/diseno\_pr.md}, \texttt{potencia/diseno\_puente\_h.md}, \texttt{potencia/docs/modelo\_planta.md} y \texttt{potencia/carga\_RL-Sensor/}, con el diseño del regulador, del puente, de la planta, de la carga y del sensor.
+	\item \texttt{potencia/verificar\_pr.m}, márgenes, $K_p$, $K_r$, escalones y tiempo muerto, con salida en \texttt{docs/informe/evidencia/verificar\_pr\_9p6ohm\_12V.log}.
+	\item \texttt{potencia/aliasing\_pr.m}, instante de captura, con salida en \texttt{docs/informe/evidencia/aliasing\_pr\_9p6ohm\_12V.log}.
+	\item \texttt{potencia/simular\_conmutado.m}, modelo conmutado, con salida en \texttt{docs/informe/evidencia/modelo\_conmutado\_9p6ohm\_12V\_pr18V.txt}.
+	\item \texttt{potencia/figuras\_informe.m}, que genera las figuras del Bode, del rizado y de los transitorios.
+	\item \texttt{potencia/sim/}, el modelo conmutado en PLECS, su archivo de parámetros y los scripts de lazo abierto y rizado.
+	\item \texttt{sw/generar\_pr\_params.m}, que escribe los coeficientes en \texttt{sw/pr\_params.h}.
+	\item \texttt{potencia/analizar\_csv.m} y \texttt{sw/receptor\_pc.py}, el procesamiento de los registros exportados.
+\end{itemize}
+
+\printbibliography
+
+\begin{IEEEbiography}[{\includegraphics[width=1in,height=1.25in,clip,keepaspectratio]{jch_BN}}]{Jefferson Chinchilla-Quesada}
+	Estudiante de Ingeniería Electrónica, Instituto Tecnológico de Costa Rica.
+	Correo, jechinchilla@estudiantec.cr
+\end{IEEEbiography}
+
+\begin{IEEEbiography}[{\includegraphics[width=1in,height=1.25in,clip,keepaspectratio]{nmv_bn}}]{Nicolás Mena-Valerio}
+	Estudiante de Ingeniería Electrónica, Instituto Tecnológico de Costa Rica, desde 2022.
+	Correo, nimena@estudiantec.cr
+\end{IEEEbiography}
+
+\begin{IEEEbiography}[{\includegraphics[width=1in,height=1.25in,clip,keepaspectratio]{mcq_bn}}]{Mattio Coghi-Quirós}
+	Estudiante de Ingeniería Electrónica, Instituto Tecnológico de Costa Rica.
+	Correo, mcoghi@estudiantec.cr
+\end{IEEEbiography}
+
+\vfill
+\end{document}
