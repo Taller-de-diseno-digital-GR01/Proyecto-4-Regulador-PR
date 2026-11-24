@@ -1,13 +1,13 @@
 # Informe técnico, Proyecto 4: control de corriente de un inversor monofásico con regulador PR sobre MicroBlaze V
 
-**EL3313 Taller de Diseño Digital / EL4201 Procesamiento Electrónico de Potencia**  
+EL3313 Taller de Diseño Digital / EL4201 Procesamiento Electrónico de Potencia  
 Escuela de Ingeniería Electrónica, Tecnológico de Costa Rica. II semestre de 2026.
 
-**Profesores:** Dr.-Ing. Jeferson González-Gómez, PhD. Yeiner Arias-Esquivel e Ing. Rolen Coto Calderón.
+Profesores: Dr.-Ing. Jeferson González-Gómez, PhD. Yeiner Arias-Esquivel e Ing. Rolen Coto Calderón.
 
-**Integrantes:** Carlos Castro Villegas, Jefferson Chinchilla Quesada, Mattio Coghi Quirós y Nicolás Mena Valerio.
+Integrantes: Carlos Castro Villegas, Jefferson Chinchilla Quesada, Mattio Coghi Quirós y Nicolás Mena Valerio.
 
-**Revisión documental:** 20 de noviembre de 2026. Fuentes de implementación: `develop`, commit `0e87a9dcb4f63f0fe71ddc04db161d7660a8840a`. Informe de partida: `doc/informe`, commit `1add934e6c584c845e1c7d1912604a1ab2020904`. Los reportes de implementación de Vivado son del 11 de noviembre; no se atribuyen automáticamente a una nueva compilación de todos los fuentes actuales.
+Revisión documental: 23 de noviembre de 2026. Fuentes de implementación: `develop`, commit `1c2655f`. Los reportes de implementación de Vivado son del 11 de noviembre; no se atribuyen a una nueva compilación de todos los fuentes actuales. Los datos de banco (CSV del receptor y capturas) los carga el equipo en `docs/informe/mediciones/`, y las celdas que dependen de ellos están marcadas como PENDIENTE DE CSV.
 
 ## Tabla de contenidos
 
@@ -38,13 +38,14 @@ Los resultados se clasifican por su procedencia. Una prueba de software en PC ve
 |---|---|
 | Simulación RTL del periférico PWM, modos rápido y nominal | Autochequeo de AXI, portadora, referencias, precarga, tiempo muerto y apagado. No incluye retardos físicos ni SDF. |
 | Simulación RTL de la envoltura XADC | Verifica la lógica propia con un modelo del convertidor. No mide la cadena analógica ni caracteriza el XADC real. |
-| Siete ejecutables de prueba C y doce pruebas Python | Verifican módulos en PC, con controladores simulados donde corresponde. No acreditan duración de ISR ni ejecución del ELF en MicroBlaze V. |
-| Cálculos numéricos de esta revisión | Márgenes, predicción de rizado y seis casos del modelo promediado para 9 Ω y 200 µH. Incluyen script, CSV y resultados JSON. |
+| Siete ejecutables de prueba C y trece pruebas Python | Verifican módulos en PC, con controladores simulados donde corresponde. Logs en `evidencia/`. No acreditan duración de ISR ni ejecución del ELF en MicroBlaze V. |
+| Cálculos en Octave | Márgenes (`verificar_pr.m`), aliasing (`aliasing_pr.m`), figuras, predicción de rizado y seis casos del modelo promediado para 9 Ω y 200 µH (`figuras_informe.m`). Salidas en `evidencia/`. |
 | Reportes de Vivado del diseño ruteado | Recursos y timing de la ejecución archivada del 11 de noviembre de 2026. |
+| Simulación conmutada en Octave | Lazo cerrado con tiempo muerto y ADC cuantizado para 9 Ω y 18 V, y repetida para 9,6 Ω y 12 V (`simular_conmutado.m`). No incluye filtro ni drivers. |
 | Resultados PLECS archivados | Lazo abierto con una carga anterior de 12 Ω y 30 mH. Son antecedentes; no validan la configuración actual. |
-| Relatos de pruebas preliminares y sensibilidad del sensor | Documentación del equipo; faltan capturas y datos completos para cerrar la validación experimental. |
+| Ajustes de banco del 23 de noviembre | Cero del sensor de 0,68 V (2785 cuentas) medido con multímetro en J3 y polaridad de corriente invertida detectada por correlación entre duty y corriente. Están en el firmware, faltan los CSV de respaldo. |
 
-**Permanece pendiente** la simulación temporizada post-implementación del PWM, la validación conmutada en PLECS con la carga final, la calibración integral y los ensayos del puente energizado. El rizado calculado para la carga actual supera el límite del enunciado en los puntos de 0,5 y 1,0 A pico; por ello no se declara cumplimiento global del sistema.
+Permanece pendiente la simulación temporizada post-implementación del PWM, la validación conmutada en PLECS con la carga final y los resultados de banco (calibración integral y ensayos del puente energizado), que dependen de los CSV del equipo. El rizado calculado para la carga actual supera el límite del enunciado en los puntos de 0,5 y 1,0 A pico; por ello no se declara cumplimiento global del sistema.
 
 ## 1. Resumen
 
@@ -106,7 +107,7 @@ $$b=\frac{V_{dc}}R(1-a)=1{,}789201551.$$
 
 El modelo temporal empleado en esta revisión incorpora una muestra de demora de actuación: `u_a[k] = u[k−1]`. Esto representa que la orden calculada no gobierna el intervalo que ya terminó. El ZOH ya está incluido en `a` y `b`.
 
-Para el análisis continuo de diseño se aproxima el conjunto de cómputo y retención por `Td = 1,5Ts = 75 µs`. Es una hipótesis del modelo, pendiente de contrastar con la fase real de adquisición y actualización. **No se añade otro bloque de 75 µs al modelo discreto que ya incluye ZOH y una muestra explícita de demora.** El filtro analógico se incorpora aparte, mediante su función de transferencia, si está instalado.
+Para el análisis continuo de diseño se aproxima el conjunto de cómputo y retención por `Td = 1,5Ts = 75 µs`. Es una hipótesis del modelo, pendiente de contrastar con la fase real de adquisición y actualización. No se añade otro bloque de 75 µs al modelo discreto que ya incluye ZOH y una muestra explícita de demora. El filtro analógico se incorpora aparte, mediante su función de transferencia, si está instalado.
 
 ### 3.3 Regulador PR y discretización
 
@@ -308,7 +309,7 @@ La trama utiliza little-endian. No se transmite texto de depuración dentro de e
 | Desde 20 | `6N` bytes | Registros, del más antiguo al más reciente |
 | Últimos dos | 2 bytes | Suma de los bytes posteriores a `0xAA`, excluida la propia suma, módulo 65536 |
 
-Cada registro tiene **tres campos de dos bytes**: `cuenta_banderas`, `duty_ref` e **`i_ref_ma` con signo**. En el primero, `[11:0]` es la cuenta ADC, bit 15 saturación, bit 14 ausencia de dato, bit 13 habilitado y bit 12 falla. La referencia se guarda en mA con truncamiento; no debe omitirse al interpretar los seis bytes.
+Cada registro tiene tres campos de dos bytes: `cuenta_banderas`, `duty_ref` e `i_ref_ma` con signo. En el primero, `[11:0]` es la cuenta ADC, bit 15 saturación, bit 14 ausencia de dato, bit 13 habilitado y bit 12 falla. La referencia se guarda en mA con truncamiento; no debe omitirse al interpretar los seis bytes.
 
 Con 2048 registros, la trama contiene 12310 bytes. A 115200 baudios, 8N1, el tiempo mínimo de línea es 1,069 s. La ventana nominal corresponde a 102,4 ms de adquisición; la diferencia entre el instante de la primera y última muestra es 102,35 ms. Esto permite seleccionar cinco períodos completos de 50 Hz, siempre que no haya faltantes y se documente la ventana elegida.
 
@@ -334,7 +335,7 @@ El tiempo muerto digital nominal es 1 µs en el Pmod. El intervalo real entre co
 
 ### 6.4 Apagado y significado de `running`
 
-`enable` se atiende en el valle. Al deshabilitar, el estado global pasa a detenido y las piernas llevan las salidas a cero en el siguiente flanco que observa ese estado. **La implementación no garantiza completar el último pulso de compuerta:** un pulso alto centrado alrededor del valle puede quedar truncado. La captura en el valle evita una actualización arbitraria a mitad de la cuenta, pero no equivale a esperar el final de cada pulso físico.
+`enable` se atiende en el valle. Al deshabilitar, el estado global pasa a detenido y las piernas llevan las salidas a cero en el siguiente flanco que observa ese estado. La implementación no garantiza completar el último pulso de compuerta: un pulso alto centrado alrededor del valle puede quedar truncado. La captura en el valle evita una actualización arbitraria a mitad de la cuenta, pero no equivale a esperar el final de cada pulso físico.
 
 Un diagnóstico RTL con los módulos reales, a 20 kHz y referencia +0,5, observó pulsos regulares de A alta de 36,490 µs y un último pulso de 17,750 µs tras la deshabilitación. Es una evidencia de simulación funcional, no una captura de osciloscopio. No se observó una orden de conducción simultánea en ese diagnóstico. Si se requiere preservar todos los pulsos completos al parar, hace falta cambiar la política de apagado y volver a verificarla.
 
@@ -454,15 +455,17 @@ $$G_{cadena}=0{,}183\cdot1{,}2=0{,}2196\ \mathrm{V/A}.$$
 
 Este producto es una conversión calculada a partir de parámetros de la cadena; no equivale a una calibración integral del sensor, acondicionador y ADC. El firmware usa:
 
-$$i=(N-N_0)K_I,\qquad N_0=2048,\qquad K_I=1{,}1118\cdot10^{-3}\ \mathrm{A/cuenta}.$$
+$$i=(N-N_0)K_I,\qquad N_0=2785,\qquad K_I=-1{,}1118\cdot10^{-3}\ \mathrm{A/cuenta}.$$
+
+El cero de 2785 cuentas corresponde a 0,68 V medidos con multímetro en J3 con corriente nula el 23 de noviembre, por encima de los 0,5 V de diseño (2048 cuentas). El signo de `K_I` es negativo porque la corriente entra al ACS712 por el lado contrario al supuesto, lo que se detectó con una correlación de −1 entre duty y corriente. Si se invierten los cables del primario vuelve a ser positivo. Ambos valores están en `sw/lazo_control.h` y viajan en la cabecera de la trama, así que `receptor_pc.py` escala correctamente los CSV.
 
 Con fondo de escala nominal de 1 V y 12 bits, un paso ideal representa 0,244 mV. Para ±1,3 A, la salida ideal del acondicionador sería aproximadamente 0,215 a 0,785 V. Deben comprobarse offset, ganancia, ruido y margen de tensión reales. El antiguo esquema con ganancia 2,4 no se utiliza como evidencia del acondicionador actual de 1,2.
 
 ### 9.4 Calibración y filtro
 
-Con corriente física cero, se exportan 2048 muestras y se calcula la media de las cuentas ADC originales. La expectativa de trabajo facilitada por el equipo es 2048 ±102 cuentas. Esa banda indica una comprobación inicial, no una tolerancia de error de corriente impuesta por el enunciado. Un desplazamiento de 102 cuentas equivale aproximadamente a 0,113 A con la escala nominal; debe corregirse el offset, no aceptar ese sesgo como precisión final. Se guardarán la dispersión, las condiciones de cero y los datos sin procesar.
+Con corriente física cero, se exportan 2048 muestras y se calcula la media de las cuentas ADC originales. La expectativa de diseño era 2048 ±102 cuentas; el valor medido en el banco, 2785, queda fuera de esa banda y por eso se fijó en el firmware. Un desplazamiento de 102 cuentas equivale aproximadamente a 0,113 A con la escala nominal, así que el offset se corrige y no se acepta como sesgo. Falta afinar el valor con la media de 2048 muestras a 0 A (fila de cero de corriente en 12.8). Se guardarán la dispersión, las condiciones de cero y los datos sin procesar.
 
-Para la ganancia se compara la fundamental del CSV con una medición independiente de corriente. Puede obtenerse mediante sonda o mediante la tensión **sobre la resistencia externa** dividida entre su resistencia medida. Dividir la tensión sobre toda la carga RL entre 8 Ω no sería equivalente. Se deben comprobar ambos signos y, de ser posible, varios niveles de corriente, guardando pendiente, offset y residuo del ajuste. Los valores calibrados se trasladan al firmware y a la cabecera de exportación.
+Para la ganancia se compara la fundamental del CSV con una medición independiente de corriente. Puede obtenerse mediante sonda o mediante la tensión sobre la resistencia externa dividida entre su resistencia medida. Dividir la tensión sobre toda la carga RL entre 8 Ω no sería equivalente. Se deben comprobar ambos signos y, de ser posible, varios niveles de corriente, guardando pendiente, offset y residuo del ajuste. Los valores calibrados se trasladan al firmware y a la cabecera de exportación.
 
 Se contempla un RC de aproximadamente 1 kΩ y 33 nF: `τF = 33 µs`, `fc ≈ 4,82 kHz`. Su instalación y valores finales no quedan confirmados por evidencia completa. Cuando se incluya, el modelo debe usar `H(s) = 1/(1+sτF)`. El retardo de grupo es aproximadamente 33 µs a baja frecuencia, pero no corresponde a un retardo puro constante en toda la banda. Debe evaluarse su atenuación del rizado, ruido y efecto sobre la fase.
 
@@ -580,7 +583,7 @@ Los contadores finales AW/W/B y AR/R no constituyen por sí solos una medida de 
 
 El banco de la envoltura cubre doce situaciones y termina con `PASA: tb_envoltura_xadc sin errores`. Comprueba secuencia DRP, rechazo de triggers durante conversión, fuentes de disparo, publicaciones y vuelta del contador módulo cuatro.
 
-El diagnóstico adicional de núcleo PWM más envoltura confirma 10 ns de valle a trigger y otros 20 ns de trigger a `CONVST`. También identifica el último pulso truncado descrito en la sección 6.4. El código y log de ese diagnóstico se incluyen como evidencia complementaria; no se presentan como un testbench ya integrado en `develop`.
+El diagnóstico adicional de núcleo PWM más envoltura confirma 10 ns de valle a trigger y otros 20 ns de trigger a `CONVST`. También identifica el último pulso truncado descrito en la sección 6.4. El código de ese diagnóstico no está versionado en el repositorio, así que se presenta como observación del equipo y no como evidencia archivada.
 
 ### 12.3 Pruebas del software
 
@@ -594,15 +597,15 @@ El diagnóstico adicional de núcleo PWM más envoltura confirma 10 ns de valle 
 | `prueba_exportador_uart` | 0 errores |
 | `prueba_control_principal` | 0 errores |
 
-Las doce pruebas Python del receptor pasan. Se adjuntan logs y resumen de las compilaciones C. Estas pruebas utilizan los módulos reales con las sustituciones de controladores definidas por cada caso; no representan una ejecución del binario en la placa. El archivo `prueba_generar_pr_params.m` existe, pero no se presenta como una prueba Octave ejecutada durante esta revisión.
+Las trece pruebas Python del receptor pasan. Se adjuntan logs y resumen de las compilaciones C. Estas pruebas utilizan los módulos reales con las sustituciones de controladores definidas por cada caso; no representan una ejecución del binario en la placa. El archivo `prueba_generar_pr_params.m` existe, pero no se presenta como una prueba Octave ejecutada durante esta revisión.
 
 ### 12.4 Márgenes para la carga actual
 
-Se recalculó en Python el modelo de diseño:
+Se recalculó en Octave (`potencia/verificar_pr.m`, salida en `evidencia/verificar_pr.log`) el modelo de diseño:
 
 $$L_{ab}(s)=\left(K_p+K_r\frac{s}{s^2+\omega_0^2}\right)\frac{e^{-sT_d}}{Ls+R},\qquad T_d=75\ \mu s.$$
 
-El bus se cancela aquí porque el controlador físico se normaliza antes del modulador. Los cruces se evalúan por encima de la resonancia y el margen de fase se refiere al cruce de ganancia descendente más alto, conforme al procedimiento de diseño. El barrido y la búsqueda numérica se incluyen en el script adjunto.
+El bus se cancela aquí porque el controlador físico se normaliza antes del modulador. Los cruces se evalúan por encima de la resonancia y el margen de fase se refiere al cruce de ganancia descendente más alto, conforme al procedimiento de diseño. El barrido y la búsqueda numérica están en el script.
 
 | R total | L | Cruce | Margen de fase | Margen de ganancia |
 |---:|---:|---:|---:|---:|
@@ -622,7 +625,7 @@ El punto final del ensayo resistivo, 12 Ω totales con 200 µH, queda fuera del 
 
 ### 12.5 Simulación numérica promediada
 
-Se añadió un modelo reproducible de doble precisión con planta ZOH exacta, una muestra de demora de actuación, PR ideal discretizado, saturación a ±0,92 y rampa de 0,0025 A por muestra. Se simularon 0,7 s por caso. Se incluyen los tres puntos nominales, los dos cambios de consigna y el cambio de R total de 9 a 12 Ω a 0,5 A pico. Los cambios se aplican a los 300 ms.
+Se añadió un modelo reproducible en Octave (`potencia/figuras_informe.m`, cifras en `evidencia/modelo_promediado.txt`) de doble precisión con planta ZOH exacta, una muestra de demora de actuación, PR ideal discretizado, saturación a ±0,92 y rampa de 0,0025 A por muestra. Se simularon 0,7 s por caso. Se incluyen los tres puntos nominales, los dos cambios de consigna y el cambio de R total de 9 a 12 Ω a 0,5 A pico. Los cambios se aplican a los 300 ms.
 
 | Ensayo | Amplitud final de referencia | Amplitud final de corriente promedio | Error final de amplitud | Saturación |
 |---|---:|---:|---:|---|
@@ -633,7 +636,7 @@ Se añadió un modelo reproducible de doble precisión con planta ZOH exacta, un
 | 0,5→1,0 A | 1,0000 A pico | 1,0000 A pico | <0,001 % | No |
 | R total 9→12 Ω, 0,5 A | 0,5000 A pico | 0,5000 A pico | <0,001 % | No |
 
-La extracción se hizo en `[0,6; 0,7)` s, cinco períodos completos, ajustando seno, coseno y continua. El desfase final calculado es menor que 0,001° en estos casos ideales. El resultado casi nulo es esperable al usar un resonante ideal exactamente a 50 Hz, sin pérdidas ni errores de medida. **No se atribuye esta precisión al firmware ni al montaje.** El script no ejecuta C, no cuantiza ADC ni duty, no reproduce el ruido, el tiempo muerto o el filtro, y no resuelve conmutación.
+La extracción se hizo en `[0,6; 0,7)` s, cinco períodos completos, ajustando seno, coseno y continua. El desfase final calculado es menor que 0,001° en estos casos ideales. El resultado casi nulo es esperable al usar un resonante ideal exactamente a 50 Hz, sin pérdidas ni errores de medida. No se atribuye esta precisión al firmware ni al montaje. El script no ejecuta C, no cuantiza ADC ni duty, no reproduce el ruido, el tiempo muerto o el filtro, y no resuelve conmutación.
 
 ![Transitorios de la simulación promediada](figuras/transitorios_promediados.png)
 
@@ -648,7 +651,7 @@ La solución RL local de la sección 3.5 produce los siguientes máximos aproxim
 | Bus | Referencia 0,2 A pico | Referencia 0,5 A pico | Referencia 1,0 A pico |
 |---:|---:|---:|---:|
 | 12 V | 0,189 A pp | 0,343 A pp | 0,365 A pp |
-| 18 V | **0,20063 A pp** | **0,414 A pp** | **0,548 A pp** |
+| 18 V | 0,20063 A pp | 0,414 A pp | 0,548 A pp |
 | 24 V | 0,207 A pp | 0,450 A pp | 0,686 A pp |
 
 ![Predicción de rizado para la carga actual](figuras/rizado_carga_actual.png)
@@ -658,6 +661,17 @@ La solución RL local de la sección 3.5 produce los siguientes máximos aproxim
 A 18 V, el primer resultado también está ligeramente por encima del límite: redondearlo a 0,20 A no permite marcarlo como cumplimiento. Los puntos de 0,5 y 1,0 A muestran un exceso claro. La reducción de bus a 12 V, dentro de los valores considerados, tampoco resuelve ambos puntos.
 
 La cota aproximada de rizado triangular máximo `Vdc/(8Lfsw)` es 0,5625 A a 18 V, del mismo orden que la solución exponencial de 0,548 A. Esa cota sugiere una inductancia de al menos 562,5 µH para 0,20 A pp bajo sus hipótesis. No es una especificación final de compra: hay que considerar resistencia añadida, saturación, pérdidas, tolerancias, bus y dinámica. Cambiar frecuencia también obliga a revisar muestreo, PR, tiempo muerto y bootstrap. Ninguna de esas modificaciones se presenta como implementada.
+
+Con la misma fórmula se evaluó la opción de subir la portadora a 40 kHz, que reduce el rizado a la mitad porque `h` se divide entre dos. El máximo se alcanza en `D = 0,5`, así que el valor más alto de cada bus acota todas las amplitudes. Cifras de `figuras_informe.m` extendidas a 40 kHz.
+
+| Bus | fsw | 0,2 A pico | 0,5 A pico | 1,0 A pico |
+|---:|---:|---:|---:|---:|
+| 18 V | 20 kHz | 0,2006 | 0,4138 | 0,5481 |
+| 18 V | 40 kHz | 0,1010 | 0,2099 | 0,2794 |
+| 12 V | 20 kHz | 0,1887 | 0,3431 | 0,3654 |
+| 12 V | 40 kHz | 0,0953 | 0,1747 | 0,1863 |
+
+Solo 12 V con 40 kHz queda bajo 0,20 A pp en los tres puntos de la predicción ideal (índice de modulación de 0,75 a 1,0 A, dentro del límite de 0,92). A 18 V, incluso con 40 kHz, el punto de 1,0 A queda en 0,28 A pp. Es una predicción y no una configuración implementada, porque el firmware cierra el lazo solo a 20 kHz y pasar a 40 kHz obliga a recalcular `Ts`, los coeficientes del PR, el límite de modulación y la precarga del bootstrap.
 
 ### 12.7 Recursos y timing
 
@@ -689,32 +703,139 @@ Los caminos internos analizados cumplen las restricciones de esa ejecución. Per
 
 Las celdas pendientes no se completan con valores calculados. Las expectativas son condiciones del ensayo; deben conservarse por separado de los resultados.
 
-| Ensayo | Resultado que debe registrarse | Estado |
-|---|---|---|
-| R a cuatro hilos, frío y caliente | R externa, devanados, total, corriente y temperatura/tiempo de ensayo | PENDIENTE |
-| LCR a 1 kHz | L de cada inductor y total, amplitud de prueba y modelo del instrumento | PENDIENTE |
-| Saturación y límites de componentes | Referencia, corriente de saturación y margen frente al pico real | PENDIENTE |
-| Cero de corriente | Media y dispersión de 2048 muestras, condición de cero y nuevo offset | PENDIENTE |
-| Ganancia integral | Comparación independiente, pendiente y error residual en ambos signos | PENDIENTE |
-| Filtro | Valores instalados, corte y efecto en ruido/fase | PENDIENTE |
-| Compuertas sin bus | Cuatro salidas, frecuencias, tiempo muerto y precarga con escalas visibles | PENDIENTE de capturas completas |
-| Habilitación y parada | Primer y último pulso, latencia y comportamiento tras reset | PENDIENTE de captura física |
-| ISR y exportación | Período, jitter y ancho máximo de JB1 en todos los estados descritos | PENDIENTE |
-| Fase ADC/Timer/PWM | Capturas después de varios reinicios y configuración final | PENDIENTE |
-| Régimen a 0,2 A pico | Referencia, corriente, tensión de carga, PWM, fundamental, fase, RMS y rizado | PENDIENTE |
-| Régimen a 0,5 A pico | Los mismos datos y condiciones | PENDIENTE |
-| Régimen a 1,0 A pico | Los mismos datos y condiciones | PENDIENTE |
-| Cambios 0,2→0,5 y 0,5→1,0 A | Consigna, rampa, corriente, tensión, PWM, sobrepico y establecimiento | PENDIENTE |
-| R total 9→12 Ω a 0,5 A pico | R externa 8→11 Ω, L constante, transitorio y régimen posterior | PENDIENTE |
-| Falla | Causa, muestras, enclavamiento y latencia hasta apagado | PENDIENTE |
+| Ensayo | Resultado que debe registrarse | Archivo esperado en `mediciones/` | Estado |
+|---|---|---|---|
+| R a cuatro hilos, frío y caliente | R externa, devanados, total, corriente y temperatura/tiempo de ensayo | `0.1_resistencia` | PENDIENTE DE CSV |
+| LCR a 1 kHz | L de cada inductor y total, amplitud de prueba y modelo del instrumento | `0.2_inductancia` | PENDIENTE DE CSV |
+| Saturación y límites de componentes | Referencia, corriente de saturación y margen frente al pico real | `0.2_saturacion` | PENDIENTE |
+| Cero de corriente | Media y dispersión de 2048 muestras, condición de cero y nuevo offset | `A1_cero.csv` | PENDIENTE DE CSV (software con 2785 cuentas medidas en J3) |
+| Ganancia integral | Comparación independiente, pendiente y error residual en ambos signos | `A2_ganancia.csv` | PENDIENTE DE CSV |
+| Filtro | Valores instalados, corte y efecto en ruido/fase | `A4_filtro` | PENDIENTE |
+| Compuertas sin bus | Cuatro salidas, frecuencias, tiempo muerto y precarga con escalas visibles | `B_compuertas_*.png` | PENDIENTE de capturas |
+| Habilitación y parada | Primer y último pulso, latencia y comportamiento tras reset | `B_parada_*.png` | PENDIENTE de captura física |
+| ISR y exportación | Período, jitter y ancho máximo de JB1 en todos los estados descritos | `C_isr_*.png` | PENDIENTE |
+| Fase ADC/Timer/PWM | Capturas después de varios reinicios y configuración final | `C_fase_*.png` | PENDIENTE |
+| Régimen a 0,2 A pico | Referencia, corriente, tensión de carga, PWM, fundamental, fase, RMS y rizado | `D3_pr_02A.csv` y `.png` | PENDIENTE DE CSV |
+| Régimen a 0,5 A pico | Los mismos datos y condiciones | `D3_pr_05A.csv` y `.png` | PENDIENTE DE CSV |
+| Régimen a 1,0 A pico | Los mismos datos y condiciones | `D3_pr_10A.csv` y `.png` | PENDIENTE DE CSV |
+| Cambios 0,2→0,5 y 0,5→1,0 A | Consigna, rampa, corriente, tensión, PWM, sobrepico y establecimiento | `D4_escalon_*.csv` | PENDIENTE DE CSV |
+| R total 9→12 Ω a 0,5 A pico | R externa 8→11 Ω, L constante, transitorio y régimen posterior | `D5_cambio_r.csv` | PENDIENTE DE CSV |
+| Falla | Causa, muestras, enclavamiento y latencia hasta apagado | `D6_falla.*` | PENDIENTE |
 
-El equipo documentó pruebas preliminares sin bus, pero no se localizaron capturas suficientes para completar estas filas con trazabilidad. Esto no significa que no haya realizado ninguna prueba; significa que el informe todavía necesita incorporar su evidencia verificable.
+Cuando lleguen los CSV, cada uno se procesa con `octave --eval "addpath('potencia'); analizar_csv('docs/informe/mediciones/archivo.csv')"`. El script ajusta seno, coseno y continua sobre los últimos períodos completos (mínimo cinco), imprime la fila de la tabla siguiente y guarda la gráfica junto al CSV.
 
-### 12.9 Estado de PLECS
+Tabla de resultados de banco, a completar con la salida de `analizar_csv.m`. El rizado se mide con osciloscopio, no sale del CSV.
+
+| Archivo | Períodos | Ref pico (A) | Medida pico (A) | Error (%) | Fase (°) | Continua (A) | Residuo RMS (A) | Rizado (A pp) |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| `D3_pr_02A.csv` | PENDIENTE DE CSV | | | | | | | |
+| `D3_pr_05A.csv` | PENDIENTE DE CSV | | | | | | | |
+| `D3_pr_10A.csv` | PENDIENTE DE CSV | | | | | | | |
+
+Figuras de banco que se insertan aquí cuando existan, cada una con su pie de figura, bus, carga y commit de `sw/`.
+
+- Figura 6, corriente medida contra referencia a 0,2, 0,5 y 1,0 A pico (`figuras/banco_regimen.png`). PENDIENTE DE CSV.
+- Figura 7, escalones de consigna y cambio de R (`figuras/banco_transitorios.png`). PENDIENTE DE CSV.
+- Figura 8, compuertas y tiempo muerto de 1 µs en el analizador lógico (`figuras/banco_compuertas.png`). PENDIENTE de captura.
+- Figura 9, JB1 de la ISR con período y jitter (`figuras/banco_isr.png`). PENDIENTE de captura.
+
+Las celdas pendientes se llenan con los CSV y capturas del equipo, sin sustituirlas por valores calculados. Los procedimientos y criterios de cada código están en `docs/guia_mediciones.md`.
+
+### 12.9 Simulación conmutada y sensibilidades en Octave
+
+Con `potencia/simular_conmutado.m` se simuló el lazo cerrado completo con puente H unipolar a 20 kHz, tiempo muerto de 1 µs con conducción por diodo según el signo de la corriente, carga de 9 Ω y 200 µH, bus de 18 V, paso de 0,5 µs, muestra en el valle, orden aplicada en el valle siguiente, PR con los coeficientes del firmware y ADC cuantizado a 1,1118 mA por cuenta. Cada caso dura 0,5 s y la ventana de análisis es `[0,4; 0,5)` s, cinco períodos. La salida completa está en `evidencia/modelo_conmutado.txt`. No incluye el filtro del sensor ni retardos de drivers, y el diodo se toma ideal.
+
+| Caso | Fundamental física (A pico) | Error físico (%) | Fase (°) | Fundamental muestreada (A pico) | Rizado máximo (A pp) |
+|---|---:|---:|---:|---:|---:|
+| 0,2 A | 0,2058 | 2,88 | 0,72 | 0,2000 | 0,268 |
+| 0,5 A | 0,5137 | 2,74 | 0,63 | 0,5000 | 0,483 |
+| 1,0 A | 1,0195 | 1,95 | 0,62 | 0,9999 | 0,597 |
+| 0,2 a 0,5 A, régimen | 0,5137 | 2,74 | 0,64 | 0,5000 | 0,483 |
+| 0,5 a 1,0 A, régimen | 1,0196 | 1,96 | 0,62 | 1,0000 | 0,597 |
+| R +33 %, 0,5 A | 0,5272 | 5,44 | 0,68 | 0,5000 | 0,528 |
+| Esquina R −25 %, 1,0 A | 1,0094 | 0,94 | 0,59 | 1,0000 | 0,589 |
+| Esquina R +25 %, 1,0 A | 1,0278 | 2,78 | 0,64 | 1,0000 | 0,579 |
+
+![Corriente conmutada a 0,5 A pico](figuras/conmutado_05A.png)
+
+*Figura 5. Simulación conmutada a 0,5 A pico. Arriba cuatro períodos de 50 Hz, abajo medio milisegundo con el rizado de conmutación.*
+
+Lo que muestran estas cifras es lo siguiente.
+- El PR hace que la corriente muestreada en el valle coincida con la referencia (error menor a 0,02 %), pero la corriente promedio física queda entre 1 y 5 % por encima. La muestra en el valle no coincide con el promedio del período porque con `τ = 22 µs` la corriente cambia dentro del período de conmutación. Con el resultado dentro del 10 % del enunciado en todos los casos simulados, este sesgo es la principal diferencia que hay que buscar al comparar el CSV con el osciloscopio.
+- El rizado conmutado simulado (0,27, 0,48 y 0,60 A pp) supera el límite de 0,20 A pp en los tres puntos. Es mayor que la predicción ideal de 12.6 (0,20, 0,41 y 0,55) porque incluye tiempo muerto y la variación dentro de la ventana. Confirma que el incumplimiento previsto no es un artefacto de la fórmula.
+- El tiempo muerto de 1 µs desplaza 0,72 V del bus de 18 V. Sin lazo cerrado, ese efecto baja la fundamental 51 % a 0,2 A, 24 % a 0,5 A y 14 % a 1,0 A (`evidencia/verificar_pr.log`), por lo que el resonante es necesario y no un refinamiento.
+- El cambio de R a 12 Ω eleva el error físico a 5,4 %, todavía bajo 10 %.
+
+Sensibilidades del modelo continuo, de `verificar_pr.m` (`evidencia/verificar_pr.log`).
+
+| Variante | Cruce | Margen de fase | Margen de ganancia |
+|---|---:|---:|---:|
+| Nominal, retardo de 75 µs | 216 Hz | 112,4° | 7,8 dB |
+| Retardo total de 100 µs | 216 Hz | 110,5° | 7,2 dB |
+| Retardo total de 125 µs | 216 Hz | 108,6° | 6,8 dB |
+| Retardo total de 150 µs | 216 Hz | 106,6° | 6,6 dB |
+| RC de 4,8 kHz, nominal | 215 Hz | 109,8° | 9,4 dB |
+| RC de 4,8 kHz, esquina baja de L y R | 322 Hz | 116,7° | 6,8 dB |
+| RC de 3 kHz, nominal | 215 Hz | 108,3° | 10,8 dB |
+| RC de 2 kHz, nominal | 214 Hz | 106,2° | 12,6 dB |
+| Butterworth de 5 kHz, esquina | 324 Hz | 115,4° | 5,0 dB |
+
+Con retardo adicional, el margen de ganancia llega a 6 dB solo cuando se suman 203 µs y el de fase a 45° cuando se suman 400 µs, así que el lazo tolera con holgura los 75 µs supuestos y el filtro RC del sensor. Un filtro más cerrado mejora el margen de ganancia y casi no cuesta fase. La acción resonante con `Kr = 10000` tiene polo de módulo 0,9915 y constante de tiempo de 5,9 ms. Con `Kr = 3000` el error del primer período tras un escalón de 0,2 a 1,0 A sube a 22 %, contra 7 % con 10000. En el escalón de 0,2 a 1,0 A el pico es 1,034 A y el índice de modulación máximo 0,52 con 18 V y 0,64 con R de 11,25 Ω.
+
+La sensibilidad al punto de captura se calculó con `aliasing_pr.m` (`evidencia/aliasing_pr.log`) como el error de la fundamental según dónde cae la muestra.
+
+| Punto de captura | Error a 1,0 A (%) | Error a 0,2 A (%) |
+|---|---:|---:|
+| Valle | 4,23 | 5,31 |
+| Valle +200 ns | 5,16 | 6,26 |
+| Valle −200 ns | 3,32 | 4,36 |
+| Pico | 4,24 | sin dato |
+| Centro del pulso −200 ns | −3,28 | 1,33 |
+| Centro del pulso +200 ns | −6,04 | −18,07 |
+| Flanco del pulso | 27,43 | sin dato |
+
+El valle es un punto estable (el error cambia 1 punto porcentual por cada 200 ns), mientras que cerca del flanco o del centro del pulso un desvío de 200 ns pasa de 1 a −18 % a 0,2 A. Esto justifica muestrear en el valle y mantener fija la fase entre el disparo y la portadora.
+
+### 12.10 Carga medida de 9,6 Ω y bus de 12 V
+
+El equipo midió una resistencia total de aproximadamente 9,6 Ω con 200 µH y planteó operar a 12 V. Todo lo anterior de este capítulo se calculó para la carga de diseño (9 Ω y 18 V), así que se repitieron los scripts con estos valores (`verificar_pr(9.6, 200e-6, 12, 4.5)`, `aliasing_pr`, `figuras_informe` y `simular_conmutado(9.6, 200e-6, 12, 12)`). Las salidas llevan el sufijo `_9p6ohm_12V` en `evidencia/`. Se mantienen `Kp = 4,5 V/A` y `Kr = 10000`, y el modelo supone coeficientes normalizados con 12 V. Las cifras son nominales, hasta tener la R, L y Vdc medidas en banco.
+
+| Magnitud | Valor |
+|---|---:|
+| Módulo de impedancia a 50 Hz | 9,60 Ω |
+| Índice de modulación para 0,2 / 0,5 / 1,0 A pico | 0,160 / 0,400 / 0,800 |
+| Cruce, margen de fase y de ganancia nominales | 200 Hz, 111,0°, 8,2 dB |
+| Esquinas de R ±25 % y L ±30 %, peor margen de ganancia | 5,6 dB (R de 7,2 Ω, L de 140 µH) |
+| Esquinas, peor margen de fase | 106,5° |
+| Con RC de 4,8 kHz, nominal y esquina baja | 108,6° y 9,9 dB, 115,2° y 7,3 dB |
+| Pérdida de tensión por tiempo muerto | 0,48 V |
+| Fundamental en lazo abierto a 0,2 / 0,5 / 1,0 A | −35 % / −16 % / −10 % |
+| Pico del escalón de 0,2 a 1,0 A | 1,034 A |
+| Índice máximo en ese escalón | 0,82 (1,02 con R de 12 Ω) |
+
+Simulación conmutada con las mismas condiciones del apartado 12.9.
+
+| Caso | Fundamental física (A pico) | Error físico (%) | Fase (°) | Fundamental muestreada (A pico) | Rizado máximo (A pp) | Saturación |
+|---|---:|---:|---:|---:|---:|---|
+| 0,2 A | 0,2069 | 3,46 | 0,67 | 0,2000 | 0,258 | No |
+| 0,5 A | 0,5142 | 2,83 | 0,64 | 0,5000 | 0,388 | No |
+| 1,0 A | 1,0061 | 0,61 | 0,61 | 1,0000 | 0,395 | No |
+| R de 9,6 a 12,8 Ω, 0,5 A | 0,5241 | 4,83 | 0,67 | 0,5000 | 0,378 | No |
+| Esquina R de 7,2 Ω, 1,0 A | 1,0063 | 0,63 | 0,58 | 1,0000 | 0,408 | No |
+| Esquina R de 12 Ω, 1,0 A | 0,9087 | 9,13 | 9,25 | 0,9040 | 0,382 | Sí |
+
+Lo que cambia con esta carga es lo siguiente.
+- A 12 V el índice de modulación a 1,0 A es 0,80, y el límite de 0,92 del firmware solo permite 11,04 Ω a esa corriente. Con la R en la esquina alta de 12 Ω el PR satura, el error físico sube a 9,1 % (11,3 % si se dejan los coeficientes normalizados con 18 V) y la fase se desvía 9°. Queda al borde del límite de 10 % y se cumple solo por muy poco, así que 12 V no deja margen para 1 A con R mayor de 11 Ω.
+- A 12 V y 20 kHz el rizado ideal es 0,198, 0,350 y 0,364 A pp, y el conmutado 0,26, 0,39 y 0,40 A pp. Es menor que a 18 V, pero sigue sobre 0,20 A pp. Con 40 kHz la predicción ideal baja a 0,100, 0,179 y 0,186 A pp, que cumple el límite. A 18 V y 40 kHz queda en 0,107, 0,219 y 0,279 A pp y no cumple.
+- En banco, la columna `saturado` del CSV (bit 15 del registro) delata este caso. Debe aparecer primero con 1,0 A y R alta.
+- Los coeficientes de `sw/pr_params.h` están normalizados con 18 V. Si el bus final es 12 V se deben regenerar con `sw/generar_pr_params.m` (`KP = 0,375` y `B0 = 0,0208325`). La simulación con los coeficientes de 18 V a 12 V da prácticamente los mismos resultados, salvo en el caso saturado, porque la ganancia física baja a 3 V/A.
+- La sensibilidad a la captura en el valle (`aliasing_pr_9p6ohm_12V.log`) da 2,95 % a 1,0 A y 5,97 % a 0,2 A, y a 0,2 A una captura 200 ns después del centro del pulso da −14,95 %. El valle sigue siendo el punto estable.
+
+### 12.11 Estado de PLECS
 
 Los archivos de la rama `doc/plecs-carga-nueva` contienen validación en lazo abierto para la carga anterior de 12 Ω y 30 mH, bus de 18 V, 20 kHz y tiempo muerto de 1 µs. Para órdenes asociadas a 0,2, 0,5 y 1 A pico se archivaron fundamentales de 0,1423, 0,4403 y 0,9314 A pico, y rizados del orden de 1,7 a 4,0 mA pp. Esos resultados son históricos y no acreditan ni el PR cerrado ni la carga de 200 µH.
 
-La simulación pendiente debe usar 9 Ω y 200 µH, 18 V, modulación unipolar a 20 kHz y tiempo muerto de 1 µs. El PR será el de la sección 3.3, con saturación y anti-windup equivalentes al firmware. Se tomará la muestra en el valle y se aplicará la orden en el período siguiente. El RC de aproximadamente 4,8 kHz se modelará de forma separada si corresponde al sensor final; no se sumará dos veces el ZOH o el retardo.
+La validación conmutada de 12.9 se hizo en Octave. La simulación en PLECS con el modelo del repositorio sigue pendiente, y debe usar 9 Ω y 200 µH, 18 V, modulación unipolar a 20 kHz y tiempo muerto de 1 µs. El PR será el de la sección 3.3, con saturación y anti-windup equivalentes al firmware. Se tomará la muestra en el valle y se aplicará la orden en el período siguiente. El RC de aproximadamente 4,8 kHz se modelará de forma separada si corresponde al sensor final; no se sumará dos veces el ZOH o el retardo.
 
 Los ensayos incluirán los tres puntos nominales, los dos cambios de amplitud y el cambio de R total de 9 a 12 Ω a 0,5 A pico. Deben exportarse corriente física continua, corriente muestreada, referencia, tensión de carga y PWM. Se comparará la fundamental de la corriente física con la de las muestras, y se medirá el rizado de la primera. Se espera que PLECS permita contrastar el exceso de rizado previsto; hasta ejecutar y archivar esa simulación no se registra como un resultado observado.
 
@@ -757,8 +878,8 @@ Un filtro en la cadena de medida puede suavizar lo que ve el ADC, pero no reduce
 | Carga | 9 Ω y 200 µH nominales | Coherente con los parámetros actuales del software y diseño | PENDIENTE en frío/caliente y LCR |
 | PR | `Kp=4,5`, `Kr=10000`, `Ts=50 µs` | Coeficientes normalizados presentes en firmware | Tiempo de ejecución y desempeño: PENDIENTE |
 | Márgenes | 112,4° y 7,8 dB nominales en modelo continuo | Cálculo reproducido, sin filtro | Retardo/filtro reales: PENDIENTE |
-| Fundamental | Error final <0,001 % en modelo promediado ideal | No incluye conmutación ni calibración | PENDIENTE en tres puntos |
-| Rizado a 18 V | 0,20063 / 0,414 / 0,548 A pp | PLECS de la carga actual: PENDIENTE | PENDIENTE; no se declara cumplimiento |
+| Fundamental | Error final <0,001 % en modelo promediado ideal | Conmutado con tiempo muerto: 2,9 / 2,7 / 2,0 % de error físico, 0,01 % en la muestra | PENDIENTE DE CSV en tres puntos |
+| Rizado a 18 V | 0,20063 / 0,414 / 0,548 A pp | Octave conmutado: 0,268 / 0,483 / 0,597 A pp | PENDIENTE; no se declara cumplimiento |
 | Tiempo muerto | 1 µs solicitado | RTL nominal aprobado | Capturas completas: PENDIENTE |
 | Precarga | 70 µs solicitados | RTL nominal aprobado | Bootstrap real: PENDIENTE |
 | Valle→CONVST | 30 ns en lógica estacionaria | Diagnóstico RTL conjunto | Apertura y latencia analógica: PENDIENTE |
@@ -773,7 +894,7 @@ Un filtro en la cadena de medida puede suavizar lo que ve el ADC, pero no reduce
 | Simulación temporizada post-implementación | Pendiente. |
 | Memoria, procesador y periféricos | Diseño disponible; desviación de caché y reproducibilidad de construcción por resolver. |
 | PR, ecuación en diferencias y análisis de estabilidad | Documentados para la carga actual; falta validar con parámetros medidos. |
-| Validación previa en PLECS del control final | Pendiente. |
+| Validación previa en PLECS del control final | Hecha en Octave con modelo conmutado (12.9). PLECS con la carga nueva, pendiente. |
 | Error de fundamental y fase en banco | Pendiente para los tres puntos. |
 | Rizado ≤0,20 A pp | La predicción nominal actual indica exceso; requiere revisión y validación. |
 | Cambios de consigna y resistencia | Modelo promediado añadido; banco y modelo conmutado pendientes. |
@@ -791,6 +912,9 @@ Un filtro en la cadena de medida puede suavizar lo que ve el ADC, pero no reduce
 | Protocolo UART descrito sin referencia | Se incluyen los tres campos del registro y la referencia `i_ref_ma`. |
 | Extrapolación de pruebas de PC al tiempo real | Se separan pruebas lógicas, timing del circuito y medición de ISR. |
 | Rizado calculado superior al permitido | Se explicita el incumplimiento previsto; quedan pendientes redimensionamiento y contraste con PLECS/banco. |
+| Corriente con signo contrario en el CSV | La correlación entre duty y corriente dio −1 el 23 de noviembre. Se dejó `ADC_AMPERES_POR_CUENTA` negativo en lugar de rehacer el cableado del primario. |
+| Cero del sensor de 0,68 V en vez de 0,5 V | Se fijó `ADC_OFFSET_CUENTAS` en 2785 con la medición en J3 y se deja afinar con una captura a 0 A. |
+| Una sola luz de falla para todas las causas | `supervisor_falla` recuerda la causa que disparó primero y `control_principal` enciende un LED por causa. |
 | Reproducción incompleta desde una sola rama | Se identifican commits y dependencias de ramas en el anexo. No se declara una construcción completa verificada de Vivado/Vitis. |
 
 ## 15. Análisis crítico
@@ -808,7 +932,7 @@ La trazabilidad todavía requiere reunir las herramientas y documentos en la ram
 3. La simulación promediada confirma seguimiento estable en los casos ideales estudiados, pero no acredita el error de la corriente real. La calibración, el sesgo de muestreo y la validación conmutada son necesarios para contrastar ese resultado.
 4. La predicción de rizado a 18 V supera 0,20 A pp, claramente en 0,5 y 1,0 A pico. El sistema no puede declararse conforme al enunciado mientras no se resuelva y verifique este punto con la configuración final.
 5. La revisión de formas de onda corrigió dos interpretaciones del diseño: el valle interno precede a `CONVST` por 30 ns en la lógica ensayada, y el apagado puede truncar el último pulso. Describir la implementación a partir de lo observado resulta más fiable que inferir su comportamiento de los comentarios del código.
-6. Quedan pendientes la simulación temporizada, PLECS cerrado final, mediciones de ISR, calibración y ensayos energizados. El aprendizaje principal es mantener separados el modelo, la verificación digital y la medición física, actualizando los tres cuando cambia la carga.
+6. Quedan pendientes la simulación temporizada, PLECS cerrado final y los resultados de banco (ISR, calibración y ensayos energizados), que dependen de los CSV del equipo. Como mitigación del rizado, la predicción favorece 12 V con 40 kHz, a validar con PLECS y osciloscopio. El aprendizaje principal es mantener separados el modelo, la verificación digital y la medición física, actualizando los tres cuando cambia la carga.
 
 ## 17. Referencias
 
@@ -842,15 +966,14 @@ La trazabilidad todavía requiere reunir las herramientas y documentos en la ram
 
 | Contenido | Revisión consultada | Observación |
 |---|---|---|
-| RTL, firmware, BD y diseño del PR | `develop`: `0e87a9dcb4f63f0fe71ddc04db161d7660a8840a` | Base técnica actual. |
+| RTL, firmware, BD y diseño del PR | `develop`: `1c2655f` | Base técnica actual. Incluye `src/crear_proyecto.tcl` y `armar_vitis.py`. |
 | Informe original y reportes Vivado | `doc/informe`: `1add934e6c584c845e1c7d1912604a1ab2020904` | PR #67; resultados de potencia anteriores necesitan actualización. |
-| Script de creación Vivado | `feature/script-vivado`, [PR #65](https://github.com/Taller-de-diseno-digital-GR01/Proyecto-4-Regulador-PR/pull/65) | `src/crear_proyecto.tcl` no está en la base `develop` consultada. |
 | Modelo PLECS archivado | `doc/plecs-carga-nueva`, [PR #68](https://github.com/Taller-de-diseno-digital-GR01/Proyecto-4-Regulador-PR/pull/68) | Lazo abierto con 30 mH; no validación final. |
 | Informe PEDP en LaTeX/PDF | `feature/aliasing-carga-nueva`, [PR #72](https://github.com/Taller-de-diseno-digital-GR01/Proyecto-4-Regulador-PR/pull/72) | Debe reconciliarse con la carga actual; este archivo corrige el informe Markdown de Taller. |
 
 En la revisión consultada, `main` no reúne la implementación documentada. La entrega debe escoger una revisión integrada y actualizar esta tabla. Los archivos XSA o bitstream existentes no se atribuyen a una regeneración actual sin comprobar su procedencia.
 
-El Makefile depende de un script Vivado que está en otra rama, y sus dependencias de XSA/ELF no abarcan todos los fuentes relevantes. El script de Vitis aún contiene puntos pendientes de plantilla y configuración de BSP. Por tanto, las pruebas de PC no se presentan como una construcción reproducida del ELF final. Antes de la entrega se debe completar el flujo, enlazar, revisar el mapa de memoria y registrar las versiones exactas de herramientas, aplicación y hardware.
+El flujo de construcción usa `src/crear_proyecto.tcl` para Vivado y `armar_vitis.py` con `programar_vitis.tcl` para Vitis 2026.1, que ya se probaron en la máquina del equipo. Esta revisión no regeneró el bitstream ni el ELF, así que los reportes de la sección 12.7 siguen siendo los del 11 de noviembre. Las pruebas de PC no sustituyen la ejecución del ELF en la placa.
 
 ### 18.2 Autochequeos funcionales
 
@@ -905,15 +1028,16 @@ El banco actual utiliza los puertos públicos del periférico y un modelo de ref
 
 ### 18.4 Cálculos y gráficos de esta revisión
 
-Desde la raíz del repositorio, después de copiar los archivos de esta entrega:
+Desde la raíz del repositorio, con Octave:
 
 ```bash
-python3 docs/informe/scripts/regenerar_resultados.py
+octave --eval "addpath('potencia'); verificar_pr"      # márgenes, escalones y filtros
+octave --eval "addpath('potencia'); aliasing_pr"       # aliasing del muestreo
+octave --eval "addpath('potencia'); figuras_informe"   # figuras 2 a 4 y modelo promediado
+octave --eval "addpath('potencia'); simular_conmutado"  # figura 5 y 12.9, acepta R, L y Vdc medidos, tarda unos 80 s
 ```
 
-El script requiere NumPy, SciPy y Matplotlib. Genera las tres figuras nuevas, seis CSV del modelo promediado y `evidencia/resultados_numericos.json`, con parámetros y versiones de bibliotecas. La ejecución archivada utiliza Python 3.12.14, NumPy 2.3.5, SciPy 1.17.0 y Matplotlib 3.10.8. `ejecucion_calculos.log` conserva su salida.
-
-Los archivos `potencia/verificar_pr.m`, `potencia/aliasing_pr.m` y `sw/generar_pr_params.m` son las herramientas de diseño del repositorio. Su presencia no se confunde con haber ejecutado Octave durante esta revisión. La reproducción Python añadida es complementaria y declara sus propias hipótesis.
+Las salidas de esta revisión están en `evidencia/verificar_pr.log`, `aliasing_pr.log` y `modelo_promediado.txt` y `modelo_conmutado.txt`. `sw/generar_pr_params.m` genera los coeficientes de `sw/pr_params.h`. Toda la matemática de diseño está en Octave, en el mismo repositorio.
 
 ### 18.5 Archivos de evidencia incluidos y pendientes
 
@@ -921,11 +1045,10 @@ Los archivos `potencia/verificar_pr.m`, `potencia/aliasing_pr.m` y `sw/generar_p
 |---|---|
 | `evidencia/pwm_rapido.log` y `pwm_nominal.log` | Resultados de los 23 grupos de autochequeo. |
 | `evidencia/xadc.log` | Prueba de la envoltura con modelo del convertidor. |
-| `evidencia/prueba_*.log` y `resumen_c.json` | Resultados de las siete pruebas C. |
-| `evidencia/python.log` | Doce pruebas del receptor. |
-| `evidencia/diagnostico.log` y `diagnostico_latencia_apagado.sv` | Diagnóstico de disparo y último pulso. |
-| `evidencia/resultados_numericos.json` y `modelo_*.csv` | Márgenes, rizado y simulaciones promediadas actuales. |
+| `evidencia/prueba_*.log` | Resultados de las siete pruebas C, todas con 0 errores. |
+| `evidencia/python.log` | Trece pruebas del receptor, todas aprobadas. |
+| `evidencia/verificar_pr.log`, `aliasing_pr.log`, `modelo_promediado.txt` | Márgenes, aliasing, rizado ideal y modelo promediado, salida de Octave. |
 | `reportes/timing.rpt`, `utilizacion.rpt`, `utilizacion_jerarquica.rpt` | Copias de los reportes originales de Vivado, sin modificar sus advertencias. |
-| `mediciones/PLANTILLA_RESULTADOS.csv` | Tabla vacía para completar con datos reales y vínculos a capturas. No contiene resultados experimentales. |
+| `mediciones/PLANTILLA_RESULTADOS.csv` | Tabla vacía con las columnas de cada ensayo. Aquí van los CSV y capturas de banco. |
 
 Para cada futuro ensayo se guardarán fecha, operador, revisión de hardware/software, instrumentos, sondas, R/L medidas, bus, consigna, frecuencia, tiempo muerto, filtro, configuración ADC, archivos crudos y procedimiento de procesamiento. Las capturas deben mostrar escalas y etiquetas. Los criterios se evaluarán contra esos datos y se actualizarán las conclusiones; no se reemplazan los pendientes por expectativas calculadas.
