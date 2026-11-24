@@ -96,6 +96,12 @@ class FundamentalTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             receptor_pc.analizar(m)
 
+    def test_referencia_en_cero(self):
+        _, m = receptor_pc.desempacar(armar(senoidal(2048, 0.0, 0, ref_ma=0))) # como al exportar con el control apagado
+        r = receptor_pc.analizar(m)
+        self.assertTrue(np.isnan(r["error_amplitud_pct"]) and np.isnan(r["desfase_grados"]) and np.isnan(r["error_fasor_pct"]))
+        receptor_pc.reportar(r)
+
     def test_avisa_si_hay_falla_en_la_ventana(self):
         registros = senoidal(2048, 0.5, 0)
         registros[-1] = (registros[-1][0] | 1 << 12, 0, registros[-1][2]) # falla en la última muestra

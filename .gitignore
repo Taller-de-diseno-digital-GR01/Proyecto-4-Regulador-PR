@@ -25,7 +25,7 @@ sw/.venv/
 # Intermedios del ensamblado (sw/ensamblar.sh). El .hex de la ROM si se versiona.
 sw/build/
 
-# El Block Design exportado si se versiona, es lo que regenera el proyecto
+# El Block Design exportado y el script que crea el proyecto sí se versionan
 !src/bd/*.tcl
 !src/crear_proyecto.tcl
 !src/programar_vitis.tcl
@@ -34,3 +34,25 @@ sw/build/
 vivado/
 vitis/
 *.str
+
+# Salidas de simulación de LTspice, se regeneran desde el .asc
+*.raw
+*.net
+
+# Intermedios de LaTeX
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.out
+*.run.xml
+*.thm
+*.synctex.gz
+
+# Proyecto de Vivado local fuera de vivado/
+project_4_PR/
+
+# Mapa de memoria que genera Vivado al implementar
+*.mmi
+# Formas de onda que escribe potencia/sim/lazo_cerrado.py, unos 5 MB cada una, se regeneran con el script
+potencia/sim/lazo_cerrado_*.csv

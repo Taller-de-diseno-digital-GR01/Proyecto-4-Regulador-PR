@@ -1,0 +1,70 @@
+function generar_pr_params(varargin)
+  escalar = @(x) isnumeric(x) && isscalar(x);
+  p = inputParser; % lo mas parecido a argparse que hay en matlab y octave
+  p.FunctionName = 'generar_pr_params';
+  p.addParameter('estructura', '', @ischar);
+  p.addParameter('metodo', '', @ischar);
+  p.addParameter('kp', [], escalar);
+  p.addParameter('kr', [], escalar);
+  p.addParameter('amortiguamiento', [], escalar);
+  p.addParameter('vdc', [], escalar);
+  p.addParameter('fs', [], @(x) escalar(x) && x > 0 && x == round(x)); % entero porque va como 20000u al .h
+  p.addParameter('u_max', [], escalar);
+  p.addParameter('salida', fullfile(fileparts(mfilename('fullpath')), 'pr_params.h'), @ischar); % por defecto al lado del script, en sw/
+  p.parse(varargin{:});
+  a = p.Results;
+
+  requeridos = {'estructura', 'metodo', 'kp', 'kr', 'vdc', 'fs', 'u_max'};
+  for k = 1:numel(requeridos) % inputParser no tiene requeridos por nombre, toca a mano
+    if isempty(a.(requeridos{k})) % [] es el default, o sea no lo pasaron
+      error('generar_pr_params:falta', 'falta el parámetro %s', requeridos{k});
+    end
+  end
+  estructura = validatestring(a.estructura, {'ideal', 'amortiguado'}); % tambien acepta 'ide' y similares
+  metodo = validatestring(a.metodo, {'tustin', 'tustin_prewarp', 'zoh', 'impulso'});
+  if strcmp(estructura, 'amortiguado') && isempty(a.amortiguamiento) % sin esto no hay polo amortiguado que calcular
+    error('generar_pr_params:falta', 'la estructura amortiguado necesita amortiguamiento');
+  end
+
+  coef = coeficientes_resonante(estructura, a.kr, a.fs, metodo, a.amortiguamiento);
+  escala = 1 / a.vdc; % el /Vdc va acá --> la ISR no divide
+  coef(1:3) = coef(1:3) * escala; % solo b0, b1, b2, los a no llevan Vdc
+  escribir_header(a.salida, a.fs, a.kp * escala, coef, a.u_max);
+end
+
+function coef = coeficientes_resonante(estructura, kr, fs, metodo, amortiguamiento)
+  w0 = 2 * pi * 50; % 50 Hz de la referencia
+  theta = w0 / fs; % w0*Ts
+  if strcmp(estructura, 'ideal') && strcmp(metodo, 'tustin_prewarp') % lo unico acordado con PEDP por ahora
+    b0 = kr * sin(theta) / (2 * w0); % ver potencia/diseno_pr.md, Discretización
+    coef = [b0, 0, -b0, -2 * cos(theta), 1]; % a1 = -2cos(theta) deja el polo justo en 50 Hz
+    return; % pa no caer en el error de abajo
+  end
+  % TODO: Revisar con PEDP si hace falta otra combinación, solo la ideal con tustin_prewarp está acordada
+  error('generar_pr_params:sin_definir', 'resonante %s con %s sin definir', estructura, metodo);
+end
+
+function escribir_header(ruta, fs, kp, coef, u_max)
+  f = fopen(ruta, 'w');
+  if f < 0 % fopen no tira error solo, devuelve -1
+    error('generar_pr_params:salida', 'no se pudo abrir %s', ruta);
+  end
+  fprintf(f, '// Generado por sw/generar_pr_params.m, no editar a mano\n');
+  fprintf(f, '#ifndef PR_PARAMS_H\n#define PR_PARAMS_H\n\n#include "numerico.h"\n\n');
+  fprintf(f, '#define PR_FRECUENCIA_MUESTREO_HZ %du\n', fs); % la u porque el Timer y la cabecera lo usan como uint32
+  nombres = {'PR_KP', 'PR_B0', 'PR_B1', 'PR_B2', 'PR_A1', 'PR_A2', 'PR_U_MAX'};
+  valores = [kp, coef, u_max]; % mismo orden que nombres
+  for k = 1:numel(nombres) % un #define por coeficiente
+    fprintf(f, '#define %s VALOR(%s)\n', nombres{k}, literal_float(valores(k)));
+  end
+  fprintf(f, '\n#endif\n');
+  fclose(f);
+end
+
+function s = literal_float(x)
+  s = sprintf('%.9g', x); % con 9 cifras alcanza pal float, con %.17g el 0.98 sale 0.97999...
+  if ~any(s == '.' | s == 'e') % 1f o 0f no compilan en C, hace falta el punto
+    s = [s '.0'];
+  end
+  s = [s 'f']; % literal float, el MB V no tiene que pasar por double
+end

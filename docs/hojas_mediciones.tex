@@ -1,0 +1,270 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[landscape,margin=1.4cm,top=1.6cm,bottom=1.6cm]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish]{babel}
+\usepackage{lmodern}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\usepackage[table]{xcolor}
+
+\definecolor{cab}{gray}{0.9}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{4pt}
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.9}
+\setlist{nosep,leftmargin=1.2em}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Proyecto 4, hojas de registro de mediciones}
+\rhead{Fecha \rule{2.5cm}{0.3pt}\quad Operó \rule{2.5cm}{0.3pt}\quad Anotó \rule{2.5cm}{0.3pt}}
+\cfoot{\thepage}
+\renewcommand{\headrulewidth}{0.3pt}
+
+% columnas de las tablas principales
+\newcolumntype{C}{>{\raggedright\arraybackslash}p{1.2cm}}
+\newcolumntype{Q}{>{\raggedright\arraybackslash}p{5.2cm}}
+\newcolumntype{D}{>{\raggedright\arraybackslash}p{4.8cm}}
+\newcolumntype{I}{>{\raggedright\arraybackslash}p{5.6cm}}
+\newcolumntype{E}{>{\raggedright\arraybackslash}p{3.8cm}}
+\newcolumntype{M}{p{3.4cm}}
+
+\newcommand{\cabecera}[1]{\rowcolor{cab}#1}
+\newcommand{\n}[1]{\texttt{#1}}
+
+\begin{document}
+
+\begin{center}
+{\LARGE Hojas de registro de mediciones}\\[2pt]
+{\large Proyecto 4, inversor monofásico con regulador PR}
+\end{center}
+
+Una fila por medida. La columna \emph{Medido} queda en blanco para llenarla en el laboratorio, y de ahí salen los \n{PENDIENTE} de la sección 12.8 del informe. El procedimiento de cada código está en \n{docs/guia\_mediciones.md}. Cada captura se guarda en \n{docs/informe/mediciones/} como \n{AAAA-MM-DD\_codigo\_descripcion}.
+
+\vspace{2pt}
+\begin{tabular}{@{}p{4.6cm}p{4.6cm}p{4.6cm}p{4.6cm}p{4.6cm}@{}}
+$V_{dc}$ de la sesión \rule{2cm}{0.3pt} V & $R_{tot}$ \rule{2cm}{0.3pt} $\Omega$ & $L_{tot}$ \rule{2cm}{0.3pt} $\mu$H & \n{freq\_sel} \rule{1.5cm}{0.3pt} & commit de \n{sw/} \rule{2.5cm}{0.3pt}
+\end{tabular}
+
+\subsection*{Nombres que se usan}
+\begin{itemize}
+  \item $N$ es la tierra de potencia y $GND_B$ la tierra de la Basys 3 (JA11). Nunca se unen.
+  \item $A$ y $B$ son los puntos medios de las dos piernas y la carga va entre los dos. $R_c$ es la resistencia externa de 8 $\Omega$, $L_1$ y $L_2$ los inductores.
+  \item $T_{A+}$, $T_{A-}$, $T_{B+}$, $T_{B-}$ son los IRF520N. Sus compuertas vienen de $U_1$ a $U_4$ (VO3120) y de $U_5$ y $U_6$ (IR2110).
+  \item Del sensor, $V_{sens}$ es la salida del ACS712, $V_m$ el nodo entre $R_2$ y $R_3$, $V_o$ la salida de $U_1$ (AD822) antes de $R_4$, y $V_{out}$ el nodo después del RC ($R_4$ y $C_1$), que es el pin J3 del JXADC.
+  \item Las sondas de las compuertas altas flotan. La tierra de la sonda nunca va a $A$ ni a $B$. Se usa sonda diferencial o se mide del lado de la FPGA.
+\end{itemize}
+
+\clearpage
+\section*{Tabla 0, carga y fuentes (etapa 0)}
+\begin{longtable}{CQDIEM}
+\cabecera{Cód. & Qué se mide & Entre qué puntos & Instrumento y cómo & Esperado & Medido} \endhead
+0.1a & $R_{Rc}$, resistencia de la externa sola & Bornes de $R_c$ & Multímetro, cuatro hilos & 8 $\Omega$ & \\ \hline
+0.1b & $R_{L1}$ y $R_{L2}$, resistencia DC de cada inductor & Bornes de cada uno & Multímetro, cuatro hilos & unos 0,5 $\Omega$ cada uno & \\ \hline
+0.1c & $R_{tot}$ en frío & $A$ a $B$, todo apagado y sin Vdc & Multímetro, cuatro hilos & 9 $\Omega$, límite $\pm$25 \% & \\ \hline
+0.1d & $R_{tot}$ en caliente & $A$ a $B$, tras 5 min a 0,5 A & Multímetro, se anota el tiempo & algo más que en frío & \\ \hline
+0.2a & $L_{tot}$ & $A$ a $B$, sin $R_c$ & LCR en serie a 1 kHz & 200 $\mu$H, límite $\pm$30 \% & \\ \hline
+0.2b & $L_1$ y $L_2$ por separado & Bornes de cada uno & LCR a 1 kHz & 100 $\mu$H cada uno & \\ \hline
+0.3a & $V_{dc}$ con la carga conectada & $+V_{dc}$ a $N$ & Multímetro, con el ensayo corriendo & 12 o 18 V & \\ \hline
+0.3b & $V_{15}$, riel del lado del puente & $+15$ V a $N$ & Multímetro & 15 V & \\ \hline
+0.3c & $V_{CC,s}$, alimentación del ACS712 & \n{V\_ccs} a tierra del sensor & Multímetro & 5,0 V & \\ \hline
+0.3d & Alimentación del AD822 & \n{Vcc\_opamp} a tierra & Multímetro & la que se haya puesto & \\ \hline
+0.3e & Corriente de la fuente con el puente deshabilitado & Pantalla de la fuente & Se lee en la fuente & casi 0 & \\ \hline
+\end{longtable}
+
+\section*{Tabla A, sensor y ADC (etapa A, potencia apagada)}
+\begin{longtable}{CQDIEM}
+\cabecera{Cód. & Qué se mide & Dónde & Instrumento y cómo & Esperado & Medido} \endhead
+A1a & $V_{sens}$ con 0 A & Salida del ACS712 a su tierra & Multímetro & $V_{CC,s}/2$, 2,5 V & \\ \hline
+A1b & $V_{out}$ con 0 A & J3 a su tierra (JXADC pines 1 y 7) & Multímetro & 0,68 V medido el 23/11, 0,5 V de diseño & \\ \hline
+A1c & Media de cuentas con 0 A & CSV exportado, 2048 muestras & \n{receptor\_pc}, se pasa a cuentas & 2785 $\pm$102 & \\ \hline
+A1d & Desviación estándar y pico a pico de las cuentas & Mismo CSV & \n{receptor\_pc} & pico a pico menor a 108 cuentas & \\ \hline
+A2 & Pendiente en cuentas por ampere & Subtabla de puntos & Fuente en continua y multímetro en serie, mínimos cuadrados & 900 cuentas/A en valor absoluto & \\ \hline
+A3 & Ruido con el puente habilitado y sin carga & CSV exportado & \n{receptor\_pc}, se compara con A1d & se anota la diferencia & \\ \hline
+A4 & Retardo del RC ($R_4$ y $C_1$) & Senoidal de 1 kHz en $V_o$, se mide en $V_{out}$ & Osciloscopio, desfase entre los dos & 33 $\mu$s, corte en 4823 Hz & \\ \hline
+A5 & Ganancia del restador & $V_o$ contra $V_{sens}$ con la corriente de A2 & Multímetro en los dos nodos, pendiente de $V_o$ sobre la de $V_{sens}$ & 1,2 de ganancia real & \\ \hline
+\end{longtable}
+
+Puntos de A2. $R_c$ en serie con el primario del ACS712, fuente en continua y multímetro en serie como referencia. Se invierte la polaridad para los negativos y no se pasa de 0,5 A porque la resistencia es de 5 W.
+
+\begin{longtable}{p{3cm}p{5cm}p{5cm}p{5.5cm}p{5.5cm}}
+\cabecera{Punto & $I$ del multímetro (A) & $V_{sens}$ (V) & $V_{out}$ en J3 (V) & Cuentas, media exportada} \endhead
+1 & $-0{,}5$ & & & \\ \hline
+2 & $-0{,}2$ & & & \\ \hline
+3 & 0 & & & \\ \hline
+4 & $+0{,}2$ & & & \\ \hline
+5 & $+0{,}5$ & & & \\ \hline
+\end{longtable}
+
+\clearpage
+\section*{Tabla B, compuertas con la potencia apagada (etapa B)}
+Sin $V_{dc}$. Las cuatro compuertas se miden del lado de la FPGA en el Pmod JA (referencia $GND_B$) y, con sonda diferencial, en el MOSFET.
+
+\begin{longtable}{CQDIEM}
+\cabecera{Cód. & Qué se mide & Dónde & Instrumento y cómo & Esperado & Medido} \endhead
+B1a & Período de \n{compuerta\_a\_alta} & JA10 (G3) & Osciloscopio, período con estadística & 50,0 $\mu$s & \\ \hline
+B1b & Período de \n{compuerta\_a\_baja} & JA9 (H2) & Igual & 50,0 $\mu$s & \\ \hline
+B1c & Período de \n{compuerta\_b\_alta} & JA8 (K2) & Igual & 50,0 $\mu$s & \\ \hline
+B1d & Período de \n{compuerta\_b\_baja} & JA7 (H1) & Igual & 50,0 $\mu$s & \\ \hline
+B2a & Tiempo muerto pierna A, subida de la alta & JA10 contra JA9, puntos del 50 \% & Osciloscopio, disparo en la que baja & 1,00 $\mu$s & \\ \hline
+B2b & Tiempo muerto pierna A, bajada de la alta & JA10 contra JA9 & Igual & 1,00 $\mu$s & \\ \hline
+B2c & Tiempo muerto pierna B, subida de la alta & JA8 contra JA7 & Igual & 1,00 $\mu$s & \\ \hline
+B2d & Tiempo muerto pierna B, bajada de la alta & JA8 contra JA7 & Igual & 1,00 $\mu$s & \\ \hline
+B2e & Tiempo muerto en los MOSFET & $V_{GS}$ de $T_{A+}$ contra $V_{GS}$ de $T_{A-}$ & Dos sondas diferenciales, y se repite en B & entre 0,1 y 0,91 $\mu$s de diferencia con el Pmod & \\ \hline
+B3 & Conducción simultánea & JA10 contra JA9 y JA8 contra JA7 & Persistencia infinita 10 s, moviendo \n{duty\_ref} y \n{enable} y reiniciando & ninguna captura con las dos en alto & \\ \hline
+B4 & Diferencia entre los centros de los pulsos de las dos piernas & JA10 contra JA8 con \n{duty\_ref} distinto de 0 & Osciloscopio, cursores & 0 & \\ \hline
+B5 & Trigger en el valle & \n{pwm\_trigger\_o} contra JA10 & Osciloscopio, a \n{freq\_sel} 00, 01 y 10 & pulso de 10 ns en el valle & \\ \hline
+B6 & $V_B-V_S$ de cada IR2110 & Pin 6 a pin 5 de $U_5$ y de $U_6$ & Multímetro, con $V_{15}$ encendido y el puente habilitado & mayor que 10 V, unos 14 V & \\ \hline
+B7 & Rizado del riel de 15 V & $+15$ V a $N$ & Osciloscopio, acople AC, 20 MHz & unos pocos cientos de mV como mucho & \\ \hline
+\end{longtable}
+
+\section*{Tabla C, el lazo en tiempo real (etapa C, potencia apagada)}
+Canal 1 en JB1 (A14, el pin de la ISR) y canal 2 en \n{pwm\_trigger\_o}.
+
+\begin{longtable}{CQDIEM}
+\cabecera{Cód. & Qué se mide & Dónde & Instrumento y cómo & Esperado & Medido} \endhead
+C1a & Período de la ISR, lazo habilitado & JB1 & Flancos de subida, período con estadística & 50,0 $\mu$s & \\ \hline
+C1b & Jitter pico a pico de la ISR & JB1 & Persistencia en el mismo canal & se anota, sin límite fijo & \\ \hline
+C1c & Lo mismo mientras se exporta & JB1 & Se aprieta \n{BTN\_EXPORTAR} & igual que C1a y C1b & \\ \hline
+C2 & Ancho del pulso de JB1, peor caso & JB1 & Con el PR corriendo y con la falla enclavada & bastante menor que 50 $\mu$s & \\ \hline
+C3 & Tiempo entre \n{pwm\_trigger\_o} y la subida de JB1 & Canales 1 y 2 & 10 reinicios de la placa (subtabla) & el mismo valor en todos & \\ \hline
+C4 & Suma del retardo del lazo & C3 más el fin de la ISR al valle siguiente, más B2e, más A4 & Suma de lo medido & margen menor que 203 $\mu$s & \\ \hline
+\end{longtable}
+
+\begin{longtable}{p{3.2cm}*{10}{p{1.9cm}}}
+\cabecera{Reinicio & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 10} \endhead
+Tiempo ($\mu$s) & & & & & & & & & & \\ \hline
+\end{longtable}
+
+\clearpage
+\section*{Tabla D1, ensayo 1, seguimiento nominal a 50 Hz}
+Una hoja por amplitud (0,2, 0,5 y 1,0 A pico) con $V_{dc}$, $R_{tot}$ y $L_{tot}$ de la tabla 0 anotados arriba. Las capturas llevan cuatro canales.
+\begin{itemize}
+  \item CH1, $i_{carga}$ con la sonda de corriente, acople DC, guardada en CSV.
+  \item CH2, $V_{AB}$, tensión entre $A$ y $B$ con sonda diferencial.
+  \item CH3, $V_{Rc}$, tensión sobre $R_c$, para verificar la corriente con $I = V_{Rc}/R_{Rc}$.
+  \item CH4, JA10 (\n{compuerta\_a\_alta}), como evidencia de la señal PWM.
+  \item Además, la ventana exportada por UART (2048 muestras, 5,12 períodos) procesada con \n{receptor\_pc}.
+\end{itemize}
+
+\begin{longtable}{p{9.5cm}p{4.8cm}p{4.8cm}p{4.8cm}}
+\cabecera{Medida & 0,2 A & 0,5 A & 1,0 A} \endhead
+$I_{ref}$ pico (A) & & & \\ \hline
+$I_{fund}$ pico con \n{receptor\_pc} (A) & & & \\ \hline
+Error de amplitud de la fundamental (\%) & & & \\ \hline
+Desfase de la fundamental contra la referencia ($^\circ$) & & & \\ \hline
+$I_{fund}$ pico con la sonda del osciloscopio (A) & & & \\ \hline
+$I_{rms}$ (A) & & & \\ \hline
+$V_{AB}$ pico de la fundamental (V) & & & \\ \hline
+$V_{AB}$ rms (V) & & & \\ \hline
+$V_{Rc}$ pico (V) e $I$ calculada con $R_{Rc}$ (A) & & & \\ \hline
+Rizado de conmutación pico a pico (A), acople AC, 20 MHz & & & \\ \hline
+\n{duty\_ref} pico, del histórico & & & \\ \hline
+\n{saturado} presente (sí o no) & & & \\ \hline
+$V_{dc}$ real (V) & & & \\ \hline
+Corriente de la fuente (A) & & & \\ \hline
+Archivos de captura y de CSV & & & \\ \hline
+\end{longtable}
+
+Predicciones de rizado para comparar, con 200 $\mu$H a 20 kHz.
+
+\begin{longtable}{p{5cm}p{5cm}p{5cm}p{5cm}}
+\cabecera{$V_{dc}$ & 0,2 A & 0,5 A & 1,0 A} \endhead
+18 V & 0,20 A pp & 0,41 A pp & 0,55 A pp \\ \hline
+12 V & 0,19 A pp & 0,34 A pp & 0,37 A pp \\ \hline
+\end{longtable}
+
+\section*{Tabla D2, ensayo 2, cambios de amplitud}
+Disparo único por nivel de corriente, 10 períodos como mínimo, guardado en CSV. Una tabla por cambio. La rampa de 400 muestras hace que la amplitud suba durante 20 ms, y el criterio cuenta desde el segundo período.
+
+\textbf{Cambio de 0,2 a 0,5 A}\hfill
+
+\begin{longtable}{p{4.6cm}*{10}{p{1.85cm}}}
+\cabecera{Período tras el cambio & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 10} \endhead
+Amplitud pico (A) & & & & & & & & & & \\ \hline
+Error contra la referencia nueva (\%) & & & & & & & & & & \\ \hline
+\end{longtable}
+
+\textbf{Cambio de 0,5 a 1,0 A}\hfill
+
+\begin{longtable}{p{4.6cm}*{10}{p{1.85cm}}}
+\cabecera{Período tras el cambio & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 10} \endhead
+Amplitud pico (A) & & & & & & & & & & \\ \hline
+Error contra la referencia nueva (\%) & & & & & & & & & & \\ \hline
+\end{longtable}
+
+\begin{longtable}{p{9.5cm}p{4.8cm}p{4.8cm}p{4.8cm}}
+\cabecera{Medida & 0,2 a 0,5 A & 0,5 a 1,0 A & Esperado} \endhead
+Sobrepaso (A) & & & \\ \hline
+Tiempo hasta quedar dentro de 10 \% & & & menos de 10 \% desde el 2.º período \\ \hline
+Apareció \n{saturado} o una falla & & & no \\ \hline
+\end{longtable}
+
+\section*{Tabla D3, ensayo 3, cambio de resistencia a 0,5 A}
+Se agrega 3 $\Omega$ en serie con un interruptor en paralelo y se abre el interruptor con el lazo en régimen. Nunca se desconectan los inductores. La variación tiene que ser de al menos 25 \%.
+
+\begin{longtable}{p{9.5cm}p{7.2cm}p{7.2cm}}
+\cabecera{Medida & Antes & Después} \endhead
+$R_{tot}$ medida con el multímetro ($\Omega$) & & \\ \hline
+Variación respecto de la inicial (\%) & referencia & \\ \hline
+$V_{Rc}$ pico (V) & & \\ \hline
+$I_{fund}$ pico (A) & & \\ \hline
+Error de amplitud (\%) & & \\ \hline
+Desfase ($^\circ$) & & \\ \hline
+Rizado pico a pico (A) & & \\ \hline
+\n{duty\_ref} pico & & \\ \hline
+\end{longtable}
+
+Transitorio del cambio, empezando en el período del cambio, con la misma disposición de D2.
+
+\begin{longtable}{p{4.6cm}*{10}{p{1.85cm}}}
+\cabecera{Período & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 10} \endhead
+Amplitud pico (A) & & & & & & & & & & \\ \hline
+Error contra 0,5 A (\%) & & & & & & & & & & \\ \hline
+\end{longtable}
+
+\clearpage
+\section*{Tabla D4, comparación contra PLECS}
+Con \n{potencia/sim/modelo-planta.plecs} y los $R_{tot}$, $L_{tot}$ y $V_{dc}$ medidos, no los nominales.
+
+\begin{longtable}{p{3.4cm}p{5cm}p{3.2cm}p{3.2cm}p{3.2cm}p{5.4cm}}
+\cabecera{Ensayo & Magnitud & PLECS & Medido & Diferencia (\%) & Causa de la diferencia} \endhead
+0,2 A & $I_{fund}$ pico & & & & \\ \hline
+0,2 A & Desfase & & & & \\ \hline
+0,2 A & Rizado pp & & & & \\ \hline
+0,5 A & $I_{fund}$ pico & & & & \\ \hline
+0,5 A & Desfase & & & & \\ \hline
+0,5 A & Rizado pp & & & & \\ \hline
+1,0 A & $I_{fund}$ pico & & & & \\ \hline
+1,0 A & Desfase & & & & \\ \hline
+1,0 A & Rizado pp & & & & \\ \hline
+0,2 a 0,5 A & Tiempo de establecimiento & & & & \\ \hline
+0,5 a 1,0 A & Tiempo de establecimiento & & & & \\ \hline
+Cambio de $R$ & Error en el primer período & & & & \\ \hline
+\end{longtable}
+
+\section*{Tabla D5, falla, saturación y temperaturas}
+\begin{longtable}{CQDIEM}
+\cabecera{Cód. & Qué se mide & Dónde y cómo & Instrumento & Esperado & Medido} \endhead
+D6a & Tiempo desde que la corriente cruza el umbral hasta que las compuertas bajan & CH1 $i_{carga}$ y CH2 JA10, con el umbral bajo & Osciloscopio & hasta 100 $\mu$s & \\ \hline
+D6b & LED que se enciende & LD1 a LD4 & A ojo & el de la causa & \\ \hline
+D6c & Que no rearme solo & Se espera 10 s & A ojo y osciloscopio & sigue enclavada & \\ \hline
+D8 & Escalón de corriente al habilitar de nuevo & CH1 al apretar \n{BTN\_HABILITAR} en pleno ensayo & Osciloscopio & sin escalón & \\ \hline
+D9a & Temperatura de $T_{A+}$, $T_{A-}$, $T_{B+}$, $T_{B-}$ & Tras 5 min a 1,0 A, se anota el tiempo & Cámara térmica o termómetro & se anota & \\ \hline
+D9b & Temperatura de $R_c$ & Igual & Igual & unos 4 W disipados en 8 $\Omega$ & \\ \hline
+D9c & Temperatura de $L_1$ y $L_2$ & Igual & Igual & se anota & \\ \hline
+D9d & Temperatura del canal de 15 V y del fusible & Igual & Igual & se anota & \\ \hline
+D9e & $V_B-V_S$ de $U_5$ durante el ensayo a 1,0 A & Pin 6 a pin 5 & Multímetro & mayor que 10 V & \\ \hline
+\end{longtable}
+
+\section*{Notas de la sesión}
+\begin{itemize}
+  \item Qué falló, qué se cambió y en qué commit quedó corregido.
+\end{itemize}
+\vspace{5cm}
+
+\end{document}

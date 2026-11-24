@@ -15,7 +15,7 @@ Límites de seguridad.
 - Las sondas de las compuertas altas flotan. La tierra de la sonda nunca va a la salida de una pierna. Se usa sonda diferencial, o se mide del lado de la FPGA.
 
 Software que tiene que estar listo, y hoy no lo está del todo.
-- `ADC_AMPERES_POR_CUENTA` vale 8,138e-4 y el análisis de la sección 9.4 del informe espera 1,017e-3 si el banco quedó con el restador de ganancia 2,4. La etapa A dice cuál corresponde. Hasta cambiarla, las corrientes que muestra `receptor_pc` salen mal escaladas, y las cuentas crudas se recuperan con `cuenta = corriente_a / amperes_por_cuenta + offset` usando los valores de la cabecera.
+- `ADC_AMPERES_POR_CUENTA` vale -1,292e-3 (negativo porque la corriente entra al ACS712 al revés) y `ADC_OFFSET_CUENTAS` vale 2569, los dos calibrados contra el osciloscopio con el puente conmutando (registros del 23/11, ver la calibración del informe técnico de PEDP). El cero con el puente apagado se corre a unas 3300 cuentas, así que se mide conmutando con referencia nula. La etapa A confirma las dos. Si dan otra cosa, las corrientes que muestra `receptor_pc` salen mal escaladas, y las cuentas crudas se recuperan con `cuenta = corriente_a / amperes_por_cuenta + offset` usando los valores de la cabecera.
 - El ensayo D1 pide un `duty_ref` senoidal fijo sin PR, y en `sw/` no hay ese modo. Hay que decidir cómo se hace (por ejemplo una compilación aparte de `lazo_control.c`) antes de la sesión, o D1 se salta y se anota como no hecho.
 - Para D6 hace falta una compilación con `UMBRAL_SOBRECORRIENTE` temporalmente bajo, y volverlo a 1,3 A al terminar.
 
@@ -33,9 +33,9 @@ Cómo se guarda. Cada captura va a `docs/informe/mediciones/` con el nombre `AAA
 
 Potencia apagada para A1, A3 y A4. Sensor alimentado, Pmod del XADC conectado, firmware corriendo con el control deshabilitado. La portadora corre aunque `enable` esté en 0, y el trigger sigue llegando al XADC.
 
-A1 Cuenta del ADC con 0 A (parte de la fila de ADC en 12.8). Sin corriente en el primario del sensor, se deja correr unos segundos y se aprieta el botón de exportar. Con `receptor_pc`, se pasa el CSV a cuentas y se saca la media y la desviación de las 2048 muestras. Con el multímetro se mide también la salida del acondicionador en reposo, que tiene que ser `0,1·VCC`, 0,5 V con 5 V. Esperado 2048 cuentas, con ±102 si `VCC` se corre ±5 %. Se da por bueno si la media cae dentro de esa banda y coincide con el multímetro. Lo que dé se anota, aunque sea bueno, porque el software supone 2048 fijo.
+A1 Cuenta del ADC con 0 A (parte de la fila de ADC en 12.8). Sin corriente en el primario del sensor, se deja correr unos segundos y se aprieta el botón de exportar. Con `receptor_pc`, se pasa el CSV a cuentas y se saca la media y la desviación de las 2048 muestras. Con el multímetro se mide también la salida del acondicionador en reposo, que de diseño da `0,1·VCC`, 0,5 V con 5 V, y en el banco dio 0,68 V el 23/11. Esperado 2785 cuentas, con ±102 si `VCC` se corre ±5 %. Se da por bueno si la media cae dentro de esa banda y coincide con el multímetro. Lo que dé se anota, aunque sea bueno, porque el software supone 2785 fijo.
 
-A2 Ganancia del sensor de extremo a extremo (segunda parte de la fila de ADC en 12.8). Sin usar el puente. Fuente de laboratorio en continua, la resistencia externa de la carga en serie con el primario del ACS712 y el multímetro en serie como referencia de corriente. Se toman los puntos de -0,5, -0,2, 0, +0,2 y +0,5 A (se invierte la polaridad de la fuente para los negativos). Hay que parar en 0,5 A, que son 3 W en unas resistencias de 5 W. En cada punto se espera a que se estabilice, se exporta y se anota la media de cuentas con la corriente del multímetro. La pendiente por mínimos cuadrados da cuentas por ampere. Esperado 1/(1,017e-3) ≈ 983 cuentas por ampere si el restador es de ganancia 2,4 (0,24 V/A), y la mitad si quedó el del archivo de LTspice (0,12 V/A). La tolerancia de ±4 % del ACS712 es parte del resultado, y dentro de ella se da por buena. Con la pendiente se fija `ADC_AMPERES_POR_CUENTA`, y se anota la desviación contra lo que supone el software.
+A2 Ganancia del sensor de extremo a extremo (segunda parte de la fila de ADC en 12.8). Sin usar el puente. Fuente de laboratorio en continua, la resistencia externa de la carga en serie con el primario del ACS712 y el multímetro en serie como referencia de corriente. Se toman los puntos de -0,5, -0,2, 0, +0,2 y +0,5 A (se invierte la polaridad de la fuente para los negativos). Hay que parar en 0,5 A, que son 3 W en unas resistencias de 5 W. En cada punto se espera a que se estabilice, se exporta y se anota la media de cuentas con la corriente del multímetro. La pendiente por mínimos cuadrados da cuentas por ampere. Esperado 900 cuentas por ampere en valor absoluto (0,2196 V/A, que son los 183 mV/A del sensor por la ganancia real de 1,2 del restador, sobre 1 V entre 4096 cuentas), con signo negativo si la corriente entra al ACS712 al revés como pasó el 23/11. La tolerancia de ±4 % del ACS712 es parte del resultado, y dentro de ella se da por buena. Con la pendiente se fija `ADC_AMPERES_POR_CUENTA`, y se anota la desviación contra lo que supone el software.
 
 A3 Ruido del sensor. Sale de los mismos datos de A1, desviación y valor pico a pico en cuentas con corriente cero. La cota del análisis es de unas 108 cuentas pico a pico (0,11 A), y de lo que salga depende cuánto pesa en el ensayo de 0,2 A. Se anota también si el ruido cambia con el puente habilitado y sin carga, para ver cuánto aporta la conmutación (se hace en la etapa D, con tensión).
 
@@ -90,6 +90,189 @@ D7 Saturación. `saturado` no aparece en el histórico con 18 V y 1,0 A en régi
 D8 Deshabilitar y volver a habilitar a mitad de un ensayo. El primer período tras habilitar no trae un escalón de corriente, porque `duty_ref` y el PR arrancan en cero. Se ve en el osciloscopio.
 
 D9 Temperatura (fila de las temperaturas). Tras unos minutos a 1,0 A con 18 V, temperatura de los MOSFET, de la resistencia de la carga, de los dos inductores y de la fuente. Se anota el tiempo transcurrido. A 1,0 A pico la resistencia de 8 Ω disipa unos 4 W y cada inductor unos 0,25 W, más lo que pierda el núcleo con 0,55 A pp de rizado, y de ahí se compara con la potencia que aguantan.
+
+## Hojas de registro, qué medir en cada punto del circuito
+
+Estas tablas son para llenar en el laboratorio, una fila por medida. Los nombres de los nodos son los de `potencia/figuras/conexiones_puente.tex` (puente y compuertas) y `potencia/carga_RL-Sensor/circuito_acondicionador.asc` (sensor). La columna "medido" queda vacía a propósito, y de ahí salen los `PENDIENTE` de la sección 12.8 del informe.
+
+Nombres que se usan.
+- `N` es la tierra de potencia y `GND_B` la tierra de la Basys 3 (JA11). Nunca se unen.
+- `A` y `B` son los puntos medios de las dos piernas, y la carga va entre los dos. `Rc` es la resistencia externa de 8 Ω, `L1` y `L2` los inductores.
+- `T_A+`, `T_A-`, `T_B+`, `T_B-` son los IRF520N. Sus compuertas vienen de `U1` a `U4` (VO3120) y de `U5` y `U6` (IR2110).
+- Del sensor, `V_sens` es la salida del ACS712, `V_m` el nodo entre `R2` y `R3`, `V_o` la salida de `U1` (AD822) antes de `R4`, y `V_out` el nodo después del RC (`R4` y `C1`), que es el pin J3 del JXADC.
+
+### Tabla 0, carga y fuentes (etapa 0)
+
+| Código | Qué se mide | Entre qué puntos | Instrumento y cómo | Esperado | Medido |
+|---|---|---|---|---|---|
+| 0.1a | `R_Rc`, resistencia de la externa sola | Bornes de `Rc` | Multímetro, cuatro hilos | 8 Ω | |
+| 0.1b | `R_L1`, `R_L2`, resistencia DC de cada inductor | Bornes de cada uno | Multímetro, cuatro hilos | unos 0,5 Ω cada uno | |
+| 0.1c | `R_tot` en frío | `A` a `B`, con todo apagado y desconectado de Vdc | Multímetro, cuatro hilos | 9 Ω, con ±25 % como límite | |
+| 0.1d | `R_tot` en caliente | `A` a `B`, tras 5 min a 0,5 A | Multímetro, y se anota el tiempo | algo más que en frío | |
+| 0.2a | `L_tot` | `A` a `B`, `Rc` fuera | LCR en serie a 1 kHz | 200 µH, con ±30 % como límite | |
+| 0.2b | `L1` y `L2` por separado | Bornes de cada uno | LCR a 1 kHz | 100 µH cada uno | |
+| 0.3a | `Vdc` con la carga conectada | `+Vdc` a `N` | Multímetro, con el ensayo corriendo | 12 o 18 V según el ensayo | |
+| 0.3b | `V15`, riel del lado del puente | `+15 V` a `N` | Multímetro | 15 V | |
+| 0.3c | `VCC_s`, alimentación del ACS712 | `V_ccs` a tierra del sensor | Multímetro | 5,0 V | |
+| 0.3d | Alimentación del AD822 | `Vcc_opamp` a tierra | Multímetro | la que se haya puesto, se anota | |
+| 0.3e | Corriente de la fuente con el puente deshabilitado | Pantalla de la fuente | Se lee en la fuente | casi 0 | |
+
+### Tabla A, sensor y ADC (etapa A, potencia apagada)
+
+| Código | Qué se mide | Dónde | Instrumento y cómo | Esperado | Medido |
+|---|---|---|---|---|---|
+| A1a | `V_sens` con 0 A | Salida del ACS712 a su tierra | Multímetro | `VCC_s / 2`, 2,5 V | |
+| A1b | `V_out` con 0 A | J3 a su tierra (JXADC pin 1 y 7) | Multímetro | 0,68 V medido el 23/11, 0,5 V de diseño | |
+| A1c | Media de cuentas con 0 A | CSV exportado, 2048 muestras | `receptor_pc`, se pasa a cuentas | 2785 ±102 | |
+| A1d | Desviación estándar y pico a pico de las cuentas | Mismo CSV | `receptor_pc` | pico a pico menor a 108 cuentas | |
+| A2 | Pendiente cuentas por ampere | Ver tabla de puntos abajo | Fuente en continua y multímetro en serie, mínimos cuadrados | 900 cuentas/A en valor absoluto | |
+| A3 | Ruido con el puente habilitado y sin carga | CSV exportado | `receptor_pc`, compara con A1d | se anota la diferencia | |
+| A4 | Retardo del RC (`R4` y `C1`) | Senoidal de 1 kHz en `V_o`, y se mide en `V_out` | Osciloscopio, desfase entre los dos | 33 µs, corte en 4823 Hz | |
+| A5 | Ganancia del restador | `V_o` contra `V_sens` con la corriente de A2 | Multímetro en los dos nodos, pendiente de `V_o` sobre pendiente de `V_sens` | 1,2 de ganancia real | |
+
+Puntos de A2, con `Rc` en serie con el primario del ACS712, la fuente en continua y el multímetro en serie como referencia. Se invierte la polaridad para los negativos, y no se pasa de 0,5 A porque la resistencia es de 5 W.
+
+| Punto | I multímetro (A) | `V_sens` (V) | `V_out` en J3 (V) | Cuentas, media exportada |
+|---|---|---|---|---|
+| 1 | -0,5 | | | |
+| 2 | -0,2 | | | |
+| 3 | 0 | | | |
+| 4 | +0,2 | | | |
+| 5 | +0,5 | | | |
+
+### Tabla B, compuertas con la potencia apagada (etapa B)
+
+Sin `Vdc`. Las cuatro compuertas se miden del lado de la FPGA en el Pmod JA (referencia `GND_B`) y, con sonda diferencial, en el MOSFET.
+
+| Código | Qué se mide | Dónde | Instrumento y cómo | Esperado | Medido |
+|---|---|---|---|---|---|
+| B1a | Período de `compuerta_a_alta` | JA10 (G3) | Osciloscopio, período con estadística | 50,0 µs | |
+| B1b | Período de `compuerta_a_baja` | JA9 (H2) | Igual | 50,0 µs | |
+| B1c | Período de `compuerta_b_alta` | JA8 (K2) | Igual | 50,0 µs | |
+| B1d | Período de `compuerta_b_baja` | JA7 (H1) | Igual | 50,0 µs | |
+| B2a | Tiempo muerto pierna A, flanco de subida de la alta | JA10 contra JA9, puntos del 50 % | Osciloscopio, disparo en la que baja | 1,00 µs | |
+| B2b | Tiempo muerto pierna A, flanco de bajada de la alta | JA10 contra JA9 | Igual | 1,00 µs | |
+| B2c | Tiempo muerto pierna B, flanco de subida de la alta | JA8 contra JA7 | Igual | 1,00 µs | |
+| B2d | Tiempo muerto pierna B, flanco de bajada de la alta | JA8 contra JA7 | Igual | 1,00 µs | |
+| B2e | Tiempo muerto en los MOSFET | `V_GS` de `T_A+` contra `V_GS` de `T_A-` | Dos sondas diferenciales, y se repite en B | entre 0,1 y 0,91 µs de diferencia con el Pmod | |
+| B3 | Conducción simultánea | JA10 contra JA9 y JA8 contra JA7 | Persistencia infinita, 10 s, moviendo `duty_ref`, `enable` y reiniciando | ninguna captura con las dos en alto | |
+| B4 | Diferencia entre los centros de los pulsos de las dos piernas | JA10 contra JA8 con `duty_ref` distinto de 0 | Osciloscopio, cursores | 0 | |
+| B5 | Trigger en el valle | `pwm_trigger_o` contra JA10 | Osciloscopio, a `freq_sel` 00, 01 y 10 | pulso de 10 ns en el valle | |
+| B6 | `V_B−V_S` de cada IR2110 | Pin 6 a pin 5 de `U5` y de `U6` | Multímetro con `V15` encendido y el puente habilitado | mayor que 10 V, unos 14 V | |
+| B7 | Rizado del riel de 15 V | `+15 V` a `N` | Osciloscopio, acople AC, 20 MHz | unos pocos cientos de mV como mucho | |
+
+### Tabla C, el lazo en tiempo real (etapa C, potencia apagada)
+
+Canal 1 en JB1 (A14, el pin de la ISR) y canal 2 en `pwm_trigger_o`.
+
+| Código | Qué se mide | Cómo | Esperado | Medido |
+|---|---|---|---|---|
+| C1a | Período de la ISR, lazo habilitado | Flancos de subida de JB1, período con estadística | 50,0 µs | |
+| C1b | Jitter pico a pico de la ISR | Persistencia en el mismo canal | se anota, sin límite fijo | |
+| C1c | Lo mismo mientras se exporta | Se aprieta `BTN_EXPORTAR` | igual que C1a y C1b | |
+| C2 | Ancho del pulso de JB1, peor caso | Con el PR corriendo y con la falla enclavada | bastante menor que 50 µs | |
+| C3 | Tiempo entre `pwm_trigger_o` y el flanco de subida de JB1 | 10 reinicios de la placa | el mismo valor en todos | |
+| C4 | Suma del retardo del lazo | C3 más el fin de la ISR al valle siguiente, más B2e, más A4 | menor que 203 µs de margen | |
+
+Para C3 se anotan las 10 lecturas.
+
+| Reinicio | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Tiempo (µs) | | | | | | | | | | |
+
+### Tabla D1, ensayo 1, seguimiento nominal a 50 Hz
+
+Una hoja por amplitud (0,2, 0,5 y 1,0 A pico), con `Vdc`, `R_tot` y `L_tot` de la tabla 0 anotados al lado. Las capturas llevan cuatro canales.
+
+- CH1, `i_carga` con la sonda de corriente, acople DC, y se guarda el CSV.
+- CH2, `V_AB`, es decir la tensión entre `A` y `B`, con sonda diferencial.
+- CH3, `V_Rc`, tensión sobre `Rc`, para verificar la corriente con `I = V_Rc / R_Rc`.
+- CH4, JA10 (`compuerta_a_alta`), para mostrar la evidencia de la señal PWM.
+- Además, la ventana exportada por UART (2048 muestras, 5,12 períodos) con `receptor_pc`.
+
+| Medida | 0,2 A | 0,5 A | 1,0 A |
+|---|---|---|---|
+| `I_ref` pico (A) | | | |
+| `I_fund` pico medida con `receptor_pc` (A) | | | |
+| Error de amplitud de la fundamental (%) | | | |
+| Desfase de la fundamental contra la referencia (°) | | | |
+| `I_fund` pico con la sonda del osciloscopio (A) | | | |
+| `I_rms` (A) | | | |
+| `V_AB` pico de la fundamental (V) | | | |
+| `V_AB` rms (V) | | | |
+| `V_Rc` pico (V) y `I` calculada con `R_Rc` (A) | | | |
+| Rizado de conmutación pico a pico (A), acople AC, 20 MHz | | | |
+| `duty_ref` pico (del histórico) | | | |
+| `saturado` presente (sí o no) | | | |
+| `Vdc` real (V) | | | |
+| Corriente de la fuente (A) | | | |
+| Archivos de captura y de CSV | | | |
+
+Predicciones para comparar contra el rizado, con 200 µH a 20 kHz.
+
+| Vdc | 0,2 A | 0,5 A | 1,0 A |
+|---|---|---|---|
+| 18 V | 0,20 A pp | 0,41 A pp | 0,55 A pp |
+| 12 V | 0,19 A pp | 0,34 A pp | 0,37 A pp |
+
+### Tabla D2, ensayo 2, cambios de amplitud
+
+Disparo único por nivel de corriente, 10 períodos como mínimo, guardado en CSV. Se llena una tabla por cambio.
+
+| Período después del cambio | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Amplitud pico (A) | | | | | | | | | | |
+| Error contra la referencia nueva (%) | | | | | | | | | | |
+
+Se anota además `I_ref` inicial y final (0,2 a 0,5 y 0,5 a 1,0), el sobrepaso en A, el tiempo hasta quedar dentro de 10 %, y si apareció `saturado` o una falla. La rampa de 400 muestras hace que la amplitud suba durante 20 ms, y el criterio cuenta desde el segundo período.
+
+### Tabla D3, ensayo 3, cambio de resistencia a 0,5 A
+
+| Medida | Antes | Después |
+|---|---|---|
+| `R_tot` medida con el multímetro (Ω) | | |
+| Variación respecto de la inicial (%) | referencia | |
+| `V_Rc` pico (V) | | |
+| `I_fund` pico (A) | | |
+| Error de amplitud (%) | | |
+| Desfase (°) | | |
+| Rizado pp (A) | | |
+| `duty_ref` pico | | |
+
+Se agrega 3 Ω en serie con un interruptor en paralelo y se abre el interruptor con el lazo en régimen. Nunca se desconectan los inductores. Se registra el transitorio con la misma tabla de períodos de D2, empezando en el período del cambio. La variación tiene que ser de al menos 25 %.
+
+### Tabla D4, comparación contra PLECS
+
+Con `potencia/sim/modelo-planta.plecs` y los `R_tot`, `L_tot` y `Vdc` medidos, no los nominales. Esta tabla es la rúbrica de concordancia.
+
+| Ensayo | Magnitud | PLECS | Medido | Diferencia (%) | Causa de la diferencia |
+|---|---|---|---|---|---|
+| 0,2 A | `I_fund` pico | | | | |
+| 0,2 A | Desfase | | | | |
+| 0,2 A | Rizado pp | | | | |
+| 0,5 A | `I_fund` pico | | | | |
+| 0,5 A | Desfase | | | | |
+| 0,5 A | Rizado pp | | | | |
+| 1,0 A | `I_fund` pico | | | | |
+| 1,0 A | Desfase | | | | |
+| 1,0 A | Rizado pp | | | | |
+| 0,2 a 0,5 A | Tiempo de establecimiento | | | | |
+| 0,5 a 1,0 A | Tiempo de establecimiento | | | | |
+| Cambio de `R` | Error en el primer período | | | | |
+
+### Tabla D5, falla, saturación y temperaturas
+
+| Código | Qué se mide | Dónde y cómo | Esperado | Medido |
+|---|---|---|---|---|
+| D6a | Tiempo desde que la corriente cruza el umbral hasta que las compuertas bajan | CH1 `i_carga` y CH2 JA10, con el umbral bajo | hasta 100 µs | |
+| D6b | LED que se enciende | LD1 a LD4 a ojo | el de la causa | |
+| D6c | Que no rearme solo | Se espera 10 s | sigue enclavada | |
+| D8 | Escalón de corriente al habilitar de nuevo | CH1 al apretar `BTN_HABILITAR` en pleno ensayo | sin escalón | |
+| D9a | Temperatura de `T_A+`, `T_A-`, `T_B+` y `T_B-` | Cámara térmica o termómetro, tras 5 min a 1,0 A | se anota con el tiempo | |
+| D9b | Temperatura de `Rc` | Igual | unos 4 W disipados en 8 Ω | |
+| D9c | Temperatura de `L1` y `L2` | Igual | se anota | |
+| D9d | Temperatura de `+15 V` y del fusible | Igual | se anota | |
+| D9e | Tensión de `V_B−V_S` de `U5` durante el ensayo a 1,0 A | Multímetro, pin 6 a pin 5 | mayor que 10 V | |
 
 ## Qué se anota de cada ensayo
 

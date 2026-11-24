@@ -95,7 +95,7 @@ int main(void)
   habilitar(VALOR(0.0f));
   r = iterar(true, ADC_OFFSET_CUENTAS - 100u);
   revisar((r.cuenta_banderas & 0x7000u) == 0x2000u, "habilitado sin falla, los bits 14 a 12 no dan 010");
-  revisar((int16_t)duty_escrito > 0, "corriente negativa y el PR no empujó hacia arriba, ¿la resta dio la vuelta en uint16?");
+  revisar(((int16_t)duty_escrito > 0) == (ADC_AMPERES_POR_CUENTA > 0.0f), "cuenta bajo el offset y el PR no empujó en contra de esa corriente, ¿la resta dio la vuelta en uint16?"); // el signo de la corriente sigue al de ADC_AMPERES_POR_CUENTA
   revisar(r.duty_ref == duty_escrito, "el registro no trae el duty_ref escrito");
 
   habilitar(VALOR(1.0f));
@@ -138,7 +138,7 @@ int main(void)
   falla = 0;
   habilitar(VALOR(1.0f));
   antes = escrituras;
-  iterar(true, ADC_OFFSET_CUENTAS + 1700u); // 1700 * 1,1118e-3 = 1,89 A, arriba del umbral de 1,3 A
+  iterar(true, ADC_OFFSET_CUENTAS + 1700u); // 1700 * 1,292e-3 = 2,20 A, arriba del umbral de 1,3 A
   revisar(falla == 1, "no publicó la falla por sobrecorriente");
   revisar(apagados == 2, "la sobrecorriente no apagó el PWM");
   revisar(escrituras == antes, "con sobrecorriente el PR escribió en la misma iteración");

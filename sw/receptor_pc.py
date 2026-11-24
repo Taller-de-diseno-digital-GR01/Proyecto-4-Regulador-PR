@@ -93,6 +93,7 @@ def analizar(muestras):
     corriente = fundamental(t, muestras["corriente_a"][en])
     referencia = fundamental(t, muestras["i_ref_a"][en])
     i1, r1 = corriente.fasor, referencia.fasor
+    base = r1 if abs(r1) >= 1e-3 else complex(np.nan, np.nan) # referencia en 0 (control apagado, en falla o SW en 00), los errores relativos salen nan en vez de dividir por cero
     residuo = muestras["corriente_a"][en] - corriente.componente # lo que queda sin la fundamental
     return {
         "periodos": round((t[-1] - t[0]) * F_RED_HZ),
@@ -100,9 +101,9 @@ def analizar(muestras):
         "fase_corriente_grados": np.degrees(np.angle(i1)),
         "amplitud_referencia_a": abs(r1),
         "fase_referencia_grados": np.degrees(np.angle(r1)),
-        "error_amplitud_pct": (abs(i1) - abs(r1)) / abs(r1) * 100, # el criterio del 10 %
-        "desfase_grados": np.degrees(np.angle(i1 / r1)), # ángulo del cociente = resta de fases, sin problema de dar la vuelta en 180
-        "error_fasor_pct": abs(i1 - r1) / abs(r1) * 100, # mezcla amplitud y fase, solo de dato
+        "error_amplitud_pct": (abs(i1) - abs(base)) / abs(base) * 100, # el criterio del 10 %
+        "desfase_grados": np.degrees(np.angle(i1 / base)), # ángulo del cociente = resta de fases, sin problema de dar la vuelta en 180
+        "error_fasor_pct": abs(i1 - base) / abs(base) * 100, # mezcla amplitud y fase, solo de dato
         "residuo_pp_a": residuo.max() - residuo.min(),
         "fuera_de_regimen": bool(np.any(muestras["habilitado"][en] == 0) or np.any(muestras["falla"][en])),
     }
@@ -120,6 +121,7 @@ def reportar(r):
     print("ventana de %d períodos de 50 Hz" % r["periodos"])
     print("corriente   %.4f A  %7.2f°" % (r["amplitud_corriente_a"], r["fase_corriente_grados"]))
     print("referencia  %.4f A  %7.2f°" % (r["amplitud_referencia_a"], r["fase_referencia_grados"]))
+    if np.isnan(r["error_amplitud_pct"]): print("la referencia está en 0 en toda la ventana, no hay error contra qué medir")
     print("error de amplitud de la fundamental %+.2f %% (límite 10 %%)" % r["error_amplitud_pct"])
     print("desfase %+.2f°" % r["desfase_grados"])
     print("error del fasor %.2f %%, dato extra" % r["error_fasor_pct"])
@@ -128,16 +130,22 @@ def reportar(r):
         print("OJO, la ventana tiene iteraciones deshabilitadas o en falla, el resultado no es de un ensayo en régimen")
 
 
-def graficar(muestras):
+def graficar(muestras, centrar=False):
     import matplotlib.pyplot as plt # acá adentro para que las pruebas no lo necesiten
 
     t_ms = muestras["t_s"] * 1000
     marcadas = (muestras["saturado"] == 1) | (muestras["falla"] == 1) # las que se pintan con x
+    corriente = muestras["corriente_a"]
+    etiqueta = "corriente medida"
+    if centrar: # solo el gráfico, el CSV y el análisis quedan con la DC
+        dc = corriente[ventana(muestras["t_s"])].mean() # en períodos enteros el promedio es la DC
+        corriente = corriente - dc
+        etiqueta = "corriente medida, sin DC de %+.3f A" % dc
 
     _, eje = plt.subplots()
-    eje.plot(t_ms, muestras["corriente_a"], label="corriente medida")
+    eje.plot(t_ms, corriente, label=etiqueta)
     eje.plot(t_ms, muestras["i_ref_a"], label="referencia")
-    eje.plot(t_ms[marcadas], muestras["corriente_a"][marcadas], "rx", label="saturado o en falla")
+    eje.plot(t_ms[marcadas], corriente[marcadas], "rx", label="saturado o en falla")
     eje.set_xlabel("t [ms]")
     eje.set_ylabel("i [A]")
     eje.legend()
@@ -157,6 +165,7 @@ def main():
     argumentos = argparse.ArgumentParser(description="Recibe y grafica el histórico de exportador_uart")
     argumentos.add_argument("origen", nargs="?", help="puerto serie o archivo con una trama guardada, sin nada detecta la Basys 3")
     argumentos.add_argument("-o", "--csv", default="muestras.csv")
+    argumentos.add_argument("--centrar", action="store_true", help="grafica la corriente sin su DC, el CSV no cambia")
     argumentos = argumentos.parse_args()
 
     if argumentos.origen and os.path.isfile(argumentos.origen): # si es un archivo es una trama guardada, si no un puerto
@@ -173,7 +182,7 @@ def main():
     escribir_csv(argumentos.csv, muestras)
     print("%d registros en %s" % (len(muestras["t_s"]), argumentos.csv))
     reportar(analizar(muestras))
-    graficar(muestras)
+    graficar(muestras, argumentos.centrar)
 
 
 if __name__ == "__main__":

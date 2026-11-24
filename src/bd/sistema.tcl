@@ -340,7 +340,7 @@ proc create_root_design { parentCell } {
   set_property -dict [ list \
    CONFIG.POLARITY {ACTIVE_HIGH} \
  ] $BTN_RST
-  set led [ create_bd_port -dir O -from 1 -to 0 led ]
+  set led [ create_bd_port -dir O -from 4 -to 0 led ]
   set SW [ create_bd_port -dir I -from 1 -to 0 -type data SW ]
   set BTN_HABILITAR [ create_bd_port -dir I BTN_HABILITAR ]
   set BTN_EXPORTAR [ create_bd_port -dir I BTN_EXPORTAR ]
@@ -394,7 +394,7 @@ proc create_root_design { parentCell } {
   set_property -dict [list \
     CONFIG.C_ALL_INPUTS {1} \
     CONFIG.C_ALL_OUTPUTS_2 {1} \
-    CONFIG.C_GPIO2_WIDTH {2} \
+    CONFIG.C_GPIO2_WIDTH {5} \
     CONFIG.C_GPIO_WIDTH {4} \
     CONFIG.C_IS_DUAL {1} \
     CONFIG.GPIO2_BOARD_INTERFACE {Custom} \

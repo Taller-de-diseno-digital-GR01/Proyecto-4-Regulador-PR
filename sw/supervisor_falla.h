@@ -14,9 +14,14 @@
 // TODO: Revisar cuando se fije la relación entre el período del Timer y el disparo del PWM
 #define ITERACIONES_SIN_DATO_MAX 3u
 
+#define FALLA_SOBRECORRIENTE (1u << 0)
+#define FALLA_FUERA_ESCALA (1u << 1)
+#define FALLA_SIN_DATO (1u << 2)
+
 void supervisor_falla_iniciar(void);
 bool supervisor_falla_revisar(uint16_t cuenta, valor_t corriente);
 bool supervisor_falla_sin_dato(void);
 bool supervisor_falla_activa(void);
+uint32_t supervisor_falla_causa(void);
 
 #endif
