@@ -45,7 +45,7 @@ Si LD1 se enciende sin haber habilitado, lo primero es medir la salida del acond
 - AXI Timer a 20 kHz y PWM unipolar a 20 kHz con `freq_sel = 01`. Los códigos `00` (10 kHz), `10` (40 kHz) y `11` (20 kHz) existen en el periférico, pero el firmware solo habilita con `01`.
 - El XADC convierte con `pwm_trigger_o`, en el valle de la portadora, para no ver el rizado.
 - Cada interrupción lee el ADC, pasa por `supervisor_falla`, calcula el PR, escribe `duty_ref` y guarda la muestra.
-- Corriente `i = (cuenta - 2048) · 1,1118e-3 A`, con 0 A en 0,5 V y 0,2196 V/A a la entrada del ADC.
+- Corriente `i = (cuenta - 2569) · (-1,292e-3) A`, calibrada contra el osciloscopio con el puente conmutando. El diseño era 0 A en 0,5 V (2048 cuentas) y 0,2196 V/A, y el montaje quedó con el cero en unos 0,63 V.
 - PR con `Kp = 4,5` y `Kr = 10000`, Tustin con precorrección en 50 Hz, salida recortada a ±0,92 con anti-windup. Referencia senoidal de 50 Hz.
 
 ## Exportación

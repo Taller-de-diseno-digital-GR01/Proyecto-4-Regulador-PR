@@ -22,6 +22,8 @@ Confirmado con Mattio, la carga del banco es de unos 12,5 Ω y 30 mH. Queda cerc
 
 `ADC_AMPERES_POR_CUENTA` ya quedó corregida a 1,1118e-3 (ganancia real de 0,2196 V/A). `UMBRAL_SOBRECORRIENTE` no necesitaba tocarse, está en amperios físicos y no depende de esa constante.
 
+El 24/11 las dos constantes se calibraron contra el osciloscopio con los registros del 23/11. Quedaron `ADC_OFFSET_CUENTAS = 2569` y `ADC_AMPERES_POR_CUENTA = -1,292e-3`. Con 1,1118e-3 y el cero de 2808 medido con el puente apagado, la corriente física quedaba 15 a 19 % sobre la referencia y el proporcional metía unos -0,06 A de continua. La pendiente nueva incluye el sesgo de muestrear en el valle. Con el cero nuevo el ADC ve hasta 1,97 A hacia un lado, y el umbral de 1,3 A sigue dentro.
+
 ## Carga nueva de 9 Ω y 200 µH (2026-11-19)
 
 El transformador de 30 mH se cambió por dos inductores de 100 µH en serie, con unos 0,5 Ω cada uno, y la resistencia de 8 Ω sigue. El PR se resintonizó en [`potencia/diseno_pr.md`](../../potencia/diseno_pr.md), con `Kp = 4,5` y `Kr = 10000`, y `pr_params.h`, `PLANTA_SIMULADA` y los docs de `pr_discreto`, `lazo_control`, `supervisor_falla` y `control_principal` ya están al día. Quedan abiertos dos puntos.

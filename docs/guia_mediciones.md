@@ -15,7 +15,7 @@ Límites de seguridad.
 - Las sondas de las compuertas altas flotan. La tierra de la sonda nunca va a la salida de una pierna. Se usa sonda diferencial, o se mide del lado de la FPGA.
 
 Software que tiene que estar listo, y hoy no lo está del todo.
-- `ADC_AMPERES_POR_CUENTA` vale -1,1118e-3 (negativo porque la corriente entra al ACS712 al revés) y `ADC_OFFSET_CUENTAS` vale 2785 (0,68 V medido en J3). La etapa A confirma las dos. Si dan otra cosa, las corrientes que muestra `receptor_pc` salen mal escaladas, y las cuentas crudas se recuperan con `cuenta = corriente_a / amperes_por_cuenta + offset` usando los valores de la cabecera.
+- `ADC_AMPERES_POR_CUENTA` vale -1,292e-3 (negativo porque la corriente entra al ACS712 al revés) y `ADC_OFFSET_CUENTAS` vale 2569, los dos calibrados contra el osciloscopio con el puente conmutando (registros del 23/11, ver la calibración del informe técnico de PEDP). El cero con el puente apagado se corre a unas 3300 cuentas, así que se mide conmutando con referencia nula. La etapa A confirma las dos. Si dan otra cosa, las corrientes que muestra `receptor_pc` salen mal escaladas, y las cuentas crudas se recuperan con `cuenta = corriente_a / amperes_por_cuenta + offset` usando los valores de la cabecera.
 - El ensayo D1 pide un `duty_ref` senoidal fijo sin PR, y en `sw/` no hay ese modo. Hay que decidir cómo se hace (por ejemplo una compilación aparte de `lazo_control.c`) antes de la sesión, o D1 se salta y se anota como no hecho.
 - Para D6 hace falta una compilación con `UMBRAL_SOBRECORRIENTE` temporalmente bajo, y volverlo a 1,3 A al terminar.
 

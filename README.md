@@ -300,9 +300,10 @@ ausentes. La descripción completa está en [`docs/uso_basys3.md`](docs/uso_basy
 | Referencia analógica negativa | JXADC pin 7, K3, `vauxn6` |
 | UART TX | A18, puente USB-UART de la tarjeta |
 
-La entrada del XADC se acondiciona a 0–1 V. La conversión actual usa offset de 2048 cuentas
-y `1,1118e-3 A/cuenta`, calculados a partir de 0,2196 V/A. La calibración de extremo a extremo
-debe quedar asociada a cada ensayo.
+La entrada del XADC se acondiciona a 0–1 V. La conversión actual usa offset de 2569 cuentas
+y `-1,292e-3 A/cuenta`, calibrados contra el osciloscopio con el puente conmutando (registros del
+23/11). El diseño nominal era 2048 cuentas y 1,1118e-3 A/cuenta, a partir de 0,2196 V/A. La
+calibración de extremo a extremo debe quedar asociada a cada ensayo.
 
 ### Exportar y analizar muestras
 
