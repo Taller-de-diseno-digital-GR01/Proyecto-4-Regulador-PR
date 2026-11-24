@@ -54,3 +54,5 @@ project_4_PR/
 
 # Mapa de memoria que genera Vivado al implementar
 *.mmi
+# Formas de onda que escribe potencia/sim/lazo_cerrado.py, unos 5 MB cada una, se regeneran con el script
+potencia/sim/lazo_cerrado_*.csv

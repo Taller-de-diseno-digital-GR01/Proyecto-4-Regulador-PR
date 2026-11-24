@@ -51,8 +51,8 @@ Plecs {
   ExternalModeSettings ""
   AlgebraicLoopMethod "1"
   AlgebraicLoopTolerance "1e-6"
-  ScriptsDialogGeometry ""
-  ScriptsDialogSplitterPos "0"
+  ScriptsDialogGeometry "[711 427 500 244]"
+  ScriptsDialogSplitterPos "100"
   MixedSignalSolverBypassOperatingPoint "1"
   MixedSignalSolverInitialConditions "2"
   MixedSignalSolverMaxNewtonIterations "25"
@@ -79,9 +79,9 @@ Plecs {
     Index         "2"
   }
   Schematic {
-    Location      [0, 55; 1920, 1037]
+    Location      [0, 55; 1920, 1024]
     ZoomFactor    1.49863
-    SliderPosition [0, 87]
+    SliderPosition [0, -1]
     ShowBrowser   off
     BrowserWidth  100
     Component {
@@ -1010,11 +1010,19 @@ Plecs {
       Flipped       off
       LabelPosition south
       Frame         [-15, -20; 15, 20]
-      Location      [672, 58; 1181, 545]
-      State         ""
-      SavedViews    ""
-      HeaderState   ""
-      PlotPalettes  ""
+      Location      [0, 0; 733, 559]
+      State         "AAAA/wAAAAD9AAAAAgAAAAEAAAAAAAAAAPwCAAAAA/sAAAAQAFoAbwBvA"
+"G0AQQByAGUAYQAAAAAA/////wAAAH4A////+wAAABQAUwBhAHYAZQBkAFYAaQBlAHcAcwAAAAAA//"
+"///wAAAGAA////+wAAAAwAVAByAGEAYwBlAHMAAAAAAP////8AAABgAP///wAAAAMAAAAAAAAAAPw"
+"BAAAAAfsAAAAUAEQAYQB0AGEAVwBpAGQAZwBlAHQAAAAAAP////8AAABEAP///wAAAt0AAAIQAAAA"
+"BAAAAAQAAAAIAAAACPwAAAABAAAAAgAAAAEAAAAOAFQAbwBvAGwAQgBhAHIBAAAAAP////8AAAAAA"
+"AAAAA=="
+      SavedViews    "AAAAAgAAAAA="
+      HeaderState   "{\"DefaultSecSize\":0,\"FirstSecSize\":171,\"Labels\":[],"
+"\"VisualIdxs\":[]}"
+      PlotPalettes  "AAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+"=="
       Axes          "3"
       TimeRange     "0"
       ScrollingMode "1"
@@ -1116,6 +1124,22 @@ Plecs {
         Value         "1"
         Show          off
       }
+      Parameter {
+        Variable      "NoMatchingCounterpartAction"
+        Value         "1"
+        Show          off
+      }
+      Parameter {
+        Variable      "CustomMessage"
+        Value         ""
+        Show          off
+        Evaluate      on
+      }
+      Parameter {
+        Variable      "HighlightLevel"
+        Value         "0"
+        Show          off
+      }
     }
     Component {
       Type          From
@@ -1135,6 +1159,22 @@ Plecs {
         Value         "1"
         Show          off
       }
+      Parameter {
+        Variable      "NoMatchingCounterpartAction"
+        Value         "1"
+        Show          off
+      }
+      Parameter {
+        Variable      "CustomMessage"
+        Value         ""
+        Show          off
+        Evaluate      on
+      }
+      Parameter {
+        Variable      "HighlightLevel"
+        Value         "0"
+        Show          off
+      }
     }
     Component {
       Type          Output
@@ -1147,7 +1187,7 @@ Plecs {
       Parameter {
         Variable      "Index"
         Value         "1"
-        Show          off
+        Show          on
       }
       Parameter {
         Variable      "Width"
@@ -1166,12 +1206,112 @@ Plecs {
       Parameter {
         Variable      "Index"
         Value         "2"
-        Show          off
+        Show          on
       }
       Parameter {
         Variable      "Width"
         Value         "-1"
         Show          off
+      }
+    }
+    Component {
+      Type          Voltmeter
+      Name          "Vm1"
+      Show          on
+      Position      [370, 340]
+      Direction     up
+      Flipped       off
+      LabelPosition west
+    }
+    Component {
+      Type          Voltmeter
+      Name          "Vm2"
+      Show          on
+      Position      [450, 340]
+      Direction     up
+      Flipped       off
+      LabelPosition west
+    }
+    Component {
+      Type          Ground
+      Name          "Ground"
+      Show          off
+      Position      [405, 390]
+      Direction     up
+      Flipped       off
+      LabelPosition east
+    }
+    Component {
+      Type          Scope
+      Name          "Scope1"
+      Show          on
+      Position      [595, 335]
+      Direction     up
+      Flipped       off
+      LabelPosition south
+      Frame         [-15, -15; 15, 15]
+      Location      [0, 0; 0, 0]
+      State         ""
+      SavedViews    ""
+      HeaderState   ""
+      PlotPalettes  ""
+      Axes          "2"
+      TimeRange     "0"
+      ScrollingMode "1"
+      SingleTimeAxis "1"
+      Open          "0"
+      Ts            "-1"
+      SampleLimit   "0"
+      XAxisLabel    "Time / s"
+      ShowLegend    "1"
+      Axis {
+        Name          ""
+        AutoScale     1
+        MinValue      0
+        MaxValue      1
+        Signals       {}
+        SignalTypes   [ ]
+        Untangle      0
+        KeepBaseline  off
+        BaselineValue 0
+      }
+      Axis {
+        Name          ""
+        AutoScale     1
+        MinValue      0
+        MaxValue      1
+        Signals       {}
+        SignalTypes   [ ]
+        Untangle      0
+        KeepBaseline  off
+        BaselineValue 0
+      }
+      Fourier {
+        SingleXAxis       on
+        AxisLabel         "Frequency / Hz"
+        Scaling           0
+        PhaseDisplay      0
+        ShowFourierLegend off
+        Axis {
+          Name          ""
+          AutoScale     1
+          MinValue      0
+          MaxValue      1
+          Signals       {}
+          Untangle      0
+          KeepBaseline  off
+          BaselineValue 0
+        }
+        Axis {
+          Name          ""
+          AutoScale     1
+          MinValue      0
+          MaxValue      1
+          Signals       {}
+          Untangle      0
+          KeepBaseline  off
+          BaselineValue 0
+        }
       }
     }
     Connection {
@@ -1235,20 +1375,19 @@ Plecs {
     }
     Connection {
       Type          Wire
-      SrcComponent  "L"
-      SrcTerminal   2
-      DstComponent  "R"
-      DstTerminal   1
-    }
-    Connection {
-      Type          Wire
       SrcComponent  "R"
       SrcTerminal   2
       Points        [450, 200]
       Branch {
         Points        [450, 240]
-        DstComponent  "Vm"
-        DstTerminal   2
+        Branch {
+          DstComponent  "Vm"
+          DstTerminal   2
+        }
+        Branch {
+          DstComponent  "Vm2"
+          DstTerminal   1
+        }
       }
       Branch {
         Points        [500, 200]
@@ -1454,6 +1593,50 @@ Plecs {
       SrcComponent  "F_d_out"
       SrcTerminal   1
       DstComponent  "Out_d"
+      DstTerminal   1
+    }
+    Connection {
+      Type          Wire
+      SrcComponent  "L"
+      SrcTerminal   2
+      Points        [370, 200]
+      Branch {
+        DstComponent  "R"
+        DstTerminal   1
+      }
+      Branch {
+        DstComponent  "Vm1"
+        DstTerminal   1
+      }
+    }
+    Connection {
+      Type          Wire
+      SrcComponent  "Vm2"
+      SrcTerminal   2
+      Points        [450, 370; 405, 370]
+      Branch {
+        Points        [370, 370]
+        DstComponent  "Vm1"
+        DstTerminal   2
+      }
+      Branch {
+        DstComponent  "Ground"
+        DstTerminal   1
+      }
+    }
+    Connection {
+      Type          Signal
+      SrcComponent  "Vm2"
+      SrcTerminal   3
+      DstComponent  "Scope1"
+      DstTerminal   2
+    }
+    Connection {
+      Type          Signal
+      SrcComponent  "Vm1"
+      SrcTerminal   3
+      Points        [475, 340; 475, 330]
+      DstComponent  "Scope1"
       DstTerminal   1
     }
   }
