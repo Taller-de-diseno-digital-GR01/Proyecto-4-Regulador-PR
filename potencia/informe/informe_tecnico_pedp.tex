@@ -281,6 +281,7 @@ No se volvió al laboratorio, así que lo que dependía de medir queda como limi
 	\item Inductancia y resistencia. Solo se midió uno de los dos inductores, \SI{106.2}{\micro H}, y se supone el otro igual. La resistencia no se midió a cuatro hilos ni en caliente.
 	\item Tensión de bus a \SI{1.0}{A}. No se anotó. El límite de la fuente queda como hipótesis y el punto de \SI{1.0}{A} no se demuestra con ninguna carga.
 	\item Rutina de control y falla. Solo se afirma el período de \SI{50}{\micro s}. El ancho máximo y el jitter, la precarga de \SI{70}{\micro s}, el último pulso truncado, la fase entre ADC, temporizador y PWM, el filtro antialias y la prueba de falla no se midieron.
+	\item Plataforma digital. La simulación temporizada del periférico PWM pasó su autochequeo sin errores, pero es del periférico solo y sin retardos de entrada y salida. Los retardos de las compuertas salen del banco y no de esa simulación.
 \end{itemize}
 
 \subsection{Mejoras al procedimiento}
