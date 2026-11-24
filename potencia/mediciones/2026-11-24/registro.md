@@ -15,7 +15,7 @@ Lo que se anotó en el banco. Las capturas y los CSV que faltan los sube Jeffers
 
 ## Compuertas, con Vdc apagado
 
-- Pierna A, tiempo muerto de 1,23 µs en subida y 430 ns en bajada (`scope_a2`).
+- Pierna A, tiempo muerto de 1,23 µs en subida y 430 ns en bajada. No hay captura de compuertas de esta pierna en ninguna rama. `scope_a2` es el CSV de rizado, y su copia `scope_a2_piernaA_tiempo_muerto.csv` se borró en `81937cd` por ser idéntica.
 - Pierna B, tiempo muerto de 1 µs en subida y 1 µs en bajada (`scope_a1`).
 - Habilitar y deshabilitar en `scope_a6.png`.
 

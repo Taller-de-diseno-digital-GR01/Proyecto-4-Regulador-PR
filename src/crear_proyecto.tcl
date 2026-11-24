@@ -16,7 +16,10 @@ set placa digilentinc.com:basys3:part0:1.2
 
 # -force borra un proyecto anterior en la misma carpeta, por eso la salida por defecto queda aparte de vivado/p4
 create_project $proyecto [file join $salida $proyecto] -part $parte -force
-set_property board_part $placa [current_project]
+# Sin los board files de Digilent instalados el set falla, y el diseño igual se arma con el part
+if {[catch {set_property board_part $placa [current_project]} msg]} {
+  puts "AVISO: sin board files de la Basys3, se sigue solo con el part. $msg"
+}
 
 # Los módulos de referencia del BD (periferico_pwm, envoltura_xadc, debounce) tienen que estar en el proyecto antes de cargar sistema.tcl
 add_files -norecurse [glob [file join $raiz src design *.sv]]

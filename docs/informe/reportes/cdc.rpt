@@ -1,0 +1,19 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+---------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2026.1 (win64) Build 6511674 Tue Jun 16 11:02:23 MDT 2026
+| Date         : Tue Nov 24 16:01:10 2026
+| Host         : MattioWinPC running 64-bit major release  (build 9200)
+| Command      : report_cdc -file cdc.rpt
+| Design       : sistema_wrapper
+| Device       : 7a35t-cpg236
+| Speed File   : -1  PRODUCTION 1.23 2018-06-13
+| Design State : Routed
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+CDC Report
+
+Severity  Source Clock                                                                                    Destination Clock  CDC Type                 Exceptions           Endpoints  Safe  Unsafe  Unknown  No ASYNC_REG  
+--------  ----------------------------------------------------------------------------------------------  -----------------  -----------------------  -------------------  ---------  ----  ------  -------  ------------  
+Info      input port clock                                                                                sys_clk_pin        No Common Primary Clock  False Path                   3     3       0        0             0  
+Info      sistema_i/mdm_1/U0/MDM_Core_I1/JTAG_CONTROL_I/Test_Access_Port.BUFG_UPDATE/Using_FPGA.Native/O  sys_clk_pin        No Common Primary Clock  Asynch Clock Groups          2     2       0        0             0  
+

@@ -7,7 +7,7 @@ Profesores: Dr.-Ing. Jeferson González-Gómez, PhD. Yeiner Arias-Esquivel e Ing
 
 Integrantes: Carlos Castro Villegas, Jefferson Chinchilla Quesada, Mattio Coghi Quirós y Nicolás Mena Valerio.
 
-Revisión documental: 24 de noviembre de 2026. Fuentes de implementación: `develop`, commit `f784e85`. Los reportes de implementación de Vivado son del 11 de noviembre; no se atribuyen a una nueva compilación de todos los fuentes actuales. Los datos de banco del 23 y 24 de noviembre (CSV del receptor y capturas del osciloscopio) están en `muestras_Inversor/`, y lo anotado durante los ensayos en `potencia/mediciones/2026-11-24/registro.md`. Las celdas que todavía no tienen dato quedan marcadas como PENDIENTE.
+Revisión documental: 24 de noviembre de 2026. Fuentes de implementación: `develop`, commit `13dad7e`. Los reportes de implementación de Vivado se regeneraron el 24 de noviembre con esas fuentes. Los datos de banco del 23 y 24 de noviembre (CSV del receptor y capturas del osciloscopio) están en `muestras_Inversor/`, y lo anotado durante los ensayos en `potencia/mediciones/2026-11-24/registro.md`. Las celdas que todavía no tienen dato quedan marcadas como PENDIENTE.
 
 ## Tabla de contenidos
 
@@ -40,13 +40,13 @@ Los resultados se clasifican por su procedencia. Una prueba de software en PC ve
 | Simulación RTL de la envoltura XADC | Verifica la lógica propia con un modelo del convertidor. No mide la cadena analógica ni caracteriza el XADC real. |
 | Siete ejecutables de prueba C y trece pruebas Python | Verifican módulos en PC, con controladores simulados donde corresponde. Logs en `evidencia/`. No acreditan duración de ISR ni ejecución del ELF en MicroBlaze V. |
 | Cálculos en Octave | Márgenes (`verificar_pr.m`), aliasing (`aliasing_pr.m`), figuras, predicción de rizado y seis casos del modelo promediado para 9 Ω y 200 µH (`figuras_informe.m`). Salidas en `evidencia/`. |
-| Reportes de Vivado del diseño ruteado | Recursos y timing de la ejecución archivada del 11 de noviembre de 2026. |
+| Reportes de Vivado del diseño ruteado | Recursos, timing, metodología y CDC regenerados el 24 de noviembre de 2026. |
 | Simulación conmutada en Octave | Lazo cerrado con tiempo muerto y ADC cuantizado para 9 Ω y 18 V, y repetida para 9,6 Ω y 12 V (`simular_conmutado.m`). No incluye filtro ni drivers. |
-| Resultados PLECS archivados | Lazo abierto con una carga anterior de 12 Ω y 30 mH. Son antecedentes; no validan la configuración actual. |
+| Resultados PLECS archivados | Lazo abierto con 12 Ω y 30 mH, como antecedente. Lazo abierto con 9,6 Ω y lazo cerrado con el PR del firmware y 11,8 Ω, con sensor ideal (12.11). |
 | Ajustes de banco del 23 de noviembre | Polaridad de corriente invertida detectada por correlación entre duty y corriente, y cero del sensor fijado en 2808 cuentas con una captura a 0 A. Los cuatro `.bin` del 23 de noviembre traen ese offset en la cabecera. |
 | Banco del 23 y 24 de noviembre | Lazo cerrado a 0,2, 0,5 y 1,0 A pico con la carga original y con 2,5 Ω añadidos, 1,0 A con 18 V, capturas de compuertas, tiempo muerto, rizado y fundamental en el osciloscopio. Resultados en 12.8. |
 
-Permanece pendiente la simulación temporizada post-implementación del PWM, la validación conmutada en PLECS con la carga final y la calibración integral del sensor. En banco, el CSV sigue a la referencia con menos de 0,5 % de error a 0,2 y 0,5 A, pero la medición independiente con el osciloscopio da entre 14 y 19 % más corriente física, el punto de 1,0 A satura tanto con 12,5 como con 18 V, y el rizado medido supera 0,20 A pp. Por ello no se declara cumplimiento global del sistema.
+La simulación temporizada post-implementación del PWM quedó aprobada (18.3), y sigue pendiente la calibración integral del sensor. En banco, el CSV sigue a la referencia con menos de 0,5 % de error a 0,2 y 0,5 A, pero la medición independiente con el osciloscopio da entre 14 y 19 % más corriente física, el punto de 1,0 A satura tanto con 12,5 como con 18 V, y el rizado medido supera 0,20 A pp. Por ello no se declara cumplimiento global del sistema.
 
 ## 1. Resumen
 
@@ -56,7 +56,7 @@ El PWM produce cuatro señales de compuerta mediante modulación unipolar, con t
 
 La configuración nominal actual es una resistencia externa de 8 Ω y dos inductores de 100 µH en serie, con aproximadamente 0,5 Ω de devanado cada uno: 9 Ω totales y 200 µH. El modelo y los coeficientes actuales usan un bus de 18 V, `Kp = 4,5 V/A`, `Kr = 10000` y `Ts = 50 µs`. Con el modelo continuo de diseño y un retardo supuesto de 75 µs se obtiene un cruce de 215,7 Hz, margen de fase de 112,4° y margen de ganancia de 7,8 dB.
 
-Las pruebas RTL y de software disponibles pasan sin errores. El reporte de Vivado archivado registra 5567 LUT, 3651 flip-flops, ocho RAMB36 y siete DSP, con WNS de 0,519 ns a 100 MHz. Sin embargo, los cálculos RL ideales predicen aproximadamente 0,201, 0,414 y 0,548 A pico a pico de rizado para 0,2, 0,5 y 1,0 A pico a 18 V. Este resultado exige revisar el dimensionamiento y validarlo con conmutación y mediciones. El seguimiento experimental de la fundamental, el rizado real y los plazos de ejecución del firmware todavía no se han demostrado con evidencia completa.
+Las pruebas RTL y de software disponibles pasan sin errores. El reporte de Vivado archivado registra 5567 LUT, 3651 flip-flops, ocho RAMB36 y siete DSP, con WNS de 0,519 ns a 100 MHz. Sin embargo, los cálculos RL ideales predicen aproximadamente 0,201, 0,414 y 0,548 A pico a pico de rizado para 0,2, 0,5 y 1,0 A pico a 18 V. Este resultado exige revisar el dimensionamiento y validarlo con conmutación y mediciones. En banco, con 9,46 Ω en las resistencias y 11,8 Ω en total, el lazo sigue 0,2 y 0,5 A con menos de 0,5 % de error según el sensor, pero el osciloscopio da entre 14,6 y 18,7 % más corriente física, 1,0 A no se alcanza y el rizado medido, de 0,25 a 0,66 A pp, supera el límite. Los plazos de ejecución del firmware siguen sin demostrarse.
 
 ## 2. Introducción y objetivos
 
@@ -187,7 +187,7 @@ flowchart TD
 
 El Timer interrumpe al procesador a 20 kHz. El periférico PWM mantiene la portadora y dispara al ADC aun estando deshabilitada la potencia. Esta propiedad permite al programa comprobar que llegan conversiones antes de habilitar las compuertas. La orden de control se aplica en el valle mediante registros sombra.
 
-La plataforma define MicroBlaze V a 100 MHz, memoria LMB de 32 KiB, FPU, multiplicación/división y operaciones atómicas. La interrupción del Timer se conecta de forma directa. El diseño documentado usa memoria local sin caché; esto se aparta de la petición de caché de 8 KiB del enunciado. La elección tiene una justificación por el acceso a LMB, pero la aceptación de esa desviación debe quedar explícita y no se da por acreditada.
+La plataforma define MicroBlaze V a 100 MHz, memoria LMB de 32 KiB, FPU, multiplicación/división y operaciones atómicas. La interrupción del Timer se conecta de forma directa. El diseño documentado usa memoria local sin caché; esto se aparta de la petición de caché de 8 KiB del enunciado. La caché de instrucciones de MicroBlaze solo guarda lo que se busca por AXI fuera del rango de LMB, y el programa y los datos viven en los 32 KiB de BRAM local, que se leen por LMB en un ciclo. La Basys 3 no tiene DDR ni otra memoria externa donde poner código, así que una caché de 8 KiB no tendría qué guardar y gastaría BRAM y LUT sin bajar la latencia ni el jitter de la ISR. Por eso no se habilitó, y se declara como desviación deliberada de la letra del enunciado. La aceptación de esa desviación queda a criterio del profesor.
 
 ### 4.2 Decisiones y alcance
 
@@ -561,7 +561,7 @@ El rizado se obtiene con una captura de mayor ancho de banda que el registro UAR
 2. Calibrar el cero y la ganancia de la cadena completa de corriente. Confirmar filtro instalado y margen de entrada del XADC.
 3. Con el bus de potencia apagado, capturar compuertas, 1 µs de tiempo muerto, 70 µs de precarga, cuatro selecciones de frecuencia, habilitación y último pulso al deshabilitar. Verificar además las señales después de la cadena de drivers.
 4. Medir JB1 con control habilitado, deshabilitado y durante exportación. Registrar período, jitter y duración máxima de ISR, con el PR activo y con falla enclavada. Repetir arranque para caracterizar fase respecto de adquisición y PWM.
-5. Ejecutar la simulación temporizada post-implementación del PWM según la sección 18.3.
+5. La simulación temporizada post-implementación del PWM se ejecutó según la sección 18.3.
 6. Validar primero en PLECS el lazo cerrado con la carga y bus finales, tiempo muerto, adquisición y demora de actuación. Añadir el filtro confirmado y las no idealidades de forma identificable.
 7. Resolver el dimensionamiento que predice exceso de rizado y registrar cualquier nueva carga, frecuencia o coeficiente. Después realizar los ensayos energizados nominales y transitorios, con sus condiciones eléctricas y térmicas.
 
@@ -678,29 +678,37 @@ Solo 12 V con 40 kHz queda bajo 0,20 A pp en los tres puntos de la predicción i
 
 ### 12.7 Recursos y timing
 
-Se transcriben los reportes archivados de Vivado 2026.1 del 11 de noviembre de 2026, dispositivo `xc7a35t` de la Basys 3 [2].
+Se transcriben los reportes de Vivado 2026.1 regenerados el 24 de noviembre de 2026 con `src/crear_proyecto.tcl` sobre las fuentes de `develop` (`13dad7e`), dispositivo `xc7a35t` de la Basys 3 [2]. Los anteriores eran del 11 de noviembre. Esta máquina no tiene los board files de la Basys 3, así que el proyecto se armó solo con el `part`, sin cambiar el diseño ni las restricciones.
 
 | Recurso | Uso | Disponibilidad indicada | Ocupación |
 |---|---:|---:|---:|
-| LUT | 5567 | 20800 | 26,76 % |
-| Flip-flops | 3651 | 41600 | 8,78 % |
+| LUT | 5561 | 20800 | 26,74 % |
+| Flip-flops | 3664 | 41600 | 8,81 % |
 | RAMB36 | 8 | 50 | 16,00 % |
 | DSP | 7 | 90 | 7,78 % |
-| IOB | 16 | 106 | 15,09 % |
+| IOB | 19 | 106 | 17,92 % |
 
 La jerarquía del reporte atribuye al periférico PWM 151 LUT, 199 flip-flops y un DSP: 49 LUT y 64 flip-flops para la interfaz, y 102 LUT, 135 flip-flops y un DSP para el núcleo. La configuración de memoria lógica es de 32 KiB; el número físico de RAMB36 no debe interpretarse como memoria libre para el programa sin revisar la organización y el mapa de enlace.
 
 | Indicador | Valor archivado |
 |---|---:|
 | Período del reloj | 10 ns |
-| WNS | +0,519 ns |
+| WNS | +0,302 ns |
 | TNS | 0 ns |
-| WHS | +0,052 ns |
+| WHS | +0,019 ns |
 | THS | 0 ns |
 | WPWS | +3,750 ns |
-| Endpoints internos en el resumen | 10835 |
+| Endpoints internos en el resumen | 10872 |
 
-Los caminos internos analizados cumplen las restricciones de esa ejecución. Persisten advertencias de un reset asíncrono asociado a LUT (`LUTAR-1`), un cruce sin caracterización reconocida (`TIMING-9`) y trece puertos sin retardos de entrada/salida (`TIMING-18`: cinco entradas y ocho salidas en el chequeo). Deben clasificarse y resolverse o justificarse según la naturaleza de cada señal. No corresponde inventar valores de retardo externos para silenciarlas. Este resultado no implica que todas las interfaces externas estén caracterizadas ni que la ISR cumpla 50 µs.
+Todas las restricciones del usuario se cumplen en esa ejecución, con holgura de +0,302 ns en setup y +0,019 ns en hold. El margen de hold es muy chico. La corrida del 11 de noviembre dio +0,519 y +0,052 ns, así que la holgura bajó con las fuentes actuales, y la ejecución es de un solo ruteo.
+
+El reporte de metodología (`reportes/metodologia.rpt`) trae tres reglas, y se clasificaron así.
+
+- `LUTAR-1`, una LUT que maneja un reset asíncrono. Está en `resume_rst_i_i_1`, dentro del núcleo de depuración del MicroBlaze V (`Debug_Perf`). Es lógica de AMD que no se modifica, y se acepta como advertencia del IP.
+- `TIMING-9`, lógica de cruce de dominios sin sincronizador reconocido. `report_cdc` (`reportes/cdc.rpt`) lista dos cruces, ambos de severidad Info y con todos los endpoints seguros, ninguno inseguro ni desconocido. Uno viene del reloj JTAG del MDM (`Mive/O`) por un grupo de relojes asíncronos, y el otro de un puerto de entrada por un falso camino. Ninguno es lógica propia, el primero es del IP de depuración de AMD, y se acepta como advertencia sin resolver en el diseño.
+- `TIMING-18`, retardos de entrada o salida ausentes, en 16 puertos. Son los tres botones y los dos interruptores como entradas, y las cuatro compuertas, `depuracion[0]`, los cinco LEDs y `tx` como salidas. Son señales asíncronas al reloj de 100 MHz o lentas, y las compuertas se verifican en banco (12.8.4) y no con retardos externos de la Basys 3. No se inventan valores de retardo para silenciarlas.
+
+Este resultado no implica que todas las interfaces externas estén caracterizadas ni que la ISR cumpla 50 µs.
 
 ### 12.8 Mediciones de banco del 23 y 24 de noviembre
 
@@ -709,17 +717,17 @@ Los ensayos se hicieron con la carga de 9,46 Ω en resistencias, 11,8 Ω en tota
 | Ensayo | Archivos | Estado |
 |---|---|---|
 | R de la carga | `registro.md` | 9,46 Ω en resistencias y 11,8 Ω en total. Sin medición a cuatro hilos ni en caliente. |
-| L con LCR | | PENDIENTE, se usa el nominal de 200 µH. |
+| L con LCR | informe técnico de PEDP | 106,2 µH a 1 kHz en uno de los dos inductores. El otro no se midió, y los modelos usan 200 µH. |
 | Cero de corriente | `muestras_sensor/`, `0A_18-50.csv`, `muestras_prueba_25/0A_10-14.csv` | Medido. El cero no es estable (12.8.2). |
 | Ganancia integral | `osc_*.csv` contra los CSV del 23 de noviembre | Comparación hecha con capturas de 100 µs por punto (12.8.3). Falta una calibración en el mismo minuto. |
 | Filtro | | PENDIENTE. |
-| Tiempo muerto | `Muestras Compuertas/tiempo_muerto_*.png`, `registro.md` | Medido en las dos piernas (12.8.4). |
-| Habilitación y parada | `Muestras Compuertas/encendido_compuertas.png`, `apagado_compuertas.png` | Capturado a 50 ms/div. |
+| Tiempo muerto | `Muestras Compuertas/scope_a_piernaB_tiempo_muerto_alta_apaga.png`, `scope_a1_piernaB_tiempo_muerto_baja_apaga.png`, `registro.md` | Pierna B con captura. La pierna A solo está anotada en el banco, sin captura archivada (12.8.4). |
+| Habilitación y parada | `Muestras Compuertas/scope_a5_habilitar.png`, `scope_a6_deshabilitar.png` | Capturado a 50 ms/div. |
 | ISR | `registro.md` | Período de 50 µs. Ancho máximo y jitter PENDIENTES. |
 | Fase ADC/Timer/PWM | | PENDIENTE. |
 | Régimen a 0,2, 0,5 y 1,0 A | CSV del 23 de noviembre y `muestras_recorte/` | Medido (12.8.1). |
-| Cambios 0,2→0,5 y 0,5→1,0 A | | Observado en banco sin registro archivado. |
-| Cambio de R a 0,5 A | `muestras_prueba_25/` | Régimen con 2,5 Ω añadidos. Transitorio sin registro archivado. |
+| Cambios de consigna | `Muestras Osciloscopio/transitorios/scope_g_cambio_consigna.png` | Solo 0,5→0,2 A, captura de pantalla con acople de alterna. Los cambios 0,2→0,5 y 0,5→1,0 A se observaron sin registro archivado. |
+| Cambio de R a 0,5 A | `muestras_prueba_25/`, `transitorios/scope_g1_cambio_carga_1A.png` | Régimen con 2,5 Ω añadidos. El transitorio guardado es a 1,0 A con 18 V y la acción saturada, el de 0,5 A no se guardó. |
 | Rizado | `Muestras Osciloscopio/rizado/`, `registro.md` | Medido (12.8.5). |
 | Falla | | PENDIENTE. |
 
@@ -743,7 +751,7 @@ Fase positiva cuando la corriente adelanta a la referencia. La continua es la qu
 
 *Figura 6. Corriente según el sensor y referencia en los registros de 2048 muestras (102 ms). Los puntos negros marcan muestras con `saturado` en 1.*
 
-A 0,2 y 0,5 A, con las dos cargas, el PR lleva la corriente que ve el sensor a la referencia con menos de 0,5 % de error y fase prácticamente nula. Es lo que predicen 12.9 y 12.10 para la corriente muestreada. El punto de 1,0 A no se alcanza en ningún caso. Con 12,5 V la acción llega al límite de ±0,92 en cada semiciclo y la corriente se recorta en unos +0,74 A; con 2,5 Ω añadidos pasa lo mismo, como anticipaba 12.10 para R por encima de 11 Ω.
+A 0,2 y 0,5 A, con las dos cargas, el PR lleva la corriente que ve el sensor a la referencia con menos de 0,5 % de error y fase prácticamente nula. Es lo que predicen 12.9 y 12.10 para la corriente muestreada. El punto de 1,0 A no se alcanza en ningún caso. Con 12,5 V la acción llega al límite de ±0,92 en cada semiciclo y la corriente se recorta en unos +0,74 A; con 2,5 Ω añadidos pasa lo mismo, como anticipaba 12.10 para R por encima de 11 Ω. Sin embargo, la simulación conmutada con la carga medida (12.12) da solo 7 % de error físico en este punto y el banco 35 %. A 1,0 A pico con 11,8 Ω la carga consume 5,9 W, unos 0,47 A medios a 12,5 V sin contar pérdidas, y el límite de la fuente era de 0,52 A, así que ese límite es la explicación más probable, sin confirmar porque no se registró el bus.
 
 Con 18 V el recorte persiste y es asimétrico. El semiciclo negativo llega a −1,03 A y el positivo se queda en +0,71 A con la acción saturada en +0,92. Con 18 V y 11,8 Ω el 92 % del bus son 16,6 V y bastan unos 13 V para 1 A, así que la saturación indica que la tensión de bus real fue menor durante el ensayo. Una explicación compatible es el límite de 1 A de la fuente, cercano a la corriente que pide el puente en el pico de la senoide; la tensión de bus durante este registro no quedó anotada y la hipótesis queda sin confirmar.
 
@@ -772,19 +780,32 @@ Si las capturas corresponden a los mismos ensayos que los CSV, la corriente fís
 
 #### 12.8.4 Compuertas, tiempo muerto e ISR
 
-Con el bus apagado y los 15 V de los drivers, el tiempo muerto medido fue de 1 µs en ambos flancos de la pierna B. En la pierna A fue de 1,23 µs cuando la baja apaga y la alta enciende, y de 430 ns en el flanco contrario. Los 430 ns quedan por debajo del µs programado, pero mantienen un intervalo sin conducción simultánea; la asimetría se atribuye a diferencias de retardo de encendido y apagado en la cadena de esa pierna. Las capturas archivadas son las de la pierna B, con cursores en 1 µs.
+Con el bus apagado y los 15 V de los drivers, el tiempo muerto medido fue de 1 µs en ambos flancos de la pierna B. En la pierna A fue de 1,23 µs cuando la baja apaga y la alta enciende, y de 430 ns en el flanco contrario. Los 430 ns quedan por debajo del µs programado, pero mantienen un intervalo sin conducción simultánea; la asimetría se atribuye a diferencias de retardo de encendido y apagado en la cadena de esa pierna. Las capturas archivadas son las de la pierna B, con cursores en 1 µs. La captura de la pierna A no se subió al repositorio, esas dos cifras salen de lo anotado en el banco.
 
-![Tiempo muerto, alta apaga y baja enciende](../../muestras_Inversor/Muestras%20Compuertas/tiempo_muerto_alta_apaga_baja_enciende.png)
+![Tiempo muerto, alta apaga y baja enciende](../../muestras_Inversor/Muestras%20Compuertas/scope_a_piernaB_tiempo_muerto_alta_apaga.png)
 
-*Figura 7. Tiempo muerto de 1 µs en una pierna, CH1 y CH2 a 5 V/div, 1 µs/div.*
+*Figura 7. Tiempo muerto de 1 µs en la pierna B, CH1 y CH2 a 5 V/div, 1 µs/div.*
 
-Las capturas de habilitación y parada (`encendido_compuertas.png` y `apagado_compuertas.png`) se tomaron a 50 ms/div. A esa escala no se resuelven la precarga de 70 µs ni el último pulso; el truncamiento descrito en 6.4 sigue sin confirmarse en banco.
+Las capturas de habilitación y parada (`scope_a5_habilitar.png` y `scope_a6_deshabilitar.png`) se tomaron a 50 ms/div. A esa escala no se resuelven la precarga de 70 µs ni el último pulso; el truncamiento descrito en 6.4 sigue sin confirmarse en banco.
 
 La salida JB1 de la ISR se repite cada 50 µs, el período de muestreo de diseño. No se registraron el ancho máximo ni el jitter.
 
 #### 12.8.5 Rizado
 
-En banco se leyeron 3,27 V pp sobre las resistencias, unos 0,35 A pp, con 12,5 V; la consigna de esa lectura no quedó anotada. Las tres capturas archivadas (`Muestras Osciloscopio/rizado/scope_a2.csv` a `scope_a4.csv`, 0,1 µs por punto y dos períodos de conmutación) muestran el rizado unipolar a 40 kHz, con tramos continuos de 2,4, 4,4 y 6,3 V pp, es decir 0,25, 0,46 y 0,66 A pp. También tienen saltos y picos en las conmutaciones que una corriente a través de 200 µH no puede producir; son efecto de medir la diferencia entre dos puntas cuyos extremos saltan con el bus, y se excluyen del pico a pico. Tampoco quedó anotada la consigna de cada captura. En todos los casos el rizado supera 0,20 A pp, en el rango que predicen 12.6 y 12.10 para 12 V (0,19 a 0,40 A pp).
+En banco se leyeron 3,27 V pp sobre las resistencias, unos 0,35 A pp, con 12,5 V; la consigna de esa lectura no quedó anotada. Las tres capturas archivadas (`Muestras Osciloscopio/rizado/scope_a2.csv` a `scope_a4.csv`, 0,1 µs por punto y dos períodos de conmutación) muestran el rizado unipolar a 40 kHz, con tramos continuos de 2,4, 4,4 y 6,3 V pp, es decir 0,25, 0,46 y 0,66 A pp. También tienen saltos y picos en las conmutaciones que una corriente a través de 200 µH no puede producir; son efecto de medir la diferencia entre dos puntas cuyos extremos saltan con el bus, y se excluyen del pico a pico. Tampoco quedó anotada la consigna de cada captura. En todos los casos el rizado supera 0,20 A pp, El de 0,25 A pp cabe en lo que predicen 12.6 y 12.10 para 12 V (0,19 a 0,40 A pp). Los de 0,46 y 0,66 A pp lo superan, y el de 0,66 supera también la predicción de 18 V (0,55 A pp ideal, 0,60 conmutada). Sin la consigna ni el bus de cada captura, y con una medición que resta dos puntas, esa diferencia no se puede atribuir al modelo ni al montaje.
+
+#### 12.8.6 Limitaciones de las mediciones
+
+No se vuelve al laboratorio, así que lo que dependía de medir queda como limitación. Cada punto dice qué no se midió y qué criterio del enunciado se queda sin demostrar.
+
+- Pierna A del tiempo muerto. Los 1,23 µs y los 430 ns salen de lo anotado en el banco y no hay captura. Se presentan como medición anotada y no como evidencia archivada. El tiempo muerto de 1 µs solo está demostrado con captura en la pierna B.
+- Cambios de consigna 0,2 a 0,5 A y 0,5 a 1,0 A, y cambio de R a 0,5 A. No hay registro. Solo existe la imagen del cambio 0,5 a 0,2 A y la del cambio de carga a 1,0 A con la acción saturada, con amplitudes leídas de la cuadrícula. El comportamiento ante cambios de amplitud y de R se sostiene con la simulación (PLECS, Octave conmutado y modelo promediado) y con lo observado a ojo en el banco, dicho como tal, sin tiempo de establecimiento ni sobrepico medidos.
+- Rizado. Las tres capturas no tienen consigna ni bus anotados y restan dos puntas. Los 0,25 a 0,66 A pp se reportan con ese alcance, y el 0,66 queda como discrepancia sin causa identificada. Lo que sí se sostiene es que el rizado supera 0,20 A pp, y el criterio de rizado queda incumplido.
+- Ganancia del sensor. No hubo calibración contra el osciloscopio en el mismo minuto. El sesgo de 14,6 y 18,7 % queda como diferencia medida entre sensor y osciloscopio. El sesgo del valle (3 a 10 % según el modelo) y la ganancia del sensor son causas posibles y no se repartió el resto. El criterio de 10 % de error de la fundamental queda demostrado según el sensor y sin demostrar según el osciloscopio.
+- Cero del sensor con el puente conmutando. Queda la deducción de unas 2560 cuentas a partir del proporcional y la causa del desplazamiento de 800 cuentas sin aislar. No se midió el cero directamente con el puente en marcha.
+- Segundo inductor y R en caliente. Solo se midió uno de los dos inductores, 106,2 µH, y se supone el otro igual. La R no se midió a cuatro hilos ni caliente. Los modelos usan 200 µH y 11,8 Ω.
+- Tensión de bus en la captura de 1,0 A. No se anotó. La hipótesis del límite de la fuente (0,47 A medios contra 0,52 A de límite con 12,5 V) queda como hipótesis, y el punto de 1,0 A no se demuestra con ninguna carga.
+- ISR y falla. Solo se afirma el período de 50 µs en JB1. El ancho máximo y el jitter de la ISR, la precarga de 70 µs, el último pulso truncado, la fase ADC/Timer/PWM, el filtro antialias y la prueba de falla se marcan como no medidos.
 
 ### 12.9 Simulación conmutada y sensibilidades en Octave
 
@@ -882,9 +903,35 @@ Los archivos de la rama `doc/plecs-carga-nueva` contienen validación en lazo ab
 
 Con `parametros.m` actualizado a 9,6 Ω, 200 µH y 12 V se ejecutó el ensayo en lazo abierto del modelo `modelo-planta.plecs` (20 kHz, tiempo muerto de 1 µs, RDS(on) de 0,2 Ω), con el índice de modulación calculado sin tiempo muerto ni RDS(on). Para órdenes de 1,0, 0,5 y 0,2 A pico el índice fue 0,800, 0,400 y 0,160, y la fundamental de la corriente resultó de 0,899, 0,419 y 0,132 A pico, con un desfase de −0,36° respecto de la orden. Salida en `evidencia/plecs_lazo_abierto_9p6ohm_12V.txt`. Sin regulador, la corriente queda 10 % por debajo de lo pedido a 1 A, 16 % por debajo a 0,5 A y 34 % por debajo a 0,2 A, lo que cuantifica el efecto del tiempo muerto y de la caída en los transistores que el PR debe compensar. Este ensayo no incluye el PR, por lo que no sustituye a la simulación conmutada de 12.9. El bus de 12 V sigue siendo provisional.
 
-La validación conmutada de 12.9 se hizo en Octave. La simulación en PLECS con el modelo del repositorio sigue pendiente, y debe usar 9 Ω y 200 µH, 18 V, modulación unipolar a 20 kHz y tiempo muerto de 1 µs. El PR será el de la sección 3.3, con saturación y anti-windup equivalentes al firmware. Se tomará la muestra en el valle y se aplicará la orden en el período siguiente. El RC de aproximadamente 4,8 kHz se modelará de forma separada si corresponde al sensor final; no se sumará dos veces el ZOH o el retardo.
+El 24 de noviembre se agregó al mismo modelo el PR del firmware en un bloque C-Script (`potencia/sim/lazo_cerrado.plecs`, que corre `lazo_cerrado.py`, salida en `evidencia/plecs_lazo_cerrado_11p8ohm.txt`). Usa los coeficientes de `sw/pr_params.h` con saturación en ±0,92 y el mismo anti-windup, muestra en el valle y aplica la orden en el valle siguiente, con la carga medida de 11,8 Ω y 200 µH y un sensor ideal sin filtro ni error de ganancia. La fundamental se ajusta en los últimos cinco períodos de 0,2 s simulados.
 
-Los ensayos incluirán los tres puntos nominales, los dos cambios de amplitud y el cambio de R total de 9 a 12 Ω a 0,5 A pico. Deben exportarse corriente física continua, corriente muestreada, referencia, tensión de carga y PWM. Se comparará la fundamental de la corriente física con la de las muestras, y se medirá el rizado de la primera. Se espera que PLECS permita contrastar el exceso de rizado previsto; hasta ejecutar y archivar esa simulación no se registra como un resultado observado.
+| Iref (A) | Vdc (V) | R (Ω) | Fundamental física (A pico) | Error (%) | Fase (°) | Índice máximo | Rizado (A pp) |
+|---:|---:|---:|---:|---:|---:|---:|---:|
+| 0,2 | 12,5 | 11,8 | 0,2192 | +9,59 | 0,20 | 0,262 | 0,280 |
+| 0,5 | 12,5 | 11,8 | 0,5388 | +7,75 | 0,19 | 0,573 | 0,384 |
+| 1,0 | 12,5 | 11,8 | 0,9113 | −8,87 | 11,50 | 0,920 | 0,396 |
+| 1,0 | 18 | 11,8 | 1,0593 | +5,93 | 0,17 | 0,776 | 0,560 |
+| 0,5 | 12,5 | 14,3 | 0,5485 | +9,71 | 0,20 | 0,691 | 0,381 |
+| 1,0 | 18 | 14,3 | 1,0604 | +6,04 | 0,16 | 0,913 | 0,555 |
+
+Con sensor perfecto la corriente física queda entre 6 y 10 % por encima de la referencia a 0,2 y 0,5 A, porque el regulador lleva a la referencia la muestra del valle y no el promedio del período. A 1,0 A con 12,5 V la acción satura. Con 18 V el mismo punto no satura, ni siquiera con los 2,5 Ω añadidos (índice máximo de 0,91). El rizado simulado va de 0,28 a 0,56 A pp. Este modelo usa 200 µH nominales, mientras que un inductor midió 106,2 µH.
+
+### 12.12 Simulación conmutada en Octave con la carga medida
+
+Se corrió `simular_conmutado(11.8, 200e-6, 12.5, 18)`, es decir 11,8 Ω, 200 µH, bus de 12,5 V y coeficientes normalizados con 18 V como los de `sw/pr_params.h`. La salida está en `evidencia/modelo_conmutado_11p8ohm_12p5V_pr18V.txt`.
+
+| Caso | Fundamental física (A pico) | Error físico (%) | Fase (°) | Fundamental muestreada (A pico) | Rizado máximo (A pp) | Saturación |
+|---|---:|---:|---:|---:|---:|---|
+| 0,2 A | 0,2117 | 5,86 | 0,71 | 0,2000 | 0,261 | No |
+| 0,5 A | 0,5219 | 4,37 | 0,66 | 0,5000 | 0,399 | No |
+| 1,0 A | 0,9287 | 7,13 | 9,72 | 0,9219 | 0,399 | Sí |
+| R +33 %, 0,5 A | 0,5322 | 6,43 | 0,67 | 0,5000 | 0,379 | No |
+| Esquina R −25 %, 1,0 A | 1,0086 | 0,86 | 0,60 | 1,0000 | 0,415 | No |
+| Esquina R +25 %, 1,0 A | 0,7814 | 21,86 | 15,91 | 0,7707 | 0,384 | Sí |
+
+El error físico de este modelo a 0,2 y 0,5 A (5,9 y 4,4 %) queda por debajo del de PLECS (9,6 y 7,8 %), y los dos quedan por debajo del 14,6 y 18,7 % que dio el osciloscopio. A 1,0 A los dos modelos dan un error de 7 a 9 % con la acción saturada, y el banco dio 35 %. Ninguno incluye el límite de corriente de la fuente.
+
+Con el inductor medido por dos (212,4 µH, `evidencia/modelo_conmutado_11p8ohm_212uH_12p5V_pr18V.txt`) el error físico baja de 5,9 y 4,4 % a 4,9 y 3,7 % a 0,2 y 0,5 A, y el rizado de 0,26 y 0,40 a 0,25 y 0,38 A pp. A 1,0 A satura igual, con 7,3 % de error físico y 0,38 A pp. Suponer el segundo inductor igual al medido cambia el sesgo del valle en un punto porcentual y el rizado en 0,02 A pp, así que no explica el 0,66 A pp medido ni la diferencia con el osciloscopio.
 
 ## 13. Análisis de resultados
 
@@ -892,7 +939,7 @@ Los ensayos incluirán los tres puntos nominales, los dos cambios de amplitud y 
 
 Los autochequeos respaldan la recepción AXI independiente de AW/W, la estabilidad de respuestas retenidas, la coherencia de las referencias y las secuencias nominales de conmutación. El ensayo con parámetros reales amplía esta evidencia frente al uso exclusivo de contadores reducidos. Las pruebas C y Python respaldan el comportamiento de los módulos y la interpretación de las muestras dentro de los escenarios ensayados.
 
-Estas pruebas no sustituyen la simulación post-implementación, la ejecución del firmware en MicroBlaze ni las mediciones de compuerta y corriente. En particular, el comentario de código que asocia el valle con no cortar pulsos no concuerda con la forma de onda al apagar: el diagnóstico observado exige describir la parada con precisión.
+Estas pruebas no sustituyen la ejecución del firmware en MicroBlaze ni las mediciones de compuerta y corriente. En particular, el comentario de código que asocia el valle con no cortar pulsos no concuerda con la forma de onda al apagar: el diagnóstico observado exige describir la parada con precisión.
 
 ### 13.2 Estabilidad y retardo
 
@@ -906,6 +953,8 @@ El resonante ideal explica el error estacionario casi nulo del modelo promediado
 
 El error de continua tampoco conserva el valor de la sintonización antigua. En el modelo de baja frecuencia, el resonante ideal tiene ganancia nula en continua y la acción proporcional actual da `Kp/(R+Kp) = 1/3`. Un sesgo de medida `δi` puede inducir aproximadamente `−δi/3` de corriente continua física en ese modelo. Por ejemplo, 102 cuentas con la escala nominal representan cerca de 0,113 A de sesgo de lectura y del orden de 0,038 A de corriente física de continua inducida. Esto refuerza la necesidad de calibrar, sin presentar ese ejemplo como un resultado medido.
 
+En banco, la diferencia de 14,6 y 18,7 % entre el sensor y el osciloscopio no se puede repartir entre el sesgo del valle y la ganancia del sensor, porque no hubo calibración en el mismo minuto y las capturas del osciloscopio son de 100 µs por punto, con el rizado plegado (12.8.6). El cero tampoco se midió con el puente conmutando, solo se dedujo del proporcional. Por eso el 10 % de error queda demostrado según el sensor y sin demostrar según el osciloscopio, y no se repitió porque no se vuelve al laboratorio.
+
 ### 13.4 Transitorios y rampa
 
 La rampa limita la velocidad de variación de la amplitud aplicada y reduce la exigencia de tensión respecto de un escalón ideal. Por ello hay que distinguir el cambio del interruptor de consigna de la referencia que utiliza el PR. Los modelos numéricos muestran transiciones estables bajo las hipótesis declaradas, pero no permiten atribuir un sobrepico físico máximo ni un tiempo de establecimiento experimental.
@@ -918,33 +967,39 @@ El obstáculo principal de la carga actual es el rizado. Un PR puede corregir la
 
 Un filtro en la cadena de medida puede suavizar lo que ve el ADC, pero no reduce por sí mismo el rizado físico de la carga. Tampoco una muestra síncrona permite reconstruir sus máximos. Debe medirse con suficiente ancho de banda y compararse con la predicción RL y el modelo conmutado final. Si el dimensionamiento cambia, se actualizan conjuntamente parámetros, análisis, simulaciones e informe.
 
+El rizado medido se leyó restando dos puntas y sin consigna ni bus anotados, así que el 0,66 A pp que supera incluso la predicción de 18 V queda como discrepancia sin causa identificada. Lo que sí soporta la medición es que el rizado pasa de 0,20 A pp en todas las capturas. Tampoco se probó la mitigación de 12 V con 40 kHz, y no se hará.
+
 ### 13.6 Comparación entre predicción, simulación y medición
 
-| Indicador | Predicción / modelo actual | Evidencia adicional | Medición actual |
+| Indicador | Predicción | Simulación | Medición |
 |---|---|---|---|
-| Carga | 9 Ω y 200 µH nominales | Coherente con los parámetros actuales del software y diseño | PENDIENTE en frío/caliente y LCR |
-| PR | `Kp=4,5`, `Kr=10000`, `Ts=50 µs` | Coeficientes normalizados presentes en firmware | Tiempo de ejecución y desempeño: PENDIENTE |
-| Márgenes | 112,4° y 7,8 dB nominales en modelo continuo | Cálculo reproducido, sin filtro | Retardo/filtro reales: PENDIENTE |
-| Fundamental | Error final <0,001 % en modelo promediado ideal | Conmutado con tiempo muerto: 2,9 / 2,7 / 2,0 % de error físico, 0,01 % en la muestra | PENDIENTE DE CSV en tres puntos |
-| Rizado a 18 V | 0,20063 / 0,414 / 0,548 A pp | Octave conmutado: 0,268 / 0,483 / 0,597 A pp | PENDIENTE; no se declara cumplimiento |
-| Tiempo muerto | 1 µs solicitado | RTL nominal aprobado | Capturas completas: PENDIENTE |
-| Precarga | 70 µs solicitados | RTL nominal aprobado | Bootstrap real: PENDIENTE |
-| Valle→CONVST | 30 ns en lógica estacionaria | Diagnóstico RTL conjunto | Apertura y latencia analógica: PENDIENTE |
-| Parada | Puede truncar el último pulso | RTL: 17,750 µs frente a 36,490 µs regular en el caso ensayado | PENDIENTE |
-| ISR | Período solicitado de 50 µs | Timer configurado; no es prueba de duración | Jitter y ancho máximo: PENDIENTE |
+| Carga | 9 Ω y 200 µH de diseño, 9,6 Ω y 12 V en 12.10 | 11,8 Ω y 200 µH en PLECS y Octave (12.11, 12.12) | 9,46 Ω en resistencias, 11,8 Ω total, 106,2 µH en uno de dos inductores |
+| Fundamental según el sensor, 0,2 / 0,5 A | Resonante ideal, 0 % | Octave 0,01 y 0,00 % | 0,39 y 0,19 %, fase 0,07° y −0,03° |
+| Fundamental física, 0,2 / 0,5 A | Sesgo del valle, 3 a 6 % | Octave 5,9 y 4,4 %, PLECS 9,6 y 7,8 % | 14,6 y 18,7 % con el osciloscopio a 100 µs por punto |
+| 1,0 A con 12,5 V y 11,8 Ω | Satura sobre 11 Ω | Octave 7,1 %, PLECS −8,9 % | 34,9 %, con límite de fuente de 0,52 A |
+| 1,0 A con 18 V | No satura | PLECS no satura, 5,9 % | Satura, 11,8 %, con límite de fuente de 1 A |
+| Cambio de R a 0,5 A | Resonante, 0 % | Octave 0,00 % en la muestra, PLECS con 14,3 Ω 9,7 % físico | 0,14 % según el sensor con 2,5 Ω añadidos |
+| Rizado 0,2 / 0,5 / 1,0 A | 0,19 / 0,34 / 0,36 A pp a 12 V | Octave 0,26 / 0,40 / 0,40, PLECS 0,28 / 0,38 / 0,40 | 0,25 a 0,66 A pp, 0,35 en banco |
+| Tiempo muerto | 1 µs | RTL nominal aprobado | Pierna B 1 µs, pierna A 1,23 µs y 430 ns, sin captura archivada |
+| Precarga | 70 µs | RTL nominal aprobado | PENDIENTE, 50 ms/div no la resuelve |
+| Valle→CONVST | 30 ns en lógica estacionaria | Diagnóstico RTL conjunto | PENDIENTE |
+| Parada | Puede truncar el último pulso | RTL: 17,750 µs frente a 36,490 µs regular | PENDIENTE |
+| ISR | Período de 50 µs | Timer configurado | Período de 50 µs en JB1, ancho máximo y jitter PENDIENTES |
+
+Las diferencias de esta tabla deben leerse con las limitaciones de 12.8.6. En 1,0 A, la saturación de 35 % del banco contra 7 a 9 % de las simulaciones se atribuye al límite de la fuente solo como hipótesis, porque no se anotó el bus. En los transitorios, la tabla compara contra simulación porque no hay registro de tres de los cuatro ensayos. En el tiempo muerto, la pierna A se reporta como anotada. Donde la medición dice PENDIENTE, el ensayo no se hizo y no se repitió.
 
 ### 13.7 Estado de cumplimiento del enunciado
 
 | Requisito | Evaluación documental |
 |---|---|
 | PWM propio con AXI4-Lite y autochequeo | Implementación y pruebas funcionales disponibles. |
-| Simulación temporizada post-implementación | Pendiente. |
+| Simulación temporizada post-implementación | Hecha sobre `periferico_pwm` con netlist y SDF, 0 errores (18.3). Sin retardos de entrada y salida. |
 | Memoria, procesador y periféricos | Diseño disponible; desviación de caché y reproducibilidad de construcción por resolver. |
-| PR, ecuación en diferencias y análisis de estabilidad | Documentados para la carga actual; falta validar con parámetros medidos. |
-| Validación previa en PLECS del control final | Hecha en Octave con modelo conmutado (12.9). PLECS con la carga nueva, pendiente. |
-| Error de fundamental y fase en banco | Pendiente para los tres puntos. |
-| Rizado ≤0,20 A pp | La predicción nominal actual indica exceso; requiere revisión y validación. |
-| Cambios de consigna y resistencia | Modelo promediado añadido; banco y modelo conmutado pendientes. |
+| PR, ecuación en diferencias y análisis de estabilidad | Documentados para la carga de diseño. En banco cumple según el sensor a 0,2 y 0,5 A, y falta medir mejor R y L. |
+| Validación previa en PLECS del control final | Hecha en PLECS en lazo cerrado con 11,8 Ω (12.11) y en Octave (12.9 y 12.12). |
+| Error de fundamental y fase en banco | Según el sensor, menos de 0,5 % y 0,1° a 0,2 y 0,5 A. Según el osciloscopio, 14,6 y 18,7 %, fuera del 10 %. A 1,0 A no se llega. |
+| Rizado ≤0,20 A pp | No cumple, 0,25 a 0,66 A pp medidos. |
+| Cambios de consigna y resistencia | Registrados solo 0,5→0,2 A y el cambio de carga a 1,0 A con la acción saturada. Sin registro 0,2→0,5, 0,5→1,0 y el cambio de R a 0,5 A. |
 | Uso de recursos y timing | Reportes disponibles, con advertencias y alcance delimitados. |
 | Informe Markdown enriquecido | Este documento conserva formato, tablas, ecuaciones, figuras y evidencia reproducible. |
 
@@ -958,9 +1013,9 @@ Un filtro en la cadena de medida puede suavizar lo que ve el ADC, pero no reduce
 | Afirmación de parada con último pulso completo | Se documenta el truncamiento observado y el alcance real de `enable` y `running`. |
 | Protocolo UART descrito sin referencia | Se incluyen los tres campos del registro y la referencia `i_ref_ma`. |
 | Extrapolación de pruebas de PC al tiempo real | Se separan pruebas lógicas, timing del circuito y medición de ISR. |
-| Rizado calculado superior al permitido | Se explicita el incumplimiento previsto; quedan pendientes redimensionamiento y contraste con PLECS/banco. |
+| Rizado calculado superior al permitido | Se explicita el incumplimiento previsto. El banco lo confirmó (12.8.5) y sigue pendiente el redimensionamiento. |
 | Corriente con signo contrario en el CSV | La correlación entre duty y corriente dio −1 el 23 de noviembre. Se dejó `ADC_AMPERES_POR_CUENTA` negativo en lugar de rehacer el cableado del primario. |
-| Cero del sensor de 0,68 V en vez de 0,5 V | Se fijó `ADC_OFFSET_CUENTAS` en 2785 con la medición en J3 y se deja afinar con una captura a 0 A. |
+| Cero del sensor de 0,68 V en vez de 0,5 V | Se fijó `ADC_OFFSET_CUENTAS` primero en 2785 con la medición en J3 y el 23 de noviembre en 2808 con una captura a 0 A. El 24 de noviembre el cero se movió unas 800 cuentas entre puente apagado y conmutando (12.8.2). |
 | Una sola luz de falla para todas las causas | `supervisor_falla` recuerda la causa que disparó primero y `control_principal` enciende un LED por causa. |
 | Reproducción incompleta desde una sola rama | Se identifican commits y dependencias de ramas en el anexo. No se declara una construcción completa verificada de Vivado/Vitis. |
 
@@ -972,6 +1027,8 @@ La limitación técnica más relevante es que la carga de 200 µH cambia el prob
 
 La trazabilidad todavía requiere reunir las herramientas y documentos en la rama de entrega, vincular la ejecución de Vivado con una revisión concreta y completar el flujo de Vitis. El uso de memoria local sin la caché solicitada debe justificarse expresamente. Las mejoras prioritarias son cerrar el dimensionamiento de la carga, confirmar el sensor y su filtro, ejecutar las verificaciones pendientes y conservar los datos crudos de los ensayos. Un IP empaquetado o mejoras de automatización pueden facilitar reutilización, pero no sustituyen estas validaciones.
 
+Hay cosas que no se pudieron demostrar y no se repitieron porque no se vuelve al laboratorio (12.8.6). Faltan la captura del tiempo muerto de la pierna A, el registro de los cambios 0,2 a 0,5 A, 0,5 a 1,0 A y de R a 0,5 A, la calibración de la ganancia y el cero en el mismo minuto, el ancho y el jitter de la ISR y la prueba de falla. La consecuencia para el enunciado es que el error de fundamental queda demostrado solo según el sensor, el rizado queda incumplido y los transitorios se sostienen con simulación. La mejora más barata habría sido anotar consigna, bus y escalas en cada captura.
+
 ## 16. Conclusiones y aprendizaje obtenido
 
 1. El periférico PWM y su interfaz AXI4-Lite cuentan con autochequeos aprobados, incluidos parámetros nominales. La evidencia respalda su comportamiento funcional en los escenarios ensayados, sin extender esa conclusión a retardos físicos o al montaje de potencia.
@@ -979,11 +1036,14 @@ La trazabilidad todavía requiere reunir las herramientas y documentos en la ram
 3. La simulación promediada confirma seguimiento estable en los casos ideales estudiados, pero no acredita el error de la corriente real. La calibración, el sesgo de muestreo y la validación conmutada son necesarios para contrastar ese resultado.
 4. La predicción de rizado a 18 V supera 0,20 A pp, claramente en 0,5 y 1,0 A pico. El sistema no puede declararse conforme al enunciado mientras no se resuelva y verifique este punto con la configuración final.
 5. La revisión de formas de onda corrigió dos interpretaciones del diseño: el valle interno precede a `CONVST` por 30 ns en la lógica ensayada, y el apagado puede truncar el último pulso. Describir la implementación a partir de lo observado resulta más fiable que inferir su comportamiento de los comentarios del código.
-6. Quedan pendientes la simulación temporizada, PLECS cerrado final y los resultados de banco (ISR, calibración y ensayos energizados), que dependen de los CSV del equipo. Como mitigación del rizado, la predicción favorece 12 V con 40 kHz, a validar con PLECS y osciloscopio. El aprendizaje principal es mantener separados el modelo, la verificación digital y la medición física, actualizando los tres cuando cambia la carga.
+6. En banco, según el sensor, el PR deja la fundamental a 0,2 y 0,5 A con menos de 0,5 % de error y menos de 0,1° de fase, con la carga original y con 2,5 Ω añadidos. El osciloscopio da entre 14,6 y 18,7 % más corriente física, así que el criterio de 10 % no se puede dar por cumplido hasta calibrar la ganancia y el cero, que además se mueve unas 800 cuentas con el estado del puente. A 1,0 A no se llega, con 12,5 V probablemente por el límite de 0,52 A de la fuente y con 18 V por el de 1 A.
+7. El rizado medido, de 0,25 a 0,66 A pp, no cumple 0,20 A pp, como predecían el análisis y las simulaciones. El valor más alto supera todas las predicciones y no tiene causa identificada. La mitigación de 12 V con 40 kHz sigue sin probarse.
+8. Quedan pendientes el ancho y el jitter de la ISR, la captura del tiempo muerto de la pierna A, los cambios de consigna 0,2→0,5 y 0,5→1,0 A, el cambio de R a 0,5 A y la medición del segundo inductor. El aprendizaje principal es mantener separados el modelo, la verificación digital y la medición física, y anotar en cada captura la consigna, el bus y las escalas, porque sin eso varias medidas de este informe no se pueden interpretar.
+9. Lo anterior no se repitió en el laboratorio. Cada pendiente se declara en 12.8.6 con el criterio que deja sin demostrar, y los transitorios, el efecto de R y el sesgo del valle se sostienen con las simulaciones y no con registros de banco.
 
 ## 17. Referencias
 
-[1] J. González-Gómez, Y. Arias-Esquivel y R. Coto Calderón, *Proyecto 4: control de corriente con regulador PR sobre MicroBlaze V*, EL3313 y EL4201, II semestre de 2026. [Enunciado incluido en el repositorio](https://github.com/Taller-de-diseno-digital-GR01/Proyecto-4-Regulador-PR/blob/0e87a9dcb4f63f0fe71ddc04db161d7660a8840a/EL3313_proyecto4_2S2026.pdf), secciones 4.3.4, 4.3.5, entregables y rúbricas del anexo B.
+[1] J. González-Gómez, Y. Arias-Esquivel y R. Coto Calderón, *Proyecto 4: control de corriente con regulador PR sobre MicroBlaze V*, EL3313 y EL4201, II semestre de 2026. [Enunciado incluido en el repositorio](https://github.com/Taller-de-diseno-digital-GR01/Proyecto-4-Regulador-PR/blob/0e87a9dcb4f63f0fe71ddc04db161d7660a8840a/EL3313_proyecto4_2S2026.pdf), secciones 4.3.4, 4.3.5, entregables y rúbricas del anexo A.
 
 [2] Equipo del proyecto, [fuentes `develop` de Proyecto 4](https://github.com/Taller-de-diseno-digital-GR01/Proyecto-4-Regulador-PR/tree/0e87a9dcb4f63f0fe71ddc04db161d7660a8840a) e [informe y reportes archivados](https://github.com/Taller-de-diseno-digital-GR01/Proyecto-4-Regulador-PR/tree/1add934e6c584c845e1c7d1912604a1ab2020904/docs/informe). Evidencias primarias de implementación y ejecución usadas en este documento.
 
@@ -1013,7 +1073,7 @@ La trazabilidad todavía requiere reunir las herramientas y documentos en la ram
 
 | Contenido | Revisión consultada | Observación |
 |---|---|---|
-| RTL, firmware, BD y diseño del PR | `develop`: `1c2655f` | Base técnica actual. Incluye `src/crear_proyecto.tcl` y `armar_vitis.py`. |
+| RTL, firmware, BD y diseño del PR | `develop`: `13dad7e` | Base técnica actual. Incluye `src/crear_proyecto.tcl` y `armar_vitis.py`. |
 | Informe original y reportes Vivado | `doc/informe`: `1add934e6c584c845e1c7d1912604a1ab2020904` | PR #67; resultados de potencia anteriores necesitan actualización. |
 | Modelo PLECS archivado | `doc/plecs-carga-nueva`, [PR #68](https://github.com/Taller-de-diseno-digital-GR01/Proyecto-4-Regulador-PR/pull/68) | Lazo abierto con 30 mH; no validación final. |
 | Informe PEDP en LaTeX/PDF | `feature/aliasing-carga-nueva`, [PR #72](https://github.com/Taller-de-diseno-digital-GR01/Proyecto-4-Regulador-PR/pull/72) | Debe reconciliarse con la carga actual; este archivo corrige el informe Markdown de Taller. |
@@ -1058,20 +1118,22 @@ python3 -m pytest sw/pruebas/test_receptor_pc.py
 
 Los demás bancos C incluyen su comando de compilación al inicio del archivo. El resultado esperado es cero errores. Las pruebas necesitan sus dependencias de simulación y Python instaladas; el log identifica lo ejecutado, no una garantía de que esas herramientas estén disponibles en cualquier equipo.
 
-### 18.3 Simulación temporizada post-implementación pendiente
+### 18.3 Simulación temporizada post-implementación
 
-Esta prueba requiere un equipo con Vivado. El flujo previsto es sintetizar e implementar `periferico_pwm` como top, generar un netlist de simulación temporizada y su SDF, y ejecutar el autochequeo en xsim con las bibliotecas de primitivas y `glbl.v` correspondientes a la versión usada. El script de `feature/script-vivado` sirve como base de creación del proyecto; no se afirma que ya automatice toda esta prueba aislada.
-
-Después de implementar el top elegido, las exportaciones de Vivado se basan en:
+Se ejecutó el 24 de noviembre de 2026 con Vivado 2026.1, sin la tarjeta. Se corre desde la raíz con `vivado -mode batch -source src/sim_temporizada.tcl` y deja todo en `vivado/timesim`, que no se versiona. El script sintetiza e implementa `periferico_pwm` como top fuera de contexto, con reloj de 10 ns y la jerarquía aplanada para que los nombres del netlist coincidan con los del SDF. Después escribe el netlist y el SDF con
 
 ```tcl
 write_verilog -force -mode timesim -sdf_anno true periferico_pwm_timesim.v
 write_sdf -force periferico_pwm_timesim.sdf
 ```
 
-Los parámetros quedan fijados al sintetizar. Para usar el banco existente se debe preparar una variante de simulación que instancie el netlist sin `#(...)`, y hacer coincidir exactamente los parámetros del modelo de referencia con los de la síntesis. Se puede implementar con valores nominales y usar `RAPIDO = 0`, o sintetizar con `synth_design -generic` y los mismos parámetros reducidos de la prueba rápida. No se deben aplicar parámetros rápidos a un netlist nominal.
+y corre el autochequeo `tb_periferico_pwm` con xsim, la biblioteca `simprims_ver` y los parámetros nominales (`RAPIDO = 0`, tiempo muerto de 100 ciclos, precarga de 7000 y máximos de 5000, 2500 y 1250). El netlist ya trae su `glbl` y su `$sdf_annotate`.
 
-El banco actual utiliza los puertos públicos del periférico y un modelo de referencia propio, sin depender de la jerarquía interna del núcleo. Esto facilita reutilizarlo con el netlist, pero las comparaciones deben respetar el tiempo de estabilización de sus salidas con retardos: las ventanas de observación se revisarán sin ocultar errores de ciclo, violaciones de setup/hold ni conducción simultánea. Debe comprobarse el ámbito de anotación SDF y que no se cargue dos veces. La prueba debe archivar comandos de compilación/elaboración, modelo de retardos utilizado, cobertura, avisos de temporización, log final y revisión de fuentes. Estos pasos se describen como procedimiento pendiente; no se incluye un log de xsim inexistente.
+El banco original no se modificó. El script genera una copia con cuatro cambios que el netlist exige. Quita el mapa de parámetros de la instancia, porque el netlist trae los nominales fijos. Espera 150 ns antes de la primera prueba, porque el `glbl` mantiene el GSR 100 ns al arrancar y sin esa espera el diseño sigue en reset. Lee las salidas 4 ns después del flanco en vez de 1 ns, por los retardos del SDF. Y en el chequeo de cambios de las compuertas acepta transiciones hasta 4 ns después del flanco en vez de exactamente en el flanco. Quita además el volcado de ondas.
+
+Resultado, en `evidencia/pwm_timesim.log`: 23 grupos, 6552564 comprobaciones y 0 errores, con `PWM: APROBADO`. Es el mismo conteo de grupos que el autochequeo RTL nominal, con pequeñas diferencias de comprobaciones por la semilla. El timing del netlist implementado (`evidencia/pwm_timesim_timing.rpt`) da WNS +1,370 ns, WHS +0,144 ns y WPWS +4,500 ns, sin endpoints fallando. El reporte de metodología trae solo 92 avisos `TIMING-18`, por puertos sin retardos de entrada y salida. Ese timing es del periférico solo y fuera de contexto, así que no sustituye al del sistema completo de 12.7.
+
+Límites del resultado. No hay retardos de entrada y salida ni de la tarjeta. La simulación usa un solo conjunto de retardos del SDF, el que toma xsim por defecto, y no cubre la variación de temperatura ni de tensión. Los retardos de los drivers, de los optoacopladores y del puente no están, porque no son lógica del FPGA, y siguen siendo los de banco (12.8.4).
 
 ### 18.4 Cálculos y gráficos de esta revisión
 
@@ -1096,6 +1158,7 @@ Las salidas de esta revisión están en `evidencia/verificar_pr.log`, `aliasing_
 | `evidencia/python.log` | Trece pruebas del receptor, todas aprobadas. |
 | `evidencia/verificar_pr.log`, `aliasing_pr.log`, `modelo_promediado.txt` | Márgenes, aliasing, rizado ideal y modelo promediado, salida de Octave. |
 | `reportes/timing.rpt`, `utilizacion.rpt`, `utilizacion_jerarquica.rpt` | Copias de los reportes originales de Vivado, sin modificar sus advertencias. |
+| `evidencia/plecs_lazo_cerrado_11p8ohm.txt`, `modelo_conmutado_11p8ohm_12p5V_pr18V.txt` | PLECS en lazo cerrado y Octave conmutado con la carga medida de 11,8 Ω. |
 | `mediciones/PLANTILLA_RESULTADOS.csv` | Tabla vacía con las columnas de cada ensayo. Aquí van los CSV y capturas de banco. |
 
 Para cada futuro ensayo se guardarán fecha, operador, revisión de hardware/software, instrumentos, sondas, R/L medidas, bus, consigna, frecuencia, tiempo muerto, filtro, configuración ADC, archivos crudos y procedimiento de procesamiento. Las capturas deben mostrar escalas y etiquetas. Los criterios se evaluarán contra esos datos y se actualizarán las conclusiones; no se reemplazan los pendientes por expectativas calculadas.

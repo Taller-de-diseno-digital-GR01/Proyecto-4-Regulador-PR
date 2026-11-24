@@ -38,7 +38,7 @@ Los criterios del enunciado \cite{enunciado} son un error relativo de amplitud d
 
 \section{Parámetros del sistema}
 \label{sec:param}
-La carga son dos resistencias de \SI{4.7}{\ohm} y \SI{5}{W} en serie, que miden \SI{9.6}{\ohm} juntas con el multímetro, y dos inductores toroidales de \SI{100}{\micro H} en serie (Microjpm AD22987, \SI{6}{A} según el vendedor), para $L=\SI{200}{\micro H}$. La resistencia de los devanados y del cableado se suma a $R$, y la carga completa midió \SI{11.8}{\ohm} en el banco del 24 de noviembre. El diseño se hizo con los \SI{9.6}{\ohm} de las resistencias, y el informe técnico discute el efecto de esa diferencia. Con $R=\SI{9.6}{\ohm}$, a \SI{50}{Hz} $|Z|=\SI{9.60}{\ohm}$ y la corriente atrasa \ang{0.4}, así que la carga es prácticamente resistiva en la frecuencia de la referencia. Su constante de tiempo es $\tau=L/R=\SI{20.8}{\micro s}$.
+La carga son dos resistencias de \SI{4.7}{\ohm} y \SI{5}{W} en serie, que miden \SI{9.6}{\ohm} juntas con el multímetro, y dos inductores toroidales de \SI{100}{\micro H} en serie (Microjpm AD22987, \SI{6}{A} según el vendedor), para $L=\SI{200}{\micro H}$. La resistencia de los devanados y del cableado se suma a $R$, y la carga completa midió \SI{11.8}{\ohm} en el banco del 24 de noviembre, donde las resistencias solas midieron \SI{9.46}{\ohm}. El diseño se hizo con los \SI{9.6}{\ohm} de las resistencias, y el informe técnico discute el efecto de esa diferencia. Con $R=\SI{9.6}{\ohm}$, a \SI{50}{Hz} $|Z|=\SI{9.60}{\ohm}$ y la corriente atrasa \ang{0.4}, así que la carga es prácticamente resistiva en la frecuencia de la referencia. Su constante de tiempo es $\tau=L/R=\SI{20.8}{\micro s}$.
 
 El bus trabaja con $V_{dc}=\SI{12.5}{V}$ en \num{0.2} y \SI{0.5}{A} y en el cambio de carga, y con \SI{18}{V} en \SI{1.0}{A}. Con \SI{12.5}{V}, \SI{1.0}{A} pide un índice de unos \num{0.85} contando el tiempo muerto y la $R_{DS(on)}$ (Sección~\ref{sec:tm_modelo}), demasiado cerca del tope de \num{0.92} del regulador, mientras que con \SI{18}{V} pide \num{0.61}. Para \num{0.2} y \SI{0.5}{A} se prefiere \SI{12.5}{V}, porque el rizado crece con $V_{dc}$ (Sección~\ref{sec:rizado}). Las protecciones se dimensionan con \SI{24}{V}, el máximo del enunciado, para que un ajuste equivocado de la fuente no las deje cortas.
 
@@ -247,6 +247,8 @@ El regulador se ejecuta en el MicroBlaze V y el puente lo maneja un periférico 
 	\item Un temporizador interrumpe cada \num{5000} ciclos de \SI{100}{MHz}, \SI{50}{\micro s}. En cada interrupción se lee la corriente, se calcula el PR y se escribe $d$.
 	\item La amplitud de la referencia sale de dos interruptores de la placa, con \num{0.2}, \num{0.5} y \SI{1.0}{A} pico, y un botón habilita el control. Otro botón exporta por UART el histórico de \num{2048} muestras, que cubre \num{5.12} períodos de \SI{50}{Hz}.
 \end{itemize}
+
+La implementación en la Basys~3 (\texttt{xc7a35t}) con Vivado, del 24 de noviembre, usa \num{5561} LUT (\SI{26.74}{\percent}), \num{3664} flip-flops (\SI{8.81}{\percent}), \num{8} RAMB36 y \num{7} DSP, y cierra el reloj de \SI{10}{ns} con holgura de \SI{0.302}{ns} en setup y \SI{0.019}{ns} en hold. Esos reportes no traen retardos de entrada y salida de la tarjeta, y la simulación temporizada del periférico PWM con netlist y SDF del 24 de noviembre pasó su autochequeo sin errores. Esa simulación es del periférico solo y sin retardos de entrada y salida, así que los retardos de las compuertas y del disparo del XADC que usa este informe siguen siendo los del diseño y los medidos en banco.
 
 El control solo se habilita con la frecuencia de \SI{20}{kHz}. Las de \num{10} y \SI{40}{kHz} existen para mostrar el PWM sin cerrar el lazo, y el cuarto código de \texttt{freq\_sel} (11) queda igual que \SI{20}{kHz}.
 
@@ -472,6 +474,9 @@ La ganancia del sensor se comprueba contra una medición independiente, la tensi
 	\item Cambio de la resistencia externa de \SI{9.6}{} a \SI{12.3}{\ohm} con \SI{0.5}{A} pico y \SI{12.5}{V} (Sección~\ref{sec:cambio_carga}).
 	\item Desconexión ante falla, con una compuerta y el LED de falla en la misma captura.
 \end{enumerate}
+
+\subsection{Qué se ejecutó}
+Este plan se ejecutó en parte el 23 y 24 de noviembre y no se repite. Se hicieron la verificación de compuertas con captura en la pierna B, la medición de la resistencia y de uno de los dos inductores, el cero con \SI{0}{A}, la comparación de ganancia contra el osciloscopio (sin el mismo minuto), el régimen a \num{0.2}, \num{0.5} y \SI{1.0}{A} (este último sin alcanzarse), el cambio de \num{0.5} a \SI{0.2}{A} y el cambio de carga a \SI{1.0}{A}. No se ejecutaron con registro los cambios de \num{0.2} a \num{0.5} y de \num{0.5} a \SI{1.0}{A}, el cambio de resistencia a \SI{0.5}{A}, la captura de la pierna A, la medición del jitter de la rutina ni la desconexión ante falla. El informe técnico dice qué consecuencia tiene cada uno para los criterios del enunciado.
 
 \subsection{Montaje y adquisición}
 \label{sec:montaje}
