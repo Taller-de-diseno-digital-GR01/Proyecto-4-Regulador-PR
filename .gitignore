@@ -56,3 +56,5 @@ project_4_PR/
 *.mmi
 # Formas de onda que escribe potencia/sim/lazo_cerrado.py, unos 5 MB cada una, se regeneran con el script
 potencia/sim/lazo_cerrado_*.csv
+!src/sim_temporizada.tcl
+!docs/informe/evidencia/*.log
