@@ -166,7 +166,7 @@ Los estados de los controladores completan el almacenamiento de control. `BRESP`
 
 ### h.5 Controlador de escritura
 
-Una aceptación, o handshake, ocurre en un flanco con `VALID` y `READY` simultáneamente en 1.
+Una aceptación, o handshake, ocurre en un flanco con `VALID` y `READY` simultáneamente en 1, según la especificación de Arm (IHI 0022E, referencias). Las dependencias entre canales que sigue este controlador, y por las que acepta AW y W en cualquier orden, son las de esa misma especificación.
 
 ```mermaid
 stateDiagram-v2
@@ -256,3 +256,4 @@ Reloj y reset provienen de la infraestructura del sistema. Las cuatro señales d
 - Diseño existente: [nivel 3](../diagramas/nivel03.md) y [`nucleo_pwm`](nucleo_pwm.md).
 - Instructivo del proyecto, secciones 4.2.2, 4.2.3 y 7.
 - Arm, [AMBA AXI y ACE Protocol Specification IHI 0022E](https://documentation-service.arm.com/static/5f915b62f86e16515cdc3b1c), transacciones, dependencias de canales y AXI4-Lite.
+- AMD, Vivado Design Suite AXI Reference Guide (UG1037) y Creating and Packaging Custom IP (UG1118), nombres estándar de las señales AXI con que Vivado infiere la interfaz al empaquetar el IP.
