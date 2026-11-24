@@ -7,7 +7,7 @@ Profesores: Dr.-Ing. Jeferson González-Gómez, PhD. Yeiner Arias-Esquivel e Ing
 
 Integrantes: Carlos Castro Villegas, Jefferson Chinchilla Quesada, Mattio Coghi Quirós y Nicolás Mena Valerio.
 
-Revisión documental: 24 de noviembre de 2026. Fuentes de implementación: `develop`, commit `13dad7e`. Los reportes de implementación de Vivado son del 11 de noviembre; no se atribuyen a una nueva compilación de todos los fuentes actuales. Los datos de banco del 23 y 24 de noviembre (CSV del receptor y capturas del osciloscopio) están en `muestras_Inversor/`, y lo anotado durante los ensayos en `potencia/mediciones/2026-11-24/registro.md`. Las celdas que todavía no tienen dato quedan marcadas como PENDIENTE.
+Revisión documental: 24 de noviembre de 2026. Fuentes de implementación: `develop`, commit `13dad7e`. Los reportes de implementación de Vivado se regeneraron el 24 de noviembre con esas fuentes. Los datos de banco del 23 y 24 de noviembre (CSV del receptor y capturas del osciloscopio) están en `muestras_Inversor/`, y lo anotado durante los ensayos en `potencia/mediciones/2026-11-24/registro.md`. Las celdas que todavía no tienen dato quedan marcadas como PENDIENTE.
 
 ## Tabla de contenidos
 
@@ -40,13 +40,13 @@ Los resultados se clasifican por su procedencia. Una prueba de software en PC ve
 | Simulación RTL de la envoltura XADC | Verifica la lógica propia con un modelo del convertidor. No mide la cadena analógica ni caracteriza el XADC real. |
 | Siete ejecutables de prueba C y trece pruebas Python | Verifican módulos en PC, con controladores simulados donde corresponde. Logs en `evidencia/`. No acreditan duración de ISR ni ejecución del ELF en MicroBlaze V. |
 | Cálculos en Octave | Márgenes (`verificar_pr.m`), aliasing (`aliasing_pr.m`), figuras, predicción de rizado y seis casos del modelo promediado para 9 Ω y 200 µH (`figuras_informe.m`). Salidas en `evidencia/`. |
-| Reportes de Vivado del diseño ruteado | Recursos y timing de la ejecución archivada del 11 de noviembre de 2026. |
+| Reportes de Vivado del diseño ruteado | Recursos, timing, metodología y CDC regenerados el 24 de noviembre de 2026. |
 | Simulación conmutada en Octave | Lazo cerrado con tiempo muerto y ADC cuantizado para 9 Ω y 18 V, y repetida para 9,6 Ω y 12 V (`simular_conmutado.m`). No incluye filtro ni drivers. |
 | Resultados PLECS archivados | Lazo abierto con 12 Ω y 30 mH, como antecedente. Lazo abierto con 9,6 Ω y lazo cerrado con el PR del firmware y 11,8 Ω, con sensor ideal (12.11). |
 | Ajustes de banco del 23 de noviembre | Polaridad de corriente invertida detectada por correlación entre duty y corriente, y cero del sensor fijado en 2808 cuentas con una captura a 0 A. Los cuatro `.bin` del 23 de noviembre traen ese offset en la cabecera. |
 | Banco del 23 y 24 de noviembre | Lazo cerrado a 0,2, 0,5 y 1,0 A pico con la carga original y con 2,5 Ω añadidos, 1,0 A con 18 V, capturas de compuertas, tiempo muerto, rizado y fundamental en el osciloscopio. Resultados en 12.8. |
 
-Permanece pendiente la simulación temporizada post-implementación del PWM y la calibración integral del sensor. En banco, el CSV sigue a la referencia con menos de 0,5 % de error a 0,2 y 0,5 A, pero la medición independiente con el osciloscopio da entre 14 y 19 % más corriente física, el punto de 1,0 A satura tanto con 12,5 como con 18 V, y el rizado medido supera 0,20 A pp. Por ello no se declara cumplimiento global del sistema.
+La simulación temporizada post-implementación del PWM quedó aprobada (18.3), y sigue pendiente la calibración integral del sensor. En banco, el CSV sigue a la referencia con menos de 0,5 % de error a 0,2 y 0,5 A, pero la medición independiente con el osciloscopio da entre 14 y 19 % más corriente física, el punto de 1,0 A satura tanto con 12,5 como con 18 V, y el rizado medido supera 0,20 A pp. Por ello no se declara cumplimiento global del sistema.
 
 ## 1. Resumen
 
@@ -187,7 +187,7 @@ flowchart TD
 
 El Timer interrumpe al procesador a 20 kHz. El periférico PWM mantiene la portadora y dispara al ADC aun estando deshabilitada la potencia. Esta propiedad permite al programa comprobar que llegan conversiones antes de habilitar las compuertas. La orden de control se aplica en el valle mediante registros sombra.
 
-La plataforma define MicroBlaze V a 100 MHz, memoria LMB de 32 KiB, FPU, multiplicación/división y operaciones atómicas. La interrupción del Timer se conecta de forma directa. El diseño documentado usa memoria local sin caché; esto se aparta de la petición de caché de 8 KiB del enunciado. La elección tiene una justificación por el acceso a LMB, pero la aceptación de esa desviación debe quedar explícita y no se da por acreditada.
+La plataforma define MicroBlaze V a 100 MHz, memoria LMB de 32 KiB, FPU, multiplicación/división y operaciones atómicas. La interrupción del Timer se conecta de forma directa. El diseño documentado usa memoria local sin caché; esto se aparta de la petición de caché de 8 KiB del enunciado. La caché de instrucciones de MicroBlaze solo guarda lo que se busca por AXI fuera del rango de LMB, y el programa y los datos viven en los 32 KiB de BRAM local, que se leen por LMB en un ciclo. La Basys 3 no tiene DDR ni otra memoria externa donde poner código, así que una caché de 8 KiB no tendría qué guardar y gastaría BRAM y LUT sin bajar la latencia ni el jitter de la ISR. Por eso no se habilitó, y se declara como desviación deliberada de la letra del enunciado. La aceptación de esa desviación queda a criterio del profesor.
 
 ### 4.2 Decisiones y alcance
 
@@ -561,7 +561,7 @@ El rizado se obtiene con una captura de mayor ancho de banda que el registro UAR
 2. Calibrar el cero y la ganancia de la cadena completa de corriente. Confirmar filtro instalado y margen de entrada del XADC.
 3. Con el bus de potencia apagado, capturar compuertas, 1 µs de tiempo muerto, 70 µs de precarga, cuatro selecciones de frecuencia, habilitación y último pulso al deshabilitar. Verificar además las señales después de la cadena de drivers.
 4. Medir JB1 con control habilitado, deshabilitado y durante exportación. Registrar período, jitter y duración máxima de ISR, con el PR activo y con falla enclavada. Repetir arranque para caracterizar fase respecto de adquisición y PWM.
-5. Ejecutar la simulación temporizada post-implementación del PWM según la sección 18.3.
+5. La simulación temporizada post-implementación del PWM se ejecutó según la sección 18.3.
 6. Validar primero en PLECS el lazo cerrado con la carga y bus finales, tiempo muerto, adquisición y demora de actuación. Añadir el filtro confirmado y las no idealidades de forma identificable.
 7. Resolver el dimensionamiento que predice exceso de rizado y registrar cualquier nueva carga, frecuencia o coeficiente. Después realizar los ensayos energizados nominales y transitorios, con sus condiciones eléctricas y térmicas.
 
@@ -678,29 +678,37 @@ Solo 12 V con 40 kHz queda bajo 0,20 A pp en los tres puntos de la predicción i
 
 ### 12.7 Recursos y timing
 
-Se transcriben los reportes archivados de Vivado 2026.1 del 11 de noviembre de 2026, dispositivo `xc7a35t` de la Basys 3 [2].
+Se transcriben los reportes de Vivado 2026.1 regenerados el 24 de noviembre de 2026 con `src/crear_proyecto.tcl` sobre las fuentes de `develop` (`13dad7e`), dispositivo `xc7a35t` de la Basys 3 [2]. Los anteriores eran del 11 de noviembre. Esta máquina no tiene los board files de la Basys 3, así que el proyecto se armó solo con el `part`, sin cambiar el diseño ni las restricciones.
 
 | Recurso | Uso | Disponibilidad indicada | Ocupación |
 |---|---:|---:|---:|
-| LUT | 5567 | 20800 | 26,76 % |
-| Flip-flops | 3651 | 41600 | 8,78 % |
+| LUT | 5561 | 20800 | 26,74 % |
+| Flip-flops | 3664 | 41600 | 8,81 % |
 | RAMB36 | 8 | 50 | 16,00 % |
 | DSP | 7 | 90 | 7,78 % |
-| IOB | 16 | 106 | 15,09 % |
+| IOB | 19 | 106 | 17,92 % |
 
 La jerarquía del reporte atribuye al periférico PWM 151 LUT, 199 flip-flops y un DSP: 49 LUT y 64 flip-flops para la interfaz, y 102 LUT, 135 flip-flops y un DSP para el núcleo. La configuración de memoria lógica es de 32 KiB; el número físico de RAMB36 no debe interpretarse como memoria libre para el programa sin revisar la organización y el mapa de enlace.
 
 | Indicador | Valor archivado |
 |---|---:|
 | Período del reloj | 10 ns |
-| WNS | +0,519 ns |
+| WNS | +0,302 ns |
 | TNS | 0 ns |
-| WHS | +0,052 ns |
+| WHS | +0,019 ns |
 | THS | 0 ns |
 | WPWS | +3,750 ns |
-| Endpoints internos en el resumen | 10835 |
+| Endpoints internos en el resumen | 10872 |
 
-Los caminos internos analizados cumplen las restricciones de esa ejecución. Persisten advertencias de un reset asíncrono asociado a LUT (`LUTAR-1`), un cruce sin caracterización reconocida (`TIMING-9`) y trece puertos sin retardos de entrada/salida (`TIMING-18`: cinco entradas y ocho salidas en el chequeo). Deben clasificarse y resolverse o justificarse según la naturaleza de cada señal. No corresponde inventar valores de retardo externos para silenciarlas. Este resultado no implica que todas las interfaces externas estén caracterizadas ni que la ISR cumpla 50 µs.
+Todas las restricciones del usuario se cumplen en esa ejecución, con holgura de +0,302 ns en setup y +0,019 ns en hold. El margen de hold es muy chico. La corrida del 11 de noviembre dio +0,519 y +0,052 ns, así que la holgura bajó con las fuentes actuales, y la ejecución es de un solo ruteo.
+
+El reporte de metodología (`reportes/metodologia.rpt`) trae tres reglas, y se clasificaron así.
+
+- `LUTAR-1`, una LUT que maneja un reset asíncrono. Está en `resume_rst_i_i_1`, dentro del núcleo de depuración del MicroBlaze V (`Debug_Perf`). Es lógica de AMD que no se modifica, y se acepta como advertencia del IP.
+- `TIMING-9`, lógica de cruce de dominios sin sincronizador reconocido. `report_cdc` (`reportes/cdc.rpt`) lista dos cruces, ambos de severidad Info y con todos los endpoints seguros, ninguno inseguro ni desconocido. Uno viene del reloj JTAG del MDM (`Mive/O`) por un grupo de relojes asíncronos, y el otro de un puerto de entrada por un falso camino. Ninguno es lógica propia, el primero es del IP de depuración de AMD, y se acepta como advertencia sin resolver en el diseño.
+- `TIMING-18`, retardos de entrada o salida ausentes, en 16 puertos. Son los tres botones y los dos interruptores como entradas, y las cuatro compuertas, `depuracion[0]`, los cinco LEDs y `tx` como salidas. Son señales asíncronas al reloj de 100 MHz o lentas, y las compuertas se verifican en banco (12.8.4) y no con retardos externos de la Basys 3. No se inventan valores de retardo para silenciarlas.
+
+Este resultado no implica que todas las interfaces externas estén caracterizadas ni que la ISR cumpla 50 µs.
 
 ### 12.8 Mediciones de banco del 23 y 24 de noviembre
 
@@ -923,13 +931,15 @@ Se corrió `simular_conmutado(11.8, 200e-6, 12.5, 18)`, es decir 11,8 Ω, 200 µ
 
 El error físico de este modelo a 0,2 y 0,5 A (5,9 y 4,4 %) queda por debajo del de PLECS (9,6 y 7,8 %), y los dos quedan por debajo del 14,6 y 18,7 % que dio el osciloscopio. A 1,0 A los dos modelos dan un error de 7 a 9 % con la acción saturada, y el banco dio 35 %. Ninguno incluye el límite de corriente de la fuente.
 
+Con el inductor medido por dos (212,4 µH, `evidencia/modelo_conmutado_11p8ohm_212uH_12p5V_pr18V.txt`) el error físico baja de 5,9 y 4,4 % a 4,9 y 3,7 % a 0,2 y 0,5 A, y el rizado de 0,26 y 0,40 a 0,25 y 0,38 A pp. A 1,0 A satura igual, con 7,3 % de error físico y 0,38 A pp. Suponer el segundo inductor igual al medido cambia el sesgo del valle en un punto porcentual y el rizado en 0,02 A pp, así que no explica el 0,66 A pp medido ni la diferencia con el osciloscopio.
+
 ## 13. Análisis de resultados
 
 ### 13.1 Lo que demuestra la plataforma digital
 
 Los autochequeos respaldan la recepción AXI independiente de AW/W, la estabilidad de respuestas retenidas, la coherencia de las referencias y las secuencias nominales de conmutación. El ensayo con parámetros reales amplía esta evidencia frente al uso exclusivo de contadores reducidos. Las pruebas C y Python respaldan el comportamiento de los módulos y la interpretación de las muestras dentro de los escenarios ensayados.
 
-Estas pruebas no sustituyen la simulación post-implementación, la ejecución del firmware en MicroBlaze ni las mediciones de compuerta y corriente. En particular, el comentario de código que asocia el valle con no cortar pulsos no concuerda con la forma de onda al apagar: el diagnóstico observado exige describir la parada con precisión.
+Estas pruebas no sustituyen la ejecución del firmware en MicroBlaze ni las mediciones de compuerta y corriente. En particular, el comentario de código que asocia el valle con no cortar pulsos no concuerda con la forma de onda al apagar: el diagnóstico observado exige describir la parada con precisión.
 
 ### 13.2 Estabilidad y retardo
 
@@ -983,7 +993,7 @@ Las diferencias de esta tabla deben leerse con las limitaciones de 12.8.6. En 1,
 | Requisito | Evaluación documental |
 |---|---|
 | PWM propio con AXI4-Lite y autochequeo | Implementación y pruebas funcionales disponibles. |
-| Simulación temporizada post-implementación | Pendiente. |
+| Simulación temporizada post-implementación | Hecha sobre `periferico_pwm` con netlist y SDF, 0 errores (18.3). Sin retardos de entrada y salida. |
 | Memoria, procesador y periféricos | Diseño disponible; desviación de caché y reproducibilidad de construcción por resolver. |
 | PR, ecuación en diferencias y análisis de estabilidad | Documentados para la carga de diseño. En banco cumple según el sensor a 0,2 y 0,5 A, y falta medir mejor R y L. |
 | Validación previa en PLECS del control final | Hecha en PLECS en lazo cerrado con 11,8 Ω (12.11) y en Octave (12.9 y 12.12). |
@@ -1028,7 +1038,7 @@ Hay cosas que no se pudieron demostrar y no se repitieron porque no se vuelve al
 5. La revisión de formas de onda corrigió dos interpretaciones del diseño: el valle interno precede a `CONVST` por 30 ns en la lógica ensayada, y el apagado puede truncar el último pulso. Describir la implementación a partir de lo observado resulta más fiable que inferir su comportamiento de los comentarios del código.
 6. En banco, según el sensor, el PR deja la fundamental a 0,2 y 0,5 A con menos de 0,5 % de error y menos de 0,1° de fase, con la carga original y con 2,5 Ω añadidos. El osciloscopio da entre 14,6 y 18,7 % más corriente física, así que el criterio de 10 % no se puede dar por cumplido hasta calibrar la ganancia y el cero, que además se mueve unas 800 cuentas con el estado del puente. A 1,0 A no se llega, con 12,5 V probablemente por el límite de 0,52 A de la fuente y con 18 V por el de 1 A.
 7. El rizado medido, de 0,25 a 0,66 A pp, no cumple 0,20 A pp, como predecían el análisis y las simulaciones. El valor más alto supera todas las predicciones y no tiene causa identificada. La mitigación de 12 V con 40 kHz sigue sin probarse.
-8. Quedan pendientes la simulación temporizada del PWM, el ancho y el jitter de la ISR, la captura del tiempo muerto de la pierna A, los cambios de consigna 0,2→0,5 y 0,5→1,0 A, el cambio de R a 0,5 A y la medición del segundo inductor. El aprendizaje principal es mantener separados el modelo, la verificación digital y la medición física, y anotar en cada captura la consigna, el bus y las escalas, porque sin eso varias medidas de este informe no se pueden interpretar.
+8. Quedan pendientes el ancho y el jitter de la ISR, la captura del tiempo muerto de la pierna A, los cambios de consigna 0,2→0,5 y 0,5→1,0 A, el cambio de R a 0,5 A y la medición del segundo inductor. El aprendizaje principal es mantener separados el modelo, la verificación digital y la medición física, y anotar en cada captura la consigna, el bus y las escalas, porque sin eso varias medidas de este informe no se pueden interpretar.
 9. Lo anterior no se repitió en el laboratorio. Cada pendiente se declara en 12.8.6 con el criterio que deja sin demostrar, y los transitorios, el efecto de R y el sesgo del valle se sostienen con las simulaciones y no con registros de banco.
 
 ## 17. Referencias
@@ -1108,20 +1118,22 @@ python3 -m pytest sw/pruebas/test_receptor_pc.py
 
 Los demás bancos C incluyen su comando de compilación al inicio del archivo. El resultado esperado es cero errores. Las pruebas necesitan sus dependencias de simulación y Python instaladas; el log identifica lo ejecutado, no una garantía de que esas herramientas estén disponibles en cualquier equipo.
 
-### 18.3 Simulación temporizada post-implementación pendiente
+### 18.3 Simulación temporizada post-implementación
 
-Esta prueba requiere un equipo con Vivado. El flujo previsto es sintetizar e implementar `periferico_pwm` como top, generar un netlist de simulación temporizada y su SDF, y ejecutar el autochequeo en xsim con las bibliotecas de primitivas y `glbl.v` correspondientes a la versión usada. El script de `feature/script-vivado` sirve como base de creación del proyecto; no se afirma que ya automatice toda esta prueba aislada.
-
-Después de implementar el top elegido, las exportaciones de Vivado se basan en:
+Se ejecutó el 24 de noviembre de 2026 con Vivado 2026.1, sin la tarjeta. Se corre desde la raíz con `vivado -mode batch -source src/sim_temporizada.tcl` y deja todo en `vivado/timesim`, que no se versiona. El script sintetiza e implementa `periferico_pwm` como top fuera de contexto, con reloj de 10 ns y la jerarquía aplanada para que los nombres del netlist coincidan con los del SDF. Después escribe el netlist y el SDF con
 
 ```tcl
 write_verilog -force -mode timesim -sdf_anno true periferico_pwm_timesim.v
 write_sdf -force periferico_pwm_timesim.sdf
 ```
 
-Los parámetros quedan fijados al sintetizar. Para usar el banco existente se debe preparar una variante de simulación que instancie el netlist sin `#(...)`, y hacer coincidir exactamente los parámetros del modelo de referencia con los de la síntesis. Se puede implementar con valores nominales y usar `RAPIDO = 0`, o sintetizar con `synth_design -generic` y los mismos parámetros reducidos de la prueba rápida. No se deben aplicar parámetros rápidos a un netlist nominal.
+y corre el autochequeo `tb_periferico_pwm` con xsim, la biblioteca `simprims_ver` y los parámetros nominales (`RAPIDO = 0`, tiempo muerto de 100 ciclos, precarga de 7000 y máximos de 5000, 2500 y 1250). El netlist ya trae su `glbl` y su `$sdf_annotate`.
 
-El banco actual utiliza los puertos públicos del periférico y un modelo de referencia propio, sin depender de la jerarquía interna del núcleo. Esto facilita reutilizarlo con el netlist, pero las comparaciones deben respetar el tiempo de estabilización de sus salidas con retardos: las ventanas de observación se revisarán sin ocultar errores de ciclo, violaciones de setup/hold ni conducción simultánea. Debe comprobarse el ámbito de anotación SDF y que no se cargue dos veces. La prueba debe archivar comandos de compilación/elaboración, modelo de retardos utilizado, cobertura, avisos de temporización, log final y revisión de fuentes. Estos pasos se describen como procedimiento pendiente; no se incluye un log de xsim inexistente.
+El banco original no se modificó. El script genera una copia con cuatro cambios que el netlist exige. Quita el mapa de parámetros de la instancia, porque el netlist trae los nominales fijos. Espera 150 ns antes de la primera prueba, porque el `glbl` mantiene el GSR 100 ns al arrancar y sin esa espera el diseño sigue en reset. Lee las salidas 4 ns después del flanco en vez de 1 ns, por los retardos del SDF. Y en el chequeo de cambios de las compuertas acepta transiciones hasta 4 ns después del flanco en vez de exactamente en el flanco. Quita además el volcado de ondas.
+
+Resultado, en `evidencia/pwm_timesim.log`: 23 grupos, 6552564 comprobaciones y 0 errores, con `PWM: APROBADO`. Es el mismo conteo de grupos que el autochequeo RTL nominal, con pequeñas diferencias de comprobaciones por la semilla. El timing del netlist implementado (`evidencia/pwm_timesim_timing.rpt`) da WNS +1,370 ns, WHS +0,144 ns y WPWS +4,500 ns, sin endpoints fallando. El reporte de metodología trae solo 92 avisos `TIMING-18`, por puertos sin retardos de entrada y salida. Ese timing es del periférico solo y fuera de contexto, así que no sustituye al del sistema completo de 12.7.
+
+Límites del resultado. No hay retardos de entrada y salida ni de la tarjeta. La simulación usa un solo conjunto de retardos del SDF, el que toma xsim por defecto, y no cubre la variación de temperatura ni de tensión. Los retardos de los drivers, de los optoacopladores y del puente no están, porque no son lógica del FPGA, y siguen siendo los de banco (12.8.4).
 
 ### 18.4 Cálculos y gráficos de esta revisión
 
