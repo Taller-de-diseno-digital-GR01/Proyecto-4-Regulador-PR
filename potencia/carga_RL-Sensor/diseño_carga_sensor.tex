@@ -286,15 +286,15 @@
 	El circuito acondicionador tiene 3 funciones principales:
 	\begin{itemize}
 		\item Quitar el cero del sensor ($2.5$ V)
-		\item Amplificar la señal ($A_v = 2.4$)
+		\item Amplificar la señal ($A_v = 1.2$)
 		\item Insertar un nuevo cero que permita representar números negativos. ($0.5$ V)
 	\end{itemize}
 	 
 	 La ganancia de este circuito se obtiene de la siguiente ecuación:
 	 
-	 \[A_v = \frac{R_1}{R2 || R3} = 2.4\]
+	 \[A_v = \frac{R_1}{R_2 || R_3} = \frac{12\ \text{k}\Omega}{10\ \text{k}\Omega} = 1.2\]
 	 
-	 Se seleccionó dicha ganancia con el fin de centrar la onda cerca de los $2.5$ V, ya que al eliminar el cero del sensor la onda queda centrada a $0.1$ por lo que se necesita cierto offset.
+	 La ganancia se elige para aprovechar el rango de $0$ a $1$ V del XADC, como se calcula en la sección de selección de la ganancia.
 
 	\subsection{Ecuación general del circuito}
 	En la entrada no inversora, el divisor formado por $R_5$ y $R_6$ se reemplaza por su equivalente de Thévenin:
@@ -336,14 +336,14 @@
 
 	\[I_{max} = \frac{0.92 \cdot 18 \text{ V}}{10\ \Omega} = 1.66 \text{ A}\]
 
-	Se deja un margen de $0.10$ V en cada extremo del rango de $0$ a $1$ V, por lo que la excursión permitida alrededor de $0.5$ V es de $\pm 0.40$ V. Con la sensibilidad del sensor de $100$ mV/A:
+	Se deja un margen de $0.10$ V en cada extremo del rango de $0$ a $1$ V, por lo que la excursión permitida alrededor de $0.5$ V es de $\pm 0.40$ V. Con la sensibilidad del ACS712ELCTR-05B de $185$ mV/A:
 
 	\begin{align*}
-		&A_v \cdot 0.100 \text{ V/A} \cdot 1.66 \text{ A} \leq 0.40 \text{ V}\\
-		&A_v \leq 2.41
+		&A_v \cdot 0.185 \text{ V/A} \cdot 1.66 \text{ A} \leq 0.40 \text{ V}\\
+		&A_v \leq 1.30
 	\end{align*}
 
-	Por lo tanto se selecciona $A_v = 2.4$.
+	Por lo tanto se selecciona $A_v = 1.2$, porque con $R_- = 10\ \text{k}\Omega$ da $R_1 = 12\ \text{k}\Omega$ y $R_7 = 15\ \text{k}\Omega$, ambos valores comerciales.
 
 	\subsection{Resistencias de la entrada no inversora}
 	A $0$ A la salida debe ser igual a $V_{off}$, por lo que se busca $V_{off} = 0.5$ V a partir de $V_{cc} = 5$ V:
@@ -359,13 +359,13 @@
 
 	De la condición de balance se obtiene $R_7$:
 
-	\[R_7 = \frac{R_+}{A_v} = \frac{18\ \text{k}\Omega}{2.4} = 7.5\ \text{k}\Omega\]
+	\[R_7 = \frac{R_+}{A_v} = \frac{18\ \text{k}\Omega}{1.2} = 15\ \text{k}\Omega\]
 
 	Para comprobar los valores, con $V_{sensor} = 2.5$ V se tiene:
 
 	\begin{align*}
-		&V_+ = \frac{2.5 \text{ V} \cdot 18\ \text{k}\Omega + 0.5 \text{ V} \cdot 7.5\ \text{k}\Omega}{18\ \text{k}\Omega + 7.5\ \text{k}\Omega} = 1.912 \text{ V}\\
-		&V_o = 1.912 \text{ V} \cdot 3.4 - 2.5 \text{ V} \cdot 2.4 = 0.50 \text{ V}
+		&V_+ = \frac{2.5 \text{ V} \cdot 18\ \text{k}\Omega + 0.5 \text{ V} \cdot 15\ \text{k}\Omega}{18\ \text{k}\Omega + 15\ \text{k}\Omega} = 1.591 \text{ V}\\
+		&V_o = 1.591 \text{ V} \cdot 2.2 - 2.5 \text{ V} \cdot 1.2 = 0.50 \text{ V}
 	\end{align*}
 
 	\subsection{Filtro antialias}
@@ -380,14 +380,14 @@
 
 	\[\phi = \arctan\left(\frac{50 \text{ Hz}}{4823 \text{ Hz}}\right) = 0.59^\circ\]
 
-	La hoja de datos del sensor indica un ruido de $11$ mV pico a pico con $2$ kHz de ancho de banda. Tomando ruido blanco, su valor crece con la raíz del ancho de banda:
+	La hoja de datos del sensor indica un ruido de $21$ mV pico a pico con $2$ kHz de ancho de banda. Tomando ruido blanco, su valor crece con la raíz del ancho de banda:
 
 	\begin{align*}
 		&\frac{V_{n}(f_c)}{V_{n}(2 \text{ kHz})} = \sqrt{\frac{f_c}{2 \text{ kHz}}} = \sqrt{\frac{4823 \text{ Hz}}{2000 \text{ Hz}}} = 1.55\\
-		&V_{n}(f_c) = 1.55 \cdot 11 \text{ mV} = 17 \text{ mV}
+		&V_{n}(f_c) = 1.55 \cdot 21 \text{ mV} = 33 \text{ mV}
 	\end{align*}
 
-	Con la sensibilidad de $100$ mV/A esto equivale a $0.17$ A pico a pico. El Cuadro \ref{tab:antialias} compara las opciones dentro del rango, con $R_4 = 1\ \text{k}\Omega$. El valor final de $C_1$ debe definirse con el ruido medido.
+	Con la sensibilidad de $185$ mV/A esto equivale a $0.18$ A pico a pico. El Cuadro \ref{tab:antialias} compara las opciones dentro del rango, con $R_4 = 1\ \text{k}\Omega$. El valor final de $C_1$ debe definirse con el ruido medido.
 
 	\begin{table}[H]
 		\centering
@@ -397,9 +397,9 @@
 			\hline
 			$C_1$ (nF) & $f_c$ (Hz) & $t_d$ ($\mu$s) & $\phi$ a $50$ Hz ($^\circ$) & Ruido (A pico a pico) \\
 			\hline
-			$80$ & $1989$ & $80$ & $0.195$ & $0.11$ \\
-			$53$ & $3003$ & $53$ & $0.288$ & $0.13$ \\
-			$33$ & $4823$ & $33$ & $0.434$ & $0.17$ \\
+			$80$ & $1989$ & $80$ & $1.44$ & $0.11$ \\
+			$53$ & $3003$ & $53$ & $0.95$ & $0.14$ \\
+			$33$ & $4823$ & $33$ & $0.59$ & $0.18$ \\
 			\hline
 		\end{tabular}
 	\end{table}
