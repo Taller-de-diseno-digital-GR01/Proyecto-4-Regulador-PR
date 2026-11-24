@@ -49,7 +49,7 @@ La carga son dos resistencias de \SI{4.7}{\ohm} y \SI{5}{W} en serie con dos ind
 		\midrule
 		$R$ de las resistencias & \SI{9.4}{\ohm} & \SI{9.46}{\ohm} \\
 		$R$ total con devanados y cables & --- & \SI{11.8}{\ohm} \\
-		$L$ total & \SI{200}{\micro H} & sin LCR \\
+		$L$ total & \SI{200}{\micro H} & \SI{106.2}{\micro H} en uno de dos \\
 		$R$ añadida para el ensayo de carga & \SI{2.5}{\ohm} & \SI{2.5}{\ohm} \\
 		Tiempo muerto, pierna A & \SI{1.00}{\micro s} & \SI{1.23}{\micro s} y \SI{430}{ns} \\
 		Tiempo muerto, pierna B & \SI{1.00}{\micro s} & \SI{1.00}{\micro s} en ambos flancos \\
@@ -62,7 +62,7 @@ La carga son dos resistencias de \SI{4.7}{\ohm} y \SI{5}{W} en serie con dos ind
 	\end{tabular}
 \end{table}
 
-La resistencia total de \SI{11.8}{\ohm} queda \SI{2.3}{\ohm} por encima de las resistencias por los devanados, las conexiones y el cableado. $L$ no se midió con LCR y se usa el valor nominal. Con la resistencia añadida el cambio es de \SI{26.4}{\percent} sobre las resistencias externas y de \SI{21.2}{\percent} sobre la carga completa, así que solo el primero llega al \SI{25}{\percent} del enunciado. Con \SI{1.0}{A} pico cada resistencia de \SI{4.7}{\ohm} disipa \SI{2.35}{W}, el \SI{47}{\percent} de su nominal, y la de \SI{2.5}{\ohm} \SI{1.25}{W}. No se midieron temperaturas, así que el margen de disipación sale de esa cuenta.
+La resistencia total de \SI{11.8}{\ohm} queda \SI{2.3}{\ohm} por encima de las resistencias por los devanados, las conexiones y el cableado. Uno de los inductores midió \SI{106.2}{\micro H} con un medidor LCR a \SI{1}{kHz}, \SI{6}{\percent} sobre su nominal. El otro no se midió, y suponiéndolo igual la inductancia total es de unos \SI{212}{\micro H}. Con la resistencia añadida el cambio es de \SI{26.4}{\percent} sobre las resistencias externas y de \SI{21.2}{\percent} sobre la carga completa, así que solo el primero llega al \SI{25}{\percent} del enunciado. Con \SI{1.0}{A} pico cada resistencia de \SI{4.7}{\ohm} disipa \SI{2.35}{W}, el \SI{47}{\percent} de su nominal, y la de \SI{2.5}{\ohm} \SI{1.25}{W}. No se midieron temperaturas, así que el margen de disipación sale de esa cuenta.
 
 \section{Montaje y adquisición}
 \label{sec:montaje}
@@ -226,6 +226,8 @@ Con un sensor perfecto, la corriente física queda entre \num{6} y \SI{10}{\perc
 	\end{tabular}}
 \end{table}
 
+La simulación usa los \SI{200}{\micro H} nominales. Con la inductancia medida en un inductor, la total sería un \SI{6}{\percent} mayor, lo que baja el rizado en una proporción parecida y reduce un poco el sesgo del valle, que depende de $\tau=L/R$.
+
 
 \section{Comparación entre teoría, simulación y experimento}
 \label{sec:comparacion}
@@ -269,7 +271,7 @@ La diferencia más grande es la medición de la corriente. Un error de ganancia 
 El lazo promedio no tiene rizado, cuantización ni ruido. El modelo conmutado no tiene el filtro del sensor ni los retardos de los drivers, y supone un sensor con ganancia y cero exactos, que es justo lo que no se cumplió en banco. Las armónicas impares del tiempo muerto \cite[sec.~8-5]{mohan2003power} no las corrige el resonante, que solo actúa en \SI{50}{Hz}, y deforman la corriente en los cruces por cero sin afectar la fundamental.
 
 \subsection{Mejoras al procedimiento}
-Medir el cero del sensor con el puente conmutando y la referencia nula, no con el puente apagado. Calibrar la ganancia contra el osciloscopio en el mismo minuto que el CSV, con modo de alta resolución o un muestreo de al menos \SI{1}{MS/s} para que el rizado no se pliegue. Registrar la tensión del bus en cada captura. Medir $L$ con LCR y la resistencia en caliente. Y medir el rizado con una sola punta diferencial o con el cable BNC solo, sin restar dos puntas cuyos extremos saltan con el bus.
+Medir el cero del sensor con el puente conmutando y la referencia nula, no con el puente apagado. Calibrar la ganancia contra el osciloscopio en el mismo minuto que el CSV, con modo de alta resolución o un muestreo de al menos \SI{1}{MS/s} para que el rizado no se pliegue. Registrar la tensión del bus en cada captura. Medir con LCR el segundo inductor y la resistencia en caliente. Y medir el rizado con una sola punta diferencial o con el cable BNC solo, sin restar dos puntas cuyos extremos saltan con el bus.
 
 \section{Conclusiones}
 \label{sec:conclusiones}
