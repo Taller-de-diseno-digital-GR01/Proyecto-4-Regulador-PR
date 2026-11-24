@@ -43,7 +43,7 @@ La carga son dos resistencias de \SI{4.7}{\ohm} y \SI{5}{W} en serie con dos ind
 	\centering
 	\caption{Caracterización del montaje.}
 	\label{tab:caract}
-	\begin{tabular}{lcc}
+	\begin{tabularx}{\columnwidth}{>{\hsize=1.1\hsize}Lc>{\hsize=0.9\hsize}L}
 		\toprule
 		Magnitud & Nominal & Medido \\
 		\midrule
@@ -59,7 +59,7 @@ La carga son dos resistencias de \SI{4.7}{\ohm} y \SI{5}{W} en serie con dos ind
 		Límite de la fuente con \SI{12.5}{V} & --- & \SI{0.52}{A} \\
 		Límite de la fuente con \SI{18}{V} & --- & \SI{1}{A} \\
 		\bottomrule
-	\end{tabular}
+	\end{tabularx}
 \end{table}
 
 La resistencia total de \SI{11.8}{\ohm} queda \SI{2.3}{\ohm} por encima de las resistencias por los devanados, las conexiones y el cableado. Uno de los inductores midió \SI{106.2}{\micro H} con un medidor LCR a \SI{1}{kHz}, \SI{6}{\percent} sobre su nominal. El otro no se midió, y suponiéndolo igual la inductancia total es de unos \SI{212}{\micro H}. Con la resistencia añadida el cambio es de \SI{26.4}{\percent} sobre las resistencias externas y de \SI{21.2}{\percent} sobre la carga completa, así que solo el primero llega al \SI{25}{\percent} del enunciado. Con \SI{1.0}{A} pico cada resistencia de \SI{4.7}{\ohm} disipa \SI{2.35}{W}, el \SI{47}{\percent} de su nominal, y la de \SI{2.5}{\ohm} \SI{1.25}{W}. No se midieron temperaturas, así que el margen de disipación sale de esa cuenta.
@@ -72,7 +72,7 @@ Cada ensayo se registra por dos caminos. El histórico del controlador se toma p
 	\centering
 	\caption{Archivos de captura, todos en \texttt{muestras\_Inversor/}.}
 	\label{tab:archivos}
-	\begin{tabular}{lcc}
+	\begin{tabularx}{\columnwidth}{Lcc}
 		\toprule
 		Archivo & Muestreo & Ventana \\
 		\midrule
@@ -80,9 +80,9 @@ Cada ensayo se registra por dos caminos. El histórico del controlador se toma p
 		\texttt{osc\_*.csv}, fundamental & \SI{100}{\micro s} & \SI{200}{ms} \\
 		\texttt{rizado/scope\_a2} a \texttt{a4} & \SI{0.1}{\micro s} & \SI{100}{\micro s} \\
 		\texttt{tiempo\_muerto\_*.png} & \SI{1}{ns} & \SI{10}{\micro s} \\
-		\texttt{encendido} y \texttt{apagado\_compuertas.png} & \SI{10}{\micro s} & \SI{500}{ms} \\
+		\texttt{encendido} y \texttt{apagado\_\allowbreak compuertas.png} & \SI{10}{\micro s} & \SI{500}{ms} \\
 		\bottomrule
-	\end{tabular}
+	\end{tabularx}
 \end{table}
 
 Las dos fuentes de datos miden la corriente por caminos distintos y por eso se comparan. Una diferencia sistemática entre ambas apunta a la ganancia o al cero del sensor.
@@ -101,19 +101,19 @@ La Tabla~\ref{tab:med_nominal} resume los siete registros con el lazo cerrado, y
 	\centering
 	\caption{Seguimiento según el sensor, ajuste de cinco períodos. Criterio, error menor a \SI{10}{\percent}.}
 	\label{tab:med_nominal}
-	\begin{tabular}{lccccccc}
+	\begin{tabularx}{\textwidth}{Lccccccc}
 		\toprule
 		Registro & Carga & Bus & Ref. (A) & Medida (A) & Error (\%) & Desfase (°) & Saturadas \\
 		\midrule
 		\texttt{0.2A\_18-52} & nominal & \SI{12.5}{V} & \num{0.1994} & \num{0.2002} & \num{0.39} & \num{0.07} & 0 \\
 		\texttt{0.5A\_18-53} & nominal & \SI{12.5}{V} & \num{0.4993} & \num{0.5003} & \num{0.19} & $-0.03$ & 0 \\
 		\texttt{1A\_18-55} & nominal & \SI{12.5}{V} & \num{0.9994} & \num{0.6504} & \num{34.92} & \num{21.72} & 31 \\
-		\texttt{muestras\_recorte/1A\_10-22} & nominal & \SI{18}{V} & \num{0.9994} & \num{0.8814} & \num{11.81} & \num{16.58} & 25 \\
-		\texttt{muestras\_prueba\_25/0.2A\_10-15} & $+\SI{2.5}{\ohm}$ & \SI{12.5}{V} & \num{0.1994} & \num{0.2002} & \num{0.42} & $-0.02$ & 0 \\
-		\texttt{muestras\_prueba\_25/0.5A\_10-15} & $+\SI{2.5}{\ohm}$ & \SI{12.5}{V} & \num{0.4993} & \num{0.5000} & \num{0.14} & \num{0.01} & 0 \\
-		\texttt{muestras\_prueba\_25/1A\_10-16} & $+\SI{2.5}{\ohm}$ & \SI{12.5}{V} & \num{0.9994} & \num{0.7276} & \num{27.20} & \num{21.65} & 30 \\
+		\texttt{muestras\_recorte/\allowbreak 1A\_10-22} & nominal & \SI{18}{V} & \num{0.9994} & \num{0.8814} & \num{11.81} & \num{16.58} & 25 \\
+		\texttt{muestras\_prueba\_25/\allowbreak 0.2A\_10-15} & $+\SI{2.5}{\ohm}$ & \SI{12.5}{V} & \num{0.1994} & \num{0.2002} & \num{0.42} & $-0.02$ & 0 \\
+		\texttt{muestras\_prueba\_25/\allowbreak 0.5A\_10-15} & $+\SI{2.5}{\ohm}$ & \SI{12.5}{V} & \num{0.4993} & \num{0.5000} & \num{0.14} & \num{0.01} & 0 \\
+		\texttt{muestras\_prueba\_25/\allowbreak 1A\_10-16} & $+\SI{2.5}{\ohm}$ & \SI{12.5}{V} & \num{0.9994} & \num{0.7276} & \num{27.20} & \num{21.65} & 30 \\
 		\bottomrule
-	\end{tabular}
+	\end{tabularx}
 \end{table*}
 
 \begin{figure*}[!t]
@@ -145,7 +145,7 @@ Con el control deshabilitado, sin corriente, el sensor marcó $-\num{0.65}$ y $-
 	\centering
 	\caption{Fundamental según el sensor y según el osciloscopio, \SI{12.5}{V} y carga nominal.}
 	\label{tab:ganancia}
-	\begin{tabular}{cccc}
+	\begin{tabularx}{\columnwidth}{ccCC}
 		\toprule
 		Ref. (A) & Sensor (A) & Osciloscopio (A) & Error físico (\%) \\
 		\midrule
@@ -153,7 +153,7 @@ Con el control deshabilitado, sin corriente, el sensor marcó $-\num{0.65}$ y $-
 		\num{0.5} & \num{0.5003} & \num{0.5928} & $+18.7$ \\
 		\num{1.0} & \num{0.6504} & \num{0.8285} & $-17.1$ \\
 		\bottomrule
-	\end{tabular}
+	\end{tabularx}
 \end{table}
 
 Si las capturas del osciloscopio (\texttt{osc\_*.csv}) corresponden a los mismos ensayos que los CSV, la corriente física queda \num{14.6} y \SI{18.7}{\percent} sobre la referencia a \num{0.2} y \SI{0.5}{A}, fuera del \SI{10}{\percent}, aunque el sensor diga que cumple (Tabla~\ref{tab:ganancia}). El sesgo de muestrear en el valle, que el modelo conmutado estima entre \num{3} y \SI{6}{\percent}, explica una parte. El resto apunta a que la ganancia real de la cadena es menor que los \SI{0.2196}{V/A} que usa el firmware. El cociente crece con la amplitud, y con \SI{100}{\micro s} por punto el rizado de \SI{20}{kHz} se pliega sobre las muestras del osciloscopio, así que no se corrigió con un único factor. La calibración en el mismo minuto y con más resolución es el pendiente principal.
@@ -293,7 +293,7 @@ Todas las rutas son relativas a la raíz del repositorio.
 	\item \texttt{sw/generar\_pr\_params.m}, que escribe los coeficientes en \texttt{sw/pr\_params.h}.
 	\item \texttt{potencia/sim/}, el modelo conmutado en PLECS y su archivo de parámetros, con \texttt{lazo\_cerrado.plecs} y \texttt{lazo\_cerrado.py} para el lazo cerrado, cuya salida está en \texttt{docs/\allowbreak informe/\allowbreak evidencia/\allowbreak plecs\_lazo\_cerrado\_11p8ohm.txt}.
 	\item \texttt{sw/receptor\_pc.py}, que recibe los registros exportados, y \texttt{potencia/analizar\_csv.m}, \texttt{potencia/analizar\_osc.m} y \texttt{potencia/figuras\_banco.py}, que los procesan.
-	\item \texttt{muestras\_Inversor/} y \texttt{potencia/mediciones/2026-11-24/registro.md}, los registros y capturas de banco del 23 y 24 de noviembre.
+	\item \texttt{muestras\_Inversor/} y \texttt{potencia/\allowbreak mediciones/\allowbreak 2026-11-24/\allowbreak registro.md}, los registros y capturas de banco del 23 y 24 de noviembre.
 \end{itemize}
 
 \printbibliography

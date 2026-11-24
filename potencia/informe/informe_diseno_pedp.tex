@@ -178,7 +178,7 @@ El filtro antialias usa $R_4=\SI{1}{k\ohm}$ y $C_1=\SI{33}{nF}$, con corte en \S
 	\centering
 	\caption{Opciones del filtro antialias con $R_4=\SI{1}{k\ohm}$.}
 	\label{tab:antialias}
-	\begin{tabular}{ccccc}
+	\begin{tabularx}{\columnwidth}{CCCCC}
 		\toprule
 		$C_1$ (nF) & $f_c$ (Hz) & $t_d$ ($\mu$s) & Fase a \SI{50}{Hz} (°) & Ruido (A p-p) \\
 		\midrule
@@ -186,7 +186,7 @@ El filtro antialias usa $R_4=\SI{1}{k\ohm}$ y $C_1=\SI{33}{nF}$, con corte en \S
 		\num{53} & \num{3003} & \num{53} & \num{0.95} & \num{0.14} \\
 		\num{33} & \num{4823} & \num{33} & \num{0.59} & \num{0.18} \\
 		\bottomrule
-	\end{tabular}
+	\end{tabularx}
 \end{table}
 
 \section{Equipo y seguridad}
@@ -200,7 +200,7 @@ El montaje usa dos fuentes de banco con límite de corriente. Una entrega $V_{dc
 	\centering
 	\caption{Valores de diseño del montaje.}
 	\label{tab:nominales}
-	\begin{tabular}{lc}
+	\begin{tabularx}{\columnwidth}{LC}
 		\toprule
 		Magnitud & Valor \\
 		\midrule
@@ -218,7 +218,7 @@ El montaje usa dos fuentes de banco con límite de corriente. Una entrega $V_{dc
 		Límite de la fuente, ensayos & \SI{0.52}{A} \\
 		Umbral de falla & \SI{1.3}{A} \\
 		\bottomrule
-	\end{tabular}
+	\end{tabularx}
 \end{table}
 
 \subsection{Procedimiento y seguridad}
@@ -332,7 +332,8 @@ El modelo se validó contra el análisis con una carga de \SI{10}{\ohm} y \SI{2}
 	\centering
 	\caption{Validación del modelo en PLECS contra el análisis, con \SI{10}{\ohm}, \SI{2}{mH}, \SI{18}{V} y \SI{0.2}{A}.}
 	\label{tab:plecs}
-	\begin{tabular}{lcccc}
+	\setlength{\tabcolsep}{4pt}
+	\begin{tabularx}{\columnwidth}{>{\hsize=1.6\hsize}L*{4}{>{\hsize=0.85\hsize}C}}
 		\toprule
 		Caso & $I$ PLECS (A) & $\varphi$ (°) & $I$ análisis (A) & $\varphi$ (°) \\
 		\midrule
@@ -341,7 +342,7 @@ El modelo se validó contra el análisis con una carga de \SI{10}{\ohm} y \SI{2}
 		Solo $T_M$ & \num{0.1104} & \num{3.48} & \num{0.1086} & \num{1.95} \\
 		Los dos & \num{0.1062} & \num{3.35} & \num{0.1044} & \num{1.88} \\
 		\bottomrule
-	\end{tabular}
+	\end{tabularx}
 \end{table}
 
 \section{Diseño del regulador PR}
@@ -433,7 +434,7 @@ El modelo conmutado en Octave resuelve el puente unipolar con tiempo muerto de \
 	\centering
 	\caption{Modelo conmutado con \SI{9.6}{\ohm}, \SI{200}{\micro H} y \SI{12}{V}. Error y desfase de la fundamental de la corriente física, y rizado máximo.}
 	\label{tab:conmutado}
-	\begin{tabular}{lccc}
+	\begin{tabularx}{\columnwidth}{LCCC}
 		\toprule
 		Caso & Error (\%) & Fase (°) & Rizado (A p-p) \\
 		\midrule
@@ -442,7 +443,7 @@ El modelo conmutado en Octave resuelve el puente unipolar con tiempo muerto de \
 		\SI{1.0}{A} & \num{0.59} & \num{0.60} & \num{0.395} \\
 		$R$ \SI{+33}{\percent}, \SI{0.5}{A} & \num{4.82} & \num{0.67} & \num{0.378} \\
 		\bottomrule
-	\end{tabular}
+	\end{tabularx}
 \end{table}
 
 \begin{figure}[!ht]
@@ -493,9 +494,9 @@ Todas las rutas son relativas a la raíz del repositorio.
 
 \begin{itemize}
 	\item \texttt{potencia/diseno\_pr.md}, \texttt{potencia/diseno\_puente\_h.md}, \texttt{potencia/docs/modelo\_planta.md} y \texttt{potencia/carga\_RL-Sensor/}, con el diseño del regulador, del puente, de la planta, de la carga y del sensor.
-	\item \texttt{potencia/verificar\_pr.m}, márgenes, $K_p$, $K_r$, escalones y tiempo muerto, con salida en \texttt{docs/informe/evidencia/verificar\_pr\_9p6ohm\_12V.log}.
-	\item \texttt{potencia/aliasing\_pr.m}, instante de captura, con salida en \texttt{docs/informe/evidencia/aliasing\_pr\_9p6ohm\_12V.log}.
-	\item \texttt{potencia/simular\_conmutado.m}, modelo conmutado, con salida en \texttt{docs/informe/evidencia/modelo\_conmutado\_9p6ohm\_12V\_pr18V.txt}.
+	\item \texttt{potencia/verificar\_pr.m}, márgenes, $K_p$, $K_r$, escalones y tiempo muerto, con salida en \texttt{docs/\allowbreak informe/\allowbreak evidencia/\allowbreak verificar\_pr\_9p6ohm\_12V.log}.
+	\item \texttt{potencia/aliasing\_pr.m}, instante de captura, con salida en \texttt{docs/\allowbreak informe/\allowbreak evidencia/\allowbreak aliasing\_pr\_9p6ohm\_12V.log}.
+	\item \texttt{potencia/simular\_conmutado.m}, modelo conmutado, con salida en \texttt{docs/\allowbreak informe/\allowbreak evidencia/\allowbreak modelo\_conmutado\_\allowbreak 9p6ohm\_12V\_pr18V.txt}.
 	\item \texttt{potencia/figuras\_informe.m}, que genera las figuras del Bode, del rizado y de los transitorios.
 	\item \texttt{potencia/sim/}, el modelo conmutado en PLECS, su archivo de parámetros y los scripts de lazo abierto y rizado.
 	\item \texttt{sw/generar\_pr\_params.m}, que escribe los coeficientes en \texttt{sw/pr\_params.h}.

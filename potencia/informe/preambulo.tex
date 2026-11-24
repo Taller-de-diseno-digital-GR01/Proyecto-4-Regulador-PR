@@ -12,6 +12,10 @@
 \addbibresource{literatura.bib}
 \renewcommand*{\bibfont}{\footnotesize}
 
+% Columnas de tabularx que parten el texto en varias líneas para no salirse de la columna
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+\newcolumntype{C}{>{\centering\arraybackslash}X}
+
 % Marcador visible para datos que todavía no existen, nunca se llena con un valor calculado
 \newcommand{\pendiente}[1]{\textcolor{red}{\textbf{[#1]}}}
 
