@@ -1,0 +1,1285 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+---------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2026.1 (win64) Build 6511674 Tue Jun 16 11:02:23 MDT 2026
+| Date         : Tue Nov 24 15:28:34 2026
+| Host         : MattioWinPC running 64-bit major release  (build 9200)
+| Command      : report_timing_summary -max_paths 10 -file timing_pwm.rpt
+| Design       : periferico_pwm
+| Device       : 7a35t-cpg236
+| Speed File   : -1  PRODUCTION 1.23 2018-06-13
+| Design State : Routed
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+Timing Summary Report
+
+------------------------------------------------------------------------------------------------
+| Timer Settings
+| --------------
+------------------------------------------------------------------------------------------------
+
+  Enable Multi Corner Analysis               :  Yes
+  Enable Pessimism Removal                   :  Yes
+  Pessimism Removal Resolution               :  Nearest Common Node
+  Enable Input Delay Default Clock           :  No
+  Enable Preset / Clear Arcs                 :  No
+  Disable Flight Delays                      :  No
+  Ignore I/O Paths                           :  No
+  Timing Early Launch at Borrowing Latches   :  No
+  Borrow Time for Max Delay Exceptions       :  Yes
+  Merge Timing Exceptions                    :  Yes
+  Inter-SLR Compensation                     :  Conservative
+
+  Corner  Analyze    Analyze    
+  Name    Max Paths  Min Paths  
+  ------  ---------  ---------  
+  Slow    Yes        Yes        
+  Fast    Yes        Yes        
+
+
+------------------------------------------------------------------------------------------------
+| Report Methodology
+| ------------------
+------------------------------------------------------------------------------------------------
+
+No report available as report_methodology has not been run prior. Run report_methodology on the current design for the summary of methodology violations.
+
+
+
+check_timing report
+
+Table of Contents
+-----------------
+1. checking no_clock (0)
+2. checking constant_clock (0)
+3. checking pulse_width_clock (0)
+4. checking unconstrained_internal_endpoints (0)
+5. checking no_input_delay (32)
+6. checking no_output_delay (26)
+7. checking multiple_clock (0)
+8. checking generated_clocks (0)
+9. checking loops (0)
+10. checking partial_input_delay (0)
+11. checking partial_output_delay (0)
+12. checking latch_loops (0)
+
+1. checking no_clock (0)
+------------------------
+ There are 0 register/latch pins with no clock.
+
+
+2. checking constant_clock (0)
+------------------------------
+ There are 0 register/latch pins with constant_clock.
+
+
+3. checking pulse_width_clock (0)
+---------------------------------
+ There are 0 register/latch pins which need pulse_width check
+
+
+4. checking unconstrained_internal_endpoints (0)
+------------------------------------------------
+ There are 0 pins that are not constrained for maximum delay.
+
+ There are 0 pins that are not constrained for maximum delay due to constant clock.
+
+
+5. checking no_input_delay (32)
+-------------------------------
+ There are 32 input ports with no input delay specified. (HIGH)
+
+ There are 0 input ports with no input delay but user has a false path constraint.
+
+
+6. checking no_output_delay (26)
+--------------------------------
+ There are 26 ports with no output delay specified. (HIGH)
+
+ There are 0 ports with no output delay but user has a false path constraint
+
+ There are 0 ports with no output delay but with a timing clock defined on it or propagating through it
+
+
+7. checking multiple_clock (0)
+------------------------------
+ There are 0 register/latch pins with multiple clocks.
+
+
+8. checking generated_clocks (0)
+--------------------------------
+ There are 0 generated clocks that are not connected to a clock source.
+
+
+9. checking loops (0)
+---------------------
+ There are 0 combinational loops in the design.
+
+
+10. checking partial_input_delay (0)
+------------------------------------
+ There are 0 input ports with partial input delay specified.
+
+
+11. checking partial_output_delay (0)
+-------------------------------------
+ There are 0 ports with partial output delay specified.
+
+
+12. checking latch_loops (0)
+----------------------------
+ There are 0 combinational latch loops in the design through latch input
+
+
+
+------------------------------------------------------------------------------------------------
+| Design Timing Summary
+| ---------------------
+------------------------------------------------------------------------------------------------
+
+    WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints      WHS(ns)      THS(ns)  THS Failing Endpoints  THS Total Endpoints     WPWS(ns)     TPWS(ns)  TPWS Failing Endpoints  TPWS Total Endpoints  
+    -------      -------  ---------------------  -------------------      -------      -------  ---------------------  -------------------     --------     --------  ----------------------  --------------------  
+      1.370        0.000                      0                  303        0.144        0.000                      0                  303        4.500        0.000                       0                   199  
+
+
+All user specified timing constraints are met.
+
+
+------------------------------------------------------------------------------------------------
+| Clock Summary
+| -------------
+------------------------------------------------------------------------------------------------
+
+Clock       Waveform(ns)       Period(ns)      Frequency(MHz)
+-----       ------------       ----------      --------------
+s_axi_aclk  {0.000 5.000}      10.000          100.000         
+
+
+------------------------------------------------------------------------------------------------
+| Intra Clock Table
+| -----------------
+------------------------------------------------------------------------------------------------
+
+Clock             WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints      WHS(ns)      THS(ns)  THS Failing Endpoints  THS Total Endpoints     WPWS(ns)     TPWS(ns)  TPWS Failing Endpoints  TPWS Total Endpoints  
+-----             -------      -------  ---------------------  -------------------      -------      -------  ---------------------  -------------------     --------     --------  ----------------------  --------------------  
+s_axi_aclk          1.370        0.000                      0                  303        0.144        0.000                      0                  303        4.500        0.000                       0                   199  
+
+
+------------------------------------------------------------------------------------------------
+| Inter Clock Table
+| -----------------
+------------------------------------------------------------------------------------------------
+
+From Clock    To Clock          WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints      WHS(ns)      THS(ns)  THS Failing Endpoints  THS Total Endpoints  
+----------    --------          -------      -------  ---------------------  -------------------      -------      -------  ---------------------  -------------------  
+
+
+------------------------------------------------------------------------------------------------
+| Other Path Groups Table
+| -----------------------
+------------------------------------------------------------------------------------------------
+
+Path Group    From Clock    To Clock          WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints      WHS(ns)      THS(ns)  THS Failing Endpoints  THS Total Endpoints  
+----------    ----------    --------          -------      -------  ---------------------  -------------------      -------      -------  ---------------------  -------------------  
+
+
+------------------------------------------------------------------------------------------------
+| Timing Details
+| --------------
+------------------------------------------------------------------------------------------------
+
+
+---------------------------------------------------------------------------------------------------
+From Clock:  s_axi_aclk
+  To Clock:  s_axi_aclk
+
+Setup :            0  Failing Endpoints,  Worst Slack        1.370ns,  Total Violation        0.000ns
+Hold  :            0  Failing Endpoints,  Worst Slack        0.144ns,  Total Violation        0.000ns
+PW    :            0  Failing Endpoints,  Worst Slack        4.500ns,  Total Violation        0.000ns
+---------------------------------------------------------------------------------------------------
+
+
+Max Delay Paths
+--------------------------------------------------------------------------------------
+Slack (MET) :             1.370ns  (required time - arrival time)
+  Source:                 u_nucleo_pwm/duty_sat_etapa1_reg[13]/C
+                            (rising edge-triggered cell FDRE clocked by s_axi_aclk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            u_nucleo_pwm/ref_b_etapa2_reg[10]/D
+                            (rising edge-triggered cell FDRE clocked by s_axi_aclk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             s_axi_aclk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            10.000ns  (s_axi_aclk rise@10.000ns - s_axi_aclk rise@0.000ns)
+  Data Path Delay:        8.655ns  (logic 6.440ns (74.406%)  route 2.215ns (25.594%))
+  Logic Levels:           6  (CARRY4=4 DSP48E1=1 LUT1=1)
+  Clock Path Skew:        -0.049ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.924ns = ( 10.924 - 10.000 ) 
+    Source Clock Delay      (SCD):    0.973ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock s_axi_aclk rise edge)
+                                                      0.000     0.000 r  <hidden>
+                                                      0.000     0.000 r  s_axi_aclk
+                         net (fo=198, unset)          0.973     0.973    s_axi_aclk
+    SLICE_X13Y63         FDRE                                         r  u_nucleo_pwm/duty_sat_etapa1_reg[13]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X13Y63         FDRE (Prop_fdre_C_Q)         0.419     1.392 r  u_nucleo_pwm/duty_sat_etapa1_reg[13]/Q
+                         net (fo=1, routed)           0.576     1.968    duty_sat_etapa1[13]
+    SLICE_X11Y63         CARRY4 (Prop_carry4_S[0]_O[2])
+                                                      0.843     2.811 r  u_nucleo_pwm/producto_i_1/O[2]
+                         net (fo=1, routed)           0.521     3.332    A[15]
+    DSP48_X0Y24          DSP48E1 (Prop_dsp48e1_A[15]_P[15])
+                                                      4.019     7.351 f  u_nucleo_pwm/producto/P[15]
+                         net (fo=2, routed)           0.929     8.280    ref_a_calculada[0]
+    SLICE_X7Y60          LUT1 (Prop_lut1_I0_O)        0.124     8.404 r  u_nucleo_pwm/ref_b_etapa20_carry_i_1/O
+                         net (fo=1, routed)           0.189     8.593    u_nucleo_pwm/ref_b_etapa20_carry_i_1_n_0
+    SLICE_X6Y60          CARRY4 (Prop_carry4_CYINIT_CO[3])
+                                                      0.595     9.188 r  u_nucleo_pwm/ref_b_etapa20_carry/CO[3]
+                         net (fo=1, routed)           0.000     9.188    u_nucleo_pwm/ref_b_etapa20_carry_n_0
+    SLICE_X6Y61          CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.117     9.305 r  u_nucleo_pwm/ref_b_etapa20_carry__0/CO[3]
+                         net (fo=1, routed)           0.000     9.305    u_nucleo_pwm/ref_b_etapa20_carry__0_n_0
+    SLICE_X6Y62          CARRY4 (Prop_carry4_CI_O[1])
+                                                      0.323     9.628 r  u_nucleo_pwm/ref_b_etapa20_carry__1/O[1]
+                         net (fo=1, routed)           0.000     9.628    ref_b_etapa20[10]
+    SLICE_X6Y62          FDRE                                         r  u_nucleo_pwm/ref_b_etapa2_reg[10]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock s_axi_aclk rise edge)
+                                                     10.000    10.000 r  <hidden>
+                                                      0.000    10.000 r  s_axi_aclk
+                         net (fo=198, unset)          0.924    10.924    s_axi_aclk
+    SLICE_X6Y62          FDRE                                         r  u_nucleo_pwm/ref_b_etapa2_reg[10]/C
+                         clock pessimism              0.000    10.924    <hidden>
+                         clock uncertainty           -0.035    10.889    <hidden>
+    SLICE_X6Y62          FDRE (Setup_fdre_C_D)        0.109    10.998    u_nucleo_pwm/ref_b_etapa2_reg[10]
+  -------------------------------------------------------------------
+                         required time                         10.998    <hidden>
+                         arrival time                          -9.628    <hidden>
+  -------------------------------------------------------------------
+                         slack                                  1.370    <hidden>
+
+Slack (MET) :             1.378ns  (required time - arrival time)
+  Source:                 u_nucleo_pwm/duty_sat_etapa1_reg[13]/C
+                            (rising edge-triggered cell FDRE clocked by s_axi_aclk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            u_nucleo_pwm/ref_b_etapa2_reg[12]/D
+                            (rising edge-triggered cell FDRE clocked by s_axi_aclk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             s_axi_aclk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            10.000ns  (s_axi_aclk rise@10.000ns - s_axi_aclk rise@0.000ns)
+  Data Path Delay:        8.647ns  (logic 6.432ns (74.382%)  route 2.215ns (25.618%))
+  Logic Levels:           6  (CARRY4=4 DSP48E1=1 LUT1=1)
+  Clock Path Skew:        -0.049ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.924ns = ( 10.924 - 10.000 ) 
+    Source Clock Delay      (SCD):    0.973ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock s_axi_aclk rise edge)
+                                                      0.000     0.000 r  <hidden>
+                                                      0.000     0.000 r  s_axi_aclk
+                         net (fo=198, unset)          0.973     0.973    s_axi_aclk
+    SLICE_X13Y63         FDRE                                         r  u_nucleo_pwm/duty_sat_etapa1_reg[13]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X13Y63         FDRE (Prop_fdre_C_Q)         0.419     1.392 r  u_nucleo_pwm/duty_sat_etapa1_reg[13]/Q
+                         net (fo=1, routed)           0.576     1.968    duty_sat_etapa1[13]
+    SLICE_X11Y63         CARRY4 (Prop_carry4_S[0]_O[2])
+                                                      0.843     2.811 r  u_nucleo_pwm/producto_i_1/O[2]
+                         net (fo=1, routed)           0.521     3.332    A[15]
+    DSP48_X0Y24          DSP48E1 (Prop_dsp48e1_A[15]_P[15])
+                                                      4.019     7.351 f  u_nucleo_pwm/producto/P[15]
+                         net (fo=2, routed)           0.929     8.280    ref_a_calculada[0]
+    SLICE_X7Y60          LUT1 (Prop_lut1_I0_O)        0.124     8.404 r  u_nucleo_pwm/ref_b_etapa20_carry_i_1/O
+                         net (fo=1, routed)           0.189     8.593    u_nucleo_pwm/ref_b_etapa20_carry_i_1_n_0
+    SLICE_X6Y60          CARRY4 (Prop_carry4_CYINIT_CO[3])
+                                                      0.595     9.188 r  u_nucleo_pwm/ref_b_etapa20_carry/CO[3]
+                         net (fo=1, routed)           0.000     9.188    u_nucleo_pwm/ref_b_etapa20_carry_n_0
+    SLICE_X6Y61          CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.117     9.305 r  u_nucleo_pwm/ref_b_etapa20_carry__0/CO[3]
+                         net (fo=1, routed)           0.000     9.305    u_nucleo_pwm/ref_b_etapa20_carry__0_n_0
+    SLICE_X6Y62          CARRY4 (Prop_carry4_CI_O[3])
+                                                      0.315     9.620 r  u_nucleo_pwm/ref_b_etapa20_carry__1/O[3]
+                         net (fo=1, routed)           0.000     9.620    ref_b_etapa20[12]
+    SLICE_X6Y62          FDRE                                         r  u_nucleo_pwm/ref_b_etapa2_reg[12]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock s_axi_aclk rise edge)
+                                                     10.000    10.000 r  <hidden>
+                                                      0.000    10.000 r  s_axi_aclk
+                         net (fo=198, unset)          0.924    10.924    s_axi_aclk
+    SLICE_X6Y62          FDRE                                         r  u_nucleo_pwm/ref_b_etapa2_reg[12]/C
+                         clock pessimism              0.000    10.924    <hidden>
+                         clock uncertainty           -0.035    10.889    <hidden>
+    SLICE_X6Y62          FDRE (Setup_fdre_C_D)        0.109    10.998    u_nucleo_pwm/ref_b_etapa2_reg[12]
+  -------------------------------------------------------------------
+                         required time                         10.998    <hidden>
+                         arrival time                          -9.620    <hidden>
+  -------------------------------------------------------------------
+                         slack                                  1.378    <hidden>
+
+Slack (MET) :             1.454ns  (required time - arrival time)
+  Source:                 u_nucleo_pwm/duty_sat_etapa1_reg[13]/C
+                            (rising edge-triggered cell FDRE clocked by s_axi_aclk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            u_nucleo_pwm/ref_b_etapa2_reg[11]/D
+                            (rising edge-triggered cell FDSE clocked by s_axi_aclk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             s_axi_aclk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            10.000ns  (s_axi_aclk rise@10.000ns - s_axi_aclk rise@0.000ns)
+  Data Path Delay:        8.571ns  (logic 6.356ns (74.155%)  route 2.215ns (25.845%))
+  Logic Levels:           6  (CARRY4=4 DSP48E1=1 LUT1=1)
+  Clock Path Skew:        -0.049ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.924ns = ( 10.924 - 10.000 ) 
+    Source Clock Delay      (SCD):    0.973ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock s_axi_aclk rise edge)
+                                                      0.000     0.000 r  <hidden>
+                                                      0.000     0.000 r  s_axi_aclk
+                         net (fo=198, unset)          0.973     0.973    s_axi_aclk
+    SLICE_X13Y63         FDRE                                         r  u_nucleo_pwm/duty_sat_etapa1_reg[13]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X13Y63         FDRE (Prop_fdre_C_Q)         0.419     1.392 r  u_nucleo_pwm/duty_sat_etapa1_reg[13]/Q
+                         net (fo=1, routed)           0.576     1.968    duty_sat_etapa1[13]
+    SLICE_X11Y63         CARRY4 (Prop_carry4_S[0]_O[2])
+                                                      0.843     2.811 r  u_nucleo_pwm/producto_i_1/O[2]
+                         net (fo=1, routed)           0.521     3.332    A[15]
+    DSP48_X0Y24          DSP48E1 (Prop_dsp48e1_A[15]_P[15])
+                                                      4.019     7.351 f  u_nucleo_pwm/producto/P[15]
+                         net (fo=2, routed)           0.929     8.280    ref_a_calculada[0]
+    SLICE_X7Y60          LUT1 (Prop_lut1_I0_O)        0.124     8.404 r  u_nucleo_pwm/ref_b_etapa20_carry_i_1/O
+                         net (fo=1, routed)           0.189     8.593    u_nucleo_pwm/ref_b_etapa20_carry_i_1_n_0
+    SLICE_X6Y60          CARRY4 (Prop_carry4_CYINIT_CO[3])
+                                                      0.595     9.188 r  u_nucleo_pwm/ref_b_etapa20_carry/CO[3]
+                         net (fo=1, routed)           0.000     9.188    u_nucleo_pwm/ref_b_etapa20_carry_n_0
+    SLICE_X6Y61          CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.117     9.305 r  u_nucleo_pwm/ref_b_etapa20_carry__0/CO[3]
+                         net (fo=1, routed)           0.000     9.305    u_nucleo_pwm/ref_b_etapa20_carry__0_n_0
+    SLICE_X6Y62          CARRY4 (Prop_carry4_CI_O[2])
+                                                      0.239     9.544 r  u_nucleo_pwm/ref_b_etapa20_carry__1/O[2]
+                         net (fo=1, routed)           0.000     9.544    ref_b_etapa20[11]
+    SLICE_X6Y62          FDSE                                         r  u_nucleo_pwm/ref_b_etapa2_reg[11]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock s_axi_aclk rise edge)
+                                                     10.000    10.000 r  <hidden>
+                                                      0.000    10.000 r  s_axi_aclk
+                         net (fo=198, unset)          0.924    10.924    s_axi_aclk
+    SLICE_X6Y62          FDSE                                         r  u_nucleo_pwm/ref_b_etapa2_reg[11]/C
+                         clock pessimism              0.000    10.924    <hidden>
+                         clock uncertainty           -0.035    10.889    <hidden>
+    SLICE_X6Y62          FDSE (Setup_fdse_C_D)        0.109    10.998    u_nucleo_pwm/ref_b_etapa2_reg[11]
+  -------------------------------------------------------------------
+                         required time                         10.998    <hidden>
+                         arrival time                          -9.544    <hidden>
+  -------------------------------------------------------------------
+                         slack                                  1.454    <hidden>
+
+Slack (MET) :             1.474ns  (required time - arrival time)
+  Source:                 u_nucleo_pwm/duty_sat_etapa1_reg[13]/C
+                            (rising edge-triggered cell FDRE clocked by s_axi_aclk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            u_nucleo_pwm/ref_b_etapa2_reg[9]/D
+                            (rising edge-triggered cell FDRE clocked by s_axi_aclk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             s_axi_aclk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            10.000ns  (s_axi_aclk rise@10.000ns - s_axi_aclk rise@0.000ns)
+  Data Path Delay:        8.551ns  (logic 6.336ns (74.094%)  route 2.215ns (25.906%))
+  Logic Levels:           6  (CARRY4=4 DSP48E1=1 LUT1=1)
+  Clock Path Skew:        -0.049ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.924ns = ( 10.924 - 10.000 ) 
+    Source Clock Delay      (SCD):    0.973ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock s_axi_aclk rise edge)
+                                                      0.000     0.000 r  <hidden>
+                                                      0.000     0.000 r  s_axi_aclk
+                         net (fo=198, unset)          0.973     0.973    s_axi_aclk
+    SLICE_X13Y63         FDRE                                         r  u_nucleo_pwm/duty_sat_etapa1_reg[13]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X13Y63         FDRE (Prop_fdre_C_Q)         0.419     1.392 r  u_nucleo_pwm/duty_sat_etapa1_reg[13]/Q
+                         net (fo=1, routed)           0.576     1.968    duty_sat_etapa1[13]
+    SLICE_X11Y63         CARRY4 (Prop_carry4_S[0]_O[2])
+                                                      0.843     2.811 r  u_nucleo_pwm/producto_i_1/O[2]
+                         net (fo=1, routed)           0.521     3.332    A[15]
+    DSP48_X0Y24          DSP48E1 (Prop_dsp48e1_A[15]_P[15])
+                                                      4.019     7.351 f  u_nucleo_pwm/producto/P[15]
+                         net (fo=2, routed)           0.929     8.280    ref_a_calculada[0]
+    SLICE_X7Y60          LUT1 (Prop_lut1_I0_O)        0.124     8.404 r  u_nucleo_pwm/ref_b_etapa20_carry_i_1/O
+                         net (fo=1, routed)           0.189     8.593    u_nucleo_pwm/ref_b_etapa20_carry_i_1_n_0
+    SLICE_X6Y60          CARRY4 (Prop_carry4_CYINIT_CO[3])
+                                                      0.595     9.188 r  u_nucleo_pwm/ref_b_etapa20_carry/CO[3]
+                         net (fo=1, routed)           0.000     9.188    u_nucleo_pwm/ref_b_etapa20_carry_n_0
+    SLICE_X6Y61          CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.117     9.305 r  u_nucleo_pwm/ref_b_etapa20_carry__0/CO[3]
+                         net (fo=1, routed)           0.000     9.305    u_nucleo_pwm/ref_b_etapa20_carry__0_n_0
+    SLICE_X6Y62          CARRY4 (Prop_carry4_CI_O[0])
+                                                      0.219     9.524 r  u_nucleo_pwm/ref_b_etapa20_carry__1/O[0]
+                         net (fo=1, routed)           0.000     9.524    ref_b_etapa20[9]
+    SLICE_X6Y62          FDRE                                         r  u_nucleo_pwm/ref_b_etapa2_reg[9]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock s_axi_aclk rise edge)
+                                                     10.000    10.000 r  <hidden>
+                                                      0.000    10.000 r  s_axi_aclk
+                         net (fo=198, unset)          0.924    10.924    s_axi_aclk
+    SLICE_X6Y62          FDRE                                         r  u_nucleo_pwm/ref_b_etapa2_reg[9]/C
+                         clock pessimism              0.000    10.924    <hidden>
+                         clock uncertainty           -0.035    10.889    <hidden>
+    SLICE_X6Y62          FDRE (Setup_fdre_C_D)        0.109    10.998    u_nucleo_pwm/ref_b_etapa2_reg[9]
+  -------------------------------------------------------------------
+                         required time                         10.998    <hidden>
+                         arrival time                          -9.524    <hidden>
+  -------------------------------------------------------------------
+                         slack                                  1.474    <hidden>
+
+Slack (MET) :             1.487ns  (required time - arrival time)
+  Source:                 u_nucleo_pwm/duty_sat_etapa1_reg[13]/C
+                            (rising edge-triggered cell FDRE clocked by s_axi_aclk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            u_nucleo_pwm/ref_b_etapa2_reg[6]/D
+                            (rising edge-triggered cell FDSE clocked by s_axi_aclk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             s_axi_aclk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            10.000ns  (s_axi_aclk rise@10.000ns - s_axi_aclk rise@0.000ns)
+  Data Path Delay:        8.538ns  (logic 6.323ns (74.055%)  route 2.215ns (25.945%))
+  Logic Levels:           5  (CARRY4=3 DSP48E1=1 LUT1=1)
+  Clock Path Skew:        -0.049ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.924ns = ( 10.924 - 10.000 ) 
+    Source Clock Delay      (SCD):    0.973ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock s_axi_aclk rise edge)
+                                                      0.000     0.000 r  <hidden>
+                                                      0.000     0.000 r  s_axi_aclk
+                         net (fo=198, unset)          0.973     0.973    s_axi_aclk
+    SLICE_X13Y63         FDRE                                         r  u_nucleo_pwm/duty_sat_etapa1_reg[13]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X13Y63         FDRE (Prop_fdre_C_Q)         0.419     1.392 r  u_nucleo_pwm/duty_sat_etapa1_reg[13]/Q
+                         net (fo=1, routed)           0.576     1.968    duty_sat_etapa1[13]
+    SLICE_X11Y63         CARRY4 (Prop_carry4_S[0]_O[2])
+                                                      0.843     2.811 r  u_nucleo_pwm/producto_i_1/O[2]
+                         net (fo=1, routed)           0.521     3.332    A[15]
+    DSP48_X0Y24          DSP48E1 (Prop_dsp48e1_A[15]_P[15])
+                                                      4.019     7.351 f  u_nucleo_pwm/producto/P[15]
+                         net (fo=2, routed)           0.929     8.280    ref_a_calculada[0]
+    SLICE_X7Y60          LUT1 (Prop_lut1_I0_O)        0.124     8.404 r  u_nucleo_pwm/ref_b_etapa20_carry_i_1/O
+                         net (fo=1, routed)           0.189     8.593    u_nucleo_pwm/ref_b_etapa20_carry_i_1_n_0
+    SLICE_X6Y60          CARRY4 (Prop_carry4_CYINIT_CO[3])
+                                                      0.595     9.188 r  u_nucleo_pwm/ref_b_etapa20_carry/CO[3]
+                         net (fo=1, routed)           0.000     9.188    u_nucleo_pwm/ref_b_etapa20_carry_n_0
+    SLICE_X6Y61          CARRY4 (Prop_carry4_CI_O[1])
+                                                      0.323     9.511 r  u_nucleo_pwm/ref_b_etapa20_carry__0/O[1]
+                         net (fo=1, routed)           0.000     9.511    ref_b_etapa20[6]
+    SLICE_X6Y61          FDSE                                         r  u_nucleo_pwm/ref_b_etapa2_reg[6]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock s_axi_aclk rise edge)
+                                                     10.000    10.000 r  <hidden>
+                                                      0.000    10.000 r  s_axi_aclk
+                         net (fo=198, unset)          0.924    10.924    s_axi_aclk
+    SLICE_X6Y61          FDSE                                         r  u_nucleo_pwm/ref_b_etapa2_reg[6]/C
+                         clock pessimism              0.000    10.924    <hidden>
+                         clock uncertainty           -0.035    10.889    <hidden>
+    SLICE_X6Y61          FDSE (Setup_fdse_C_D)        0.109    10.998    u_nucleo_pwm/ref_b_etapa2_reg[6]
+  -------------------------------------------------------------------
+                         required time                         10.998    <hidden>
+                         arrival time                          -9.511    <hidden>
+  -------------------------------------------------------------------
+                         slack                                  1.487    <hidden>
+
+Slack (MET) :             1.495ns  (required time - arrival time)
+  Source:                 u_nucleo_pwm/duty_sat_etapa1_reg[13]/C
+                            (rising edge-triggered cell FDRE clocked by s_axi_aclk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            u_nucleo_pwm/ref_b_etapa2_reg[8]/D
+                            (rising edge-triggered cell FDSE clocked by s_axi_aclk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             s_axi_aclk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            10.000ns  (s_axi_aclk rise@10.000ns - s_axi_aclk rise@0.000ns)
+  Data Path Delay:        8.530ns  (logic 6.315ns (74.030%)  route 2.215ns (25.970%))
+  Logic Levels:           5  (CARRY4=3 DSP48E1=1 LUT1=1)
+  Clock Path Skew:        -0.049ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.924ns = ( 10.924 - 10.000 ) 
+    Source Clock Delay      (SCD):    0.973ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock s_axi_aclk rise edge)
+                                                      0.000     0.000 r  <hidden>
+                                                      0.000     0.000 r  s_axi_aclk
+                         net (fo=198, unset)          0.973     0.973    s_axi_aclk
+    SLICE_X13Y63         FDRE                                         r  u_nucleo_pwm/duty_sat_etapa1_reg[13]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X13Y63         FDRE (Prop_fdre_C_Q)         0.419     1.392 r  u_nucleo_pwm/duty_sat_etapa1_reg[13]/Q
+                         net (fo=1, routed)           0.576     1.968    duty_sat_etapa1[13]
+    SLICE_X11Y63         CARRY4 (Prop_carry4_S[0]_O[2])
+                                                      0.843     2.811 r  u_nucleo_pwm/producto_i_1/O[2]
+                         net (fo=1, routed)           0.521     3.332    A[15]
+    DSP48_X0Y24          DSP48E1 (Prop_dsp48e1_A[15]_P[15])
+                                                      4.019     7.351 f  u_nucleo_pwm/producto/P[15]
+                         net (fo=2, routed)           0.929     8.280    ref_a_calculada[0]
+    SLICE_X7Y60          LUT1 (Prop_lut1_I0_O)        0.124     8.404 r  u_nucleo_pwm/ref_b_etapa20_carry_i_1/O
+                         net (fo=1, routed)           0.189     8.593    u_nucleo_pwm/ref_b_etapa20_carry_i_1_n_0
+    SLICE_X6Y60          CARRY4 (Prop_carry4_CYINIT_CO[3])
+                                                      0.595     9.188 r  u_nucleo_pwm/ref_b_etapa20_carry/CO[3]
+                         net (fo=1, routed)           0.000     9.188    u_nucleo_pwm/ref_b_etapa20_carry_n_0
+    SLICE_X6Y61          CARRY4 (Prop_carry4_CI_O[3])
+                                                      0.315     9.503 r  u_nucleo_pwm/ref_b_etapa20_carry__0/O[3]
+                         net (fo=1, routed)           0.000     9.503    ref_b_etapa20[8]
+    SLICE_X6Y61          FDSE                                         r  u_nucleo_pwm/ref_b_etapa2_reg[8]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock s_axi_aclk rise edge)
+                                                     10.000    10.000 r  <hidden>
+                                                      0.000    10.000 r  s_axi_aclk
+                         net (fo=198, unset)          0.924    10.924    s_axi_aclk
+    SLICE_X6Y61          FDSE                                         r  u_nucleo_pwm/ref_b_etapa2_reg[8]/C
+                         clock pessimism              0.000    10.924    <hidden>
+                         clock uncertainty           -0.035    10.889    <hidden>
+    SLICE_X6Y61          FDSE (Setup_fdse_C_D)        0.109    10.998    u_nucleo_pwm/ref_b_etapa2_reg[8]
+  -------------------------------------------------------------------
+                         required time                         10.998    <hidden>
+                         arrival time                          -9.503    <hidden>
+  -------------------------------------------------------------------
+                         slack                                  1.495    <hidden>
+
+Slack (MET) :             1.571ns  (required time - arrival time)
+  Source:                 u_nucleo_pwm/duty_sat_etapa1_reg[13]/C
+                            (rising edge-triggered cell FDRE clocked by s_axi_aclk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            u_nucleo_pwm/ref_b_etapa2_reg[7]/D
+                            (rising edge-triggered cell FDSE clocked by s_axi_aclk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             s_axi_aclk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            10.000ns  (s_axi_aclk rise@10.000ns - s_axi_aclk rise@0.000ns)
+  Data Path Delay:        8.454ns  (logic 6.239ns (73.797%)  route 2.215ns (26.203%))
+  Logic Levels:           5  (CARRY4=3 DSP48E1=1 LUT1=1)
+  Clock Path Skew:        -0.049ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.924ns = ( 10.924 - 10.000 ) 
+    Source Clock Delay      (SCD):    0.973ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock s_axi_aclk rise edge)
+                                                      0.000     0.000 r  <hidden>
+                                                      0.000     0.000 r  s_axi_aclk
+                         net (fo=198, unset)          0.973     0.973    s_axi_aclk
+    SLICE_X13Y63         FDRE                                         r  u_nucleo_pwm/duty_sat_etapa1_reg[13]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X13Y63         FDRE (Prop_fdre_C_Q)         0.419     1.392 r  u_nucleo_pwm/duty_sat_etapa1_reg[13]/Q
+                         net (fo=1, routed)           0.576     1.968    duty_sat_etapa1[13]
+    SLICE_X11Y63         CARRY4 (Prop_carry4_S[0]_O[2])
+                                                      0.843     2.811 r  u_nucleo_pwm/producto_i_1/O[2]
+                         net (fo=1, routed)           0.521     3.332    A[15]
+    DSP48_X0Y24          DSP48E1 (Prop_dsp48e1_A[15]_P[15])
+                                                      4.019     7.351 f  u_nucleo_pwm/producto/P[15]
+                         net (fo=2, routed)           0.929     8.280    ref_a_calculada[0]
+    SLICE_X7Y60          LUT1 (Prop_lut1_I0_O)        0.124     8.404 r  u_nucleo_pwm/ref_b_etapa20_carry_i_1/O
+                         net (fo=1, routed)           0.189     8.593    u_nucleo_pwm/ref_b_etapa20_carry_i_1_n_0
+    SLICE_X6Y60          CARRY4 (Prop_carry4_CYINIT_CO[3])
+                                                      0.595     9.188 r  u_nucleo_pwm/ref_b_etapa20_carry/CO[3]
+                         net (fo=1, routed)           0.000     9.188    u_nucleo_pwm/ref_b_etapa20_carry_n_0
+    SLICE_X6Y61          CARRY4 (Prop_carry4_CI_O[2])
+                                                      0.239     9.427 r  u_nucleo_pwm/ref_b_etapa20_carry__0/O[2]
+                         net (fo=1, routed)           0.000     9.427    ref_b_etapa20[7]
+    SLICE_X6Y61          FDSE                                         r  u_nucleo_pwm/ref_b_etapa2_reg[7]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock s_axi_aclk rise edge)
+                                                     10.000    10.000 r  <hidden>
+                                                      0.000    10.000 r  s_axi_aclk
+                         net (fo=198, unset)          0.924    10.924    s_axi_aclk
+    SLICE_X6Y61          FDSE                                         r  u_nucleo_pwm/ref_b_etapa2_reg[7]/C
+                         clock pessimism              0.000    10.924    <hidden>
+                         clock uncertainty           -0.035    10.889    <hidden>
+    SLICE_X6Y61          FDSE (Setup_fdse_C_D)        0.109    10.998    u_nucleo_pwm/ref_b_etapa2_reg[7]
+  -------------------------------------------------------------------
+                         required time                         10.998    <hidden>
+                         arrival time                          -9.427    <hidden>
+  -------------------------------------------------------------------
+                         slack                                  1.571    <hidden>
+
+Slack (MET) :             1.591ns  (required time - arrival time)
+  Source:                 u_nucleo_pwm/duty_sat_etapa1_reg[13]/C
+                            (rising edge-triggered cell FDRE clocked by s_axi_aclk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            u_nucleo_pwm/ref_b_etapa2_reg[5]/D
+                            (rising edge-triggered cell FDRE clocked by s_axi_aclk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             s_axi_aclk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            10.000ns  (s_axi_aclk rise@10.000ns - s_axi_aclk rise@0.000ns)
+  Data Path Delay:        8.434ns  (logic 6.219ns (73.735%)  route 2.215ns (26.265%))
+  Logic Levels:           5  (CARRY4=3 DSP48E1=1 LUT1=1)
+  Clock Path Skew:        -0.049ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.924ns = ( 10.924 - 10.000 ) 
+    Source Clock Delay      (SCD):    0.973ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock s_axi_aclk rise edge)
+                                                      0.000     0.000 r  <hidden>
+                                                      0.000     0.000 r  s_axi_aclk
+                         net (fo=198, unset)          0.973     0.973    s_axi_aclk
+    SLICE_X13Y63         FDRE                                         r  u_nucleo_pwm/duty_sat_etapa1_reg[13]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X13Y63         FDRE (Prop_fdre_C_Q)         0.419     1.392 r  u_nucleo_pwm/duty_sat_etapa1_reg[13]/Q
+                         net (fo=1, routed)           0.576     1.968    duty_sat_etapa1[13]
+    SLICE_X11Y63         CARRY4 (Prop_carry4_S[0]_O[2])
+                                                      0.843     2.811 r  u_nucleo_pwm/producto_i_1/O[2]
+                         net (fo=1, routed)           0.521     3.332    A[15]
+    DSP48_X0Y24          DSP48E1 (Prop_dsp48e1_A[15]_P[15])
+                                                      4.019     7.351 f  u_nucleo_pwm/producto/P[15]
+                         net (fo=2, routed)           0.929     8.280    ref_a_calculada[0]
+    SLICE_X7Y60          LUT1 (Prop_lut1_I0_O)        0.124     8.404 r  u_nucleo_pwm/ref_b_etapa20_carry_i_1/O
+                         net (fo=1, routed)           0.189     8.593    u_nucleo_pwm/ref_b_etapa20_carry_i_1_n_0
+    SLICE_X6Y60          CARRY4 (Prop_carry4_CYINIT_CO[3])
+                                                      0.595     9.188 r  u_nucleo_pwm/ref_b_etapa20_carry/CO[3]
+                         net (fo=1, routed)           0.000     9.188    u_nucleo_pwm/ref_b_etapa20_carry_n_0
+    SLICE_X6Y61          CARRY4 (Prop_carry4_CI_O[0])
+                                                      0.219     9.407 r  u_nucleo_pwm/ref_b_etapa20_carry__0/O[0]
+                         net (fo=1, routed)           0.000     9.407    ref_b_etapa20[5]
+    SLICE_X6Y61          FDRE                                         r  u_nucleo_pwm/ref_b_etapa2_reg[5]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock s_axi_aclk rise edge)
+                                                     10.000    10.000 r  <hidden>
+                                                      0.000    10.000 r  s_axi_aclk
+                         net (fo=198, unset)          0.924    10.924    s_axi_aclk
+    SLICE_X6Y61          FDRE                                         r  u_nucleo_pwm/ref_b_etapa2_reg[5]/C
+                         clock pessimism              0.000    10.924    <hidden>
+                         clock uncertainty           -0.035    10.889    <hidden>
+    SLICE_X6Y61          FDRE (Setup_fdre_C_D)        0.109    10.998    u_nucleo_pwm/ref_b_etapa2_reg[5]
+  -------------------------------------------------------------------
+                         required time                         10.998    <hidden>
+                         arrival time                          -9.407    <hidden>
+  -------------------------------------------------------------------
+                         slack                                  1.591    <hidden>
+
+Slack (MET) :             1.743ns  (required time - arrival time)
+  Source:                 u_nucleo_pwm/duty_sat_etapa1_reg[13]/C
+                            (rising edge-triggered cell FDRE clocked by s_axi_aclk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            u_nucleo_pwm/ref_b_etapa2_reg[4]/D
+                            (rising edge-triggered cell FDRE clocked by s_axi_aclk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             s_axi_aclk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            10.000ns  (s_axi_aclk rise@10.000ns - s_axi_aclk rise@0.000ns)
+  Data Path Delay:        8.282ns  (logic 6.067ns (73.253%)  route 2.215ns (26.747%))
+  Logic Levels:           4  (CARRY4=2 DSP48E1=1 LUT1=1)
+  Clock Path Skew:        -0.049ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.924ns = ( 10.924 - 10.000 ) 
+    Source Clock Delay      (SCD):    0.973ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock s_axi_aclk rise edge)
+                                                      0.000     0.000 r  <hidden>
+                                                      0.000     0.000 r  s_axi_aclk
+                         net (fo=198, unset)          0.973     0.973    s_axi_aclk
+    SLICE_X13Y63         FDRE                                         r  u_nucleo_pwm/duty_sat_etapa1_reg[13]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X13Y63         FDRE (Prop_fdre_C_Q)         0.419     1.392 r  u_nucleo_pwm/duty_sat_etapa1_reg[13]/Q
+                         net (fo=1, routed)           0.576     1.968    duty_sat_etapa1[13]
+    SLICE_X11Y63         CARRY4 (Prop_carry4_S[0]_O[2])
+                                                      0.843     2.811 r  u_nucleo_pwm/producto_i_1/O[2]
+                         net (fo=1, routed)           0.521     3.332    A[15]
+    DSP48_X0Y24          DSP48E1 (Prop_dsp48e1_A[15]_P[15])
+                                                      4.019     7.351 f  u_nucleo_pwm/producto/P[15]
+                         net (fo=2, routed)           0.929     8.280    ref_a_calculada[0]
+    SLICE_X7Y60          LUT1 (Prop_lut1_I0_O)        0.124     8.404 r  u_nucleo_pwm/ref_b_etapa20_carry_i_1/O
+                         net (fo=1, routed)           0.189     8.593    u_nucleo_pwm/ref_b_etapa20_carry_i_1_n_0
+    SLICE_X6Y60          CARRY4 (Prop_carry4_CYINIT_O[3])
+                                                      0.662     9.255 r  u_nucleo_pwm/ref_b_etapa20_carry/O[3]
+                         net (fo=1, routed)           0.000     9.255    ref_b_etapa20[4]
+    SLICE_X6Y60          FDRE                                         r  u_nucleo_pwm/ref_b_etapa2_reg[4]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock s_axi_aclk rise edge)
+                                                     10.000    10.000 r  <hidden>
+                                                      0.000    10.000 r  s_axi_aclk
+                         net (fo=198, unset)          0.924    10.924    s_axi_aclk
+    SLICE_X6Y60          FDRE                                         r  u_nucleo_pwm/ref_b_etapa2_reg[4]/C
+                         clock pessimism              0.000    10.924    <hidden>
+                         clock uncertainty           -0.035    10.889    <hidden>
+    SLICE_X6Y60          FDRE (Setup_fdre_C_D)        0.109    10.998    u_nucleo_pwm/ref_b_etapa2_reg[4]
+  -------------------------------------------------------------------
+                         required time                         10.998    <hidden>
+                         arrival time                          -9.255    <hidden>
+  -------------------------------------------------------------------
+                         slack                                  1.743    <hidden>
+
+Slack (MET) :             1.774ns  (required time - arrival time)
+  Source:                 u_nucleo_pwm/duty_sat_etapa1_reg[13]/C
+                            (rising edge-triggered cell FDRE clocked by s_axi_aclk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            u_nucleo_pwm/ref_b_etapa2_reg[2]/D
+                            (rising edge-triggered cell FDSE clocked by s_axi_aclk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             s_axi_aclk
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            10.000ns  (s_axi_aclk rise@10.000ns - s_axi_aclk rise@0.000ns)
+  Data Path Delay:        8.251ns  (logic 6.036ns (73.152%)  route 2.215ns (26.848%))
+  Logic Levels:           4  (CARRY4=2 DSP48E1=1 LUT1=1)
+  Clock Path Skew:        -0.049ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    0.924ns = ( 10.924 - 10.000 ) 
+    Source Clock Delay      (SCD):    0.973ns
+    Clock Pessimism Removal (CPR):    0.000ns
+  Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.000ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock s_axi_aclk rise edge)
+                                                      0.000     0.000 r  <hidden>
+                                                      0.000     0.000 r  s_axi_aclk
+                         net (fo=198, unset)          0.973     0.973    s_axi_aclk
+    SLICE_X13Y63         FDRE                                         r  u_nucleo_pwm/duty_sat_etapa1_reg[13]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X13Y63         FDRE (Prop_fdre_C_Q)         0.419     1.392 r  u_nucleo_pwm/duty_sat_etapa1_reg[13]/Q
+                         net (fo=1, routed)           0.576     1.968    duty_sat_etapa1[13]
+    SLICE_X11Y63         CARRY4 (Prop_carry4_S[0]_O[2])
+                                                      0.843     2.811 r  u_nucleo_pwm/producto_i_1/O[2]
+                         net (fo=1, routed)           0.521     3.332    A[15]
+    DSP48_X0Y24          DSP48E1 (Prop_dsp48e1_A[15]_P[15])
+                                                      4.019     7.351 f  u_nucleo_pwm/producto/P[15]
+                         net (fo=2, routed)           0.929     8.280    ref_a_calculada[0]
+    SLICE_X7Y60          LUT1 (Prop_lut1_I0_O)        0.124     8.404 r  u_nucleo_pwm/ref_b_etapa20_carry_i_1/O
+                         net (fo=1, routed)           0.189     8.593    u_nucleo_pwm/ref_b_etapa20_carry_i_1_n_0
+    SLICE_X6Y60          CARRY4 (Prop_carry4_CYINIT_O[1])
+                                                      0.631     9.224 r  u_nucleo_pwm/ref_b_etapa20_carry/O[1]
+                         net (fo=1, routed)           0.000     9.224    ref_b_etapa20[2]
+    SLICE_X6Y60          FDSE                                         r  u_nucleo_pwm/ref_b_etapa2_reg[2]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock s_axi_aclk rise edge)
+                                                     10.000    10.000 r  <hidden>
+                                                      0.000    10.000 r  s_axi_aclk
+                         net (fo=198, unset)          0.924    10.924    s_axi_aclk
+    SLICE_X6Y60          FDSE                                         r  u_nucleo_pwm/ref_b_etapa2_reg[2]/C
+                         clock pessimism              0.000    10.924    <hidden>
+                         clock uncertainty           -0.035    10.889    <hidden>
+    SLICE_X6Y60          FDSE (Setup_fdse_C_D)        0.109    10.998    u_nucleo_pwm/ref_b_etapa2_reg[2]
+  -------------------------------------------------------------------
+                         required time                         10.998    <hidden>
+                         arrival time                          -9.224    <hidden>
+  -------------------------------------------------------------------
+                         slack                                  1.774    <hidden>
+
+
+
+
+
+Min Delay Paths
+--------------------------------------------------------------------------------------
+Slack (MET) :             0.144ns  (arrival time - required time)
+  Source:                 u_interfaz_axi_pwm/wdata_reg_reg[0]/C
+                            (rising edge-triggered cell FDRE clocked by s_axi_aclk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            u_interfaz_axi_pwm/enable_reg/D
+                            (rising edge-triggered cell FDRE clocked by s_axi_aclk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             s_axi_aclk
+  Path Type:              Hold (Min at Fast Process Corner)
+  Requirement:            0.000ns  (s_axi_aclk rise@0.000ns - s_axi_aclk rise@0.000ns)
+  Data Path Delay:        0.285ns  (logic 0.186ns (65.194%)  route 0.099ns (34.806%))
+  Logic Levels:           1  (LUT3=1)
+  Clock Path Skew:        0.022ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    0.432ns
+    Source Clock Delay      (SCD):    0.410ns
+    Clock Pessimism Removal (CPR):    -0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock s_axi_aclk rise edge)
+                                                      0.000     0.000 r  <hidden>
+                                                      0.000     0.000 r  s_axi_aclk
+                         net (fo=198, unset)          0.410     0.410    s_axi_aclk
+    SLICE_X9Y62          FDRE                                         r  u_interfaz_axi_pwm/wdata_reg_reg[0]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X9Y62          FDRE (Prop_fdre_C_Q)         0.141     0.551 r  u_interfaz_axi_pwm/wdata_reg_reg[0]/Q
+                         net (fo=2, routed)           0.099     0.650    u_interfaz_axi_pwm/wdata_reg_reg_n_0_[0]
+    SLICE_X8Y62          LUT3 (Prop_lut3_I0_O)        0.045     0.695 r  enable_i_1/O
+                         net (fo=1, routed)           0.000     0.695    enable_i_1_n_0
+    SLICE_X8Y62          FDRE                                         r  u_interfaz_axi_pwm/enable_reg/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock s_axi_aclk rise edge)
+                                                      0.000     0.000 r  <hidden>
+                                                      0.000     0.000 r  s_axi_aclk
+                         net (fo=198, unset)          0.432     0.432    s_axi_aclk
+    SLICE_X8Y62          FDRE                                         r  u_interfaz_axi_pwm/enable_reg/C
+                         clock pessimism              0.000     0.432    <hidden>
+    SLICE_X8Y62          FDRE (Hold_fdre_C_D)         0.120     0.552    u_interfaz_axi_pwm/enable_reg
+  -------------------------------------------------------------------
+                         required time                         -0.552    <hidden>
+                         arrival time                           0.695    <hidden>
+  -------------------------------------------------------------------
+                         slack                                  0.144    <hidden>
+
+Slack (MET) :             0.149ns  (arrival time - required time)
+  Source:                 u_nucleo_pwm/ref_a_etapa2_reg[8]/C
+                            (rising edge-triggered cell FDSE clocked by s_axi_aclk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            u_nucleo_pwm/ref_a_sombra_reg[8]/D
+                            (rising edge-triggered cell FDSE clocked by s_axi_aclk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             s_axi_aclk
+  Path Type:              Hold (Min at Fast Process Corner)
+  Requirement:            0.000ns  (s_axi_aclk rise@0.000ns - s_axi_aclk rise@0.000ns)
+  Data Path Delay:        0.243ns  (logic 0.141ns (58.024%)  route 0.102ns (41.976%))
+  Logic Levels:           0  
+  Clock Path Skew:        0.022ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    0.432ns
+    Source Clock Delay      (SCD):    0.410ns
+    Clock Pessimism Removal (CPR):    -0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock s_axi_aclk rise edge)
+                                                      0.000     0.000 r  <hidden>
+                                                      0.000     0.000 r  s_axi_aclk
+                         net (fo=198, unset)          0.410     0.410    s_axi_aclk
+    SLICE_X5Y62          FDSE                                         r  u_nucleo_pwm/ref_a_etapa2_reg[8]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X5Y62          FDSE (Prop_fdse_C_Q)         0.141     0.551 r  u_nucleo_pwm/ref_a_etapa2_reg[8]/Q
+                         net (fo=1, routed)           0.102     0.653    ref_a_etapa2[8]
+    SLICE_X7Y62          FDSE                                         r  u_nucleo_pwm/ref_a_sombra_reg[8]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock s_axi_aclk rise edge)
+                                                      0.000     0.000 r  <hidden>
+                                                      0.000     0.000 r  s_axi_aclk
+                         net (fo=198, unset)          0.432     0.432    s_axi_aclk
+    SLICE_X7Y62          FDSE                                         r  u_nucleo_pwm/ref_a_sombra_reg[8]/C
+                         clock pessimism              0.000     0.432    <hidden>
+    SLICE_X7Y62          FDSE (Hold_fdse_C_D)         0.072     0.504    u_nucleo_pwm/ref_a_sombra_reg[8]
+  -------------------------------------------------------------------
+                         required time                         -0.504    <hidden>
+                         arrival time                           0.653    <hidden>
+  -------------------------------------------------------------------
+                         slack                                  0.149    <hidden>
+
+Slack (MET) :             0.162ns  (arrival time - required time)
+  Source:                 u_nucleo_pwm/max_etapa2_reg[10]/C
+                            (rising edge-triggered cell FDRE clocked by s_axi_aclk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            u_nucleo_pwm/max_sombra_reg[10]/D
+                            (rising edge-triggered cell FDRE clocked by s_axi_aclk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             s_axi_aclk
+  Path Type:              Hold (Min at Fast Process Corner)
+  Requirement:            0.000ns  (s_axi_aclk rise@0.000ns - s_axi_aclk rise@0.000ns)
+  Data Path Delay:        0.239ns  (logic 0.141ns (59.029%)  route 0.098ns (40.971%))
+  Logic Levels:           0  
+  Clock Path Skew:        0.022ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    0.432ns
+    Source Clock Delay      (SCD):    0.410ns
+    Clock Pessimism Removal (CPR):    -0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock s_axi_aclk rise edge)
+                                                      0.000     0.000 r  <hidden>
+                                                      0.000     0.000 r  s_axi_aclk
+                         net (fo=198, unset)          0.410     0.410    s_axi_aclk
+    SLICE_X5Y62          FDRE                                         r  u_nucleo_pwm/max_etapa2_reg[10]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X5Y62          FDRE (Prop_fdre_C_Q)         0.141     0.551 r  u_nucleo_pwm/max_etapa2_reg[10]/Q
+                         net (fo=1, routed)           0.098     0.649    max_etapa2[10]
+    SLICE_X4Y62          FDRE                                         r  u_nucleo_pwm/max_sombra_reg[10]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock s_axi_aclk rise edge)
+                                                      0.000     0.000 r  <hidden>
+                                                      0.000     0.000 r  s_axi_aclk
+                         net (fo=198, unset)          0.432     0.432    s_axi_aclk
+    SLICE_X4Y62          FDRE                                         r  u_nucleo_pwm/max_sombra_reg[10]/C
+                         clock pessimism              0.000     0.432    <hidden>
+    SLICE_X4Y62          FDRE (Hold_fdre_C_D)         0.055     0.487    u_nucleo_pwm/max_sombra_reg[10]
+  -------------------------------------------------------------------
+                         required time                         -0.487    <hidden>
+                         arrival time                           0.649    <hidden>
+  -------------------------------------------------------------------
+                         slack                                  0.162    <hidden>
+
+Slack (MET) :             0.171ns  (arrival time - required time)
+  Source:                 u_interfaz_axi_pwm/wdata_reg_reg[4]/C
+                            (rising edge-triggered cell FDRE clocked by s_axi_aclk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            u_interfaz_axi_pwm/duty_ref_reg[4]/D
+                            (rising edge-triggered cell FDRE clocked by s_axi_aclk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             s_axi_aclk
+  Path Type:              Hold (Min at Fast Process Corner)
+  Requirement:            0.000ns  (s_axi_aclk rise@0.000ns - s_axi_aclk rise@0.000ns)
+  Data Path Delay:        0.253ns  (logic 0.141ns (55.730%)  route 0.112ns (44.270%))
+  Logic Levels:           0  
+  Clock Path Skew:        0.022ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    0.432ns
+    Source Clock Delay      (SCD):    0.410ns
+    Clock Pessimism Removal (CPR):    -0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock s_axi_aclk rise edge)
+                                                      0.000     0.000 r  <hidden>
+                                                      0.000     0.000 r  s_axi_aclk
+                         net (fo=198, unset)          0.410     0.410    s_axi_aclk
+    SLICE_X13Y62         FDRE                                         r  u_interfaz_axi_pwm/wdata_reg_reg[4]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X13Y62         FDRE (Prop_fdre_C_Q)         0.141     0.551 r  u_interfaz_axi_pwm/wdata_reg_reg[4]/Q
+                         net (fo=1, routed)           0.112     0.663    u_interfaz_axi_pwm/wdata_reg_reg_n_0_[4]
+    SLICE_X12Y62         FDRE                                         r  u_interfaz_axi_pwm/duty_ref_reg[4]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock s_axi_aclk rise edge)
+                                                      0.000     0.000 r  <hidden>
+                                                      0.000     0.000 r  s_axi_aclk
+                         net (fo=198, unset)          0.432     0.432    s_axi_aclk
+    SLICE_X12Y62         FDRE                                         r  u_interfaz_axi_pwm/duty_ref_reg[4]/C
+                         clock pessimism              0.000     0.432    <hidden>
+    SLICE_X12Y62         FDRE (Hold_fdre_C_D)         0.060     0.492    u_interfaz_axi_pwm/duty_ref_reg[4]
+  -------------------------------------------------------------------
+                         required time                         -0.492    <hidden>
+                         arrival time                           0.663    <hidden>
+  -------------------------------------------------------------------
+                         slack                                  0.171    <hidden>
+
+Slack (MET) :             0.175ns  (arrival time - required time)
+  Source:                 u_interfaz_axi_pwm/wdata_reg_reg[3]/C
+                            (rising edge-triggered cell FDRE clocked by s_axi_aclk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            u_interfaz_axi_pwm/duty_ref_reg[3]/D
+                            (rising edge-triggered cell FDRE clocked by s_axi_aclk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             s_axi_aclk
+  Path Type:              Hold (Min at Fast Process Corner)
+  Requirement:            0.000ns  (s_axi_aclk rise@0.000ns - s_axi_aclk rise@0.000ns)
+  Data Path Delay:        0.272ns  (logic 0.164ns (60.256%)  route 0.108ns (39.744%))
+  Logic Levels:           0  
+  Clock Path Skew:        0.022ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    0.432ns
+    Source Clock Delay      (SCD):    0.410ns
+    Clock Pessimism Removal (CPR):    -0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock s_axi_aclk rise edge)
+                                                      0.000     0.000 r  <hidden>
+                                                      0.000     0.000 r  s_axi_aclk
+                         net (fo=198, unset)          0.410     0.410    s_axi_aclk
+    SLICE_X12Y63         FDRE                                         r  u_interfaz_axi_pwm/wdata_reg_reg[3]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X12Y63         FDRE (Prop_fdre_C_Q)         0.164     0.574 r  u_interfaz_axi_pwm/wdata_reg_reg[3]/Q
+                         net (fo=1, routed)           0.108     0.682    u_interfaz_axi_pwm/wdata_reg_reg_n_0_[3]
+    SLICE_X12Y62         FDRE                                         r  u_interfaz_axi_pwm/duty_ref_reg[3]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock s_axi_aclk rise edge)
+                                                      0.000     0.000 r  <hidden>
+                                                      0.000     0.000 r  s_axi_aclk
+                         net (fo=198, unset)          0.432     0.432    s_axi_aclk
+    SLICE_X12Y62         FDRE                                         r  u_interfaz_axi_pwm/duty_ref_reg[3]/C
+                         clock pessimism              0.000     0.432    <hidden>
+    SLICE_X12Y62         FDRE (Hold_fdre_C_D)         0.076     0.508    u_interfaz_axi_pwm/duty_ref_reg[3]
+  -------------------------------------------------------------------
+                         required time                         -0.508    <hidden>
+                         arrival time                           0.682    <hidden>
+  -------------------------------------------------------------------
+                         slack                                  0.175    <hidden>
+
+Slack (MET) :             0.182ns  (arrival time - required time)
+  Source:                 u_nucleo_pwm/ref_b_etapa2_reg[10]/C
+                            (rising edge-triggered cell FDRE clocked by s_axi_aclk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            u_nucleo_pwm/ref_b_sombra_reg[10]/D
+                            (rising edge-triggered cell FDRE clocked by s_axi_aclk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             s_axi_aclk
+  Path Type:              Hold (Min at Fast Process Corner)
+  Requirement:            0.000ns  (s_axi_aclk rise@0.000ns - s_axi_aclk rise@0.000ns)
+  Data Path Delay:        0.274ns  (logic 0.164ns (59.853%)  route 0.110ns (40.147%))
+  Logic Levels:           0  
+  Clock Path Skew:        0.022ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    0.432ns
+    Source Clock Delay      (SCD):    0.410ns
+    Clock Pessimism Removal (CPR):    -0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock s_axi_aclk rise edge)
+                                                      0.000     0.000 r  <hidden>
+                                                      0.000     0.000 r  s_axi_aclk
+                         net (fo=198, unset)          0.410     0.410    s_axi_aclk
+    SLICE_X6Y62          FDRE                                         r  u_nucleo_pwm/ref_b_etapa2_reg[10]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X6Y62          FDRE (Prop_fdre_C_Q)         0.164     0.574 r  u_nucleo_pwm/ref_b_etapa2_reg[10]/Q
+                         net (fo=1, routed)           0.110     0.684    ref_b_etapa2[10]
+    SLICE_X7Y63          FDRE                                         r  u_nucleo_pwm/ref_b_sombra_reg[10]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock s_axi_aclk rise edge)
+                                                      0.000     0.000 r  <hidden>
+                                                      0.000     0.000 r  s_axi_aclk
+                         net (fo=198, unset)          0.432     0.432    s_axi_aclk
+    SLICE_X7Y63          FDRE                                         r  u_nucleo_pwm/ref_b_sombra_reg[10]/C
+                         clock pessimism              0.000     0.432    <hidden>
+    SLICE_X7Y63          FDRE (Hold_fdre_C_D)         0.070     0.502    u_nucleo_pwm/ref_b_sombra_reg[10]
+  -------------------------------------------------------------------
+                         required time                         -0.502    <hidden>
+                         arrival time                           0.684    <hidden>
+  -------------------------------------------------------------------
+                         slack                                  0.182    <hidden>
+
+Slack (MET) :             0.186ns  (arrival time - required time)
+  Source:                 u_interfaz_axi_pwm/wdata_reg_reg[15]/C
+                            (rising edge-triggered cell FDRE clocked by s_axi_aclk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            u_interfaz_axi_pwm/duty_ref_reg[15]/D
+                            (rising edge-triggered cell FDRE clocked by s_axi_aclk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             s_axi_aclk
+  Path Type:              Hold (Min at Fast Process Corner)
+  Requirement:            0.000ns  (s_axi_aclk rise@0.000ns - s_axi_aclk rise@0.000ns)
+  Data Path Delay:        0.291ns  (logic 0.141ns (48.450%)  route 0.150ns (51.550%))
+  Logic Levels:           0  
+  Clock Path Skew:        0.022ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    0.432ns
+    Source Clock Delay      (SCD):    0.410ns
+    Clock Pessimism Removal (CPR):    -0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock s_axi_aclk rise edge)
+                                                      0.000     0.000 r  <hidden>
+                                                      0.000     0.000 r  s_axi_aclk
+                         net (fo=198, unset)          0.410     0.410    s_axi_aclk
+    SLICE_X9Y63          FDRE                                         r  u_interfaz_axi_pwm/wdata_reg_reg[15]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X9Y63          FDRE (Prop_fdre_C_Q)         0.141     0.551 r  u_interfaz_axi_pwm/wdata_reg_reg[15]/Q
+                         net (fo=1, routed)           0.150     0.701    u_interfaz_axi_pwm/wdata_reg_reg_n_0_[15]
+    SLICE_X10Y63         FDRE                                         r  u_interfaz_axi_pwm/duty_ref_reg[15]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock s_axi_aclk rise edge)
+                                                      0.000     0.000 r  <hidden>
+                                                      0.000     0.000 r  s_axi_aclk
+                         net (fo=198, unset)          0.432     0.432    s_axi_aclk
+    SLICE_X10Y63         FDRE                                         r  u_interfaz_axi_pwm/duty_ref_reg[15]/C
+                         clock pessimism              0.000     0.432    <hidden>
+    SLICE_X10Y63         FDRE (Hold_fdre_C_D)         0.083     0.515    u_interfaz_axi_pwm/duty_ref_reg[15]
+  -------------------------------------------------------------------
+                         required time                         -0.515    <hidden>
+                         arrival time                           0.701    <hidden>
+  -------------------------------------------------------------------
+                         slack                                  0.186    <hidden>
+
+Slack (MET) :             0.190ns  (arrival time - required time)
+  Source:                 u_interfaz_axi_pwm/FSM_onehot_estado_escritura_reg[2]/C
+                            (rising edge-triggered cell FDRE clocked by s_axi_aclk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            u_interfaz_axi_pwm/FSM_onehot_estado_escritura_reg[0]/D
+                            (rising edge-triggered cell FDSE clocked by s_axi_aclk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             s_axi_aclk
+  Path Type:              Hold (Min at Fast Process Corner)
+  Requirement:            0.000ns  (s_axi_aclk rise@0.000ns - s_axi_aclk rise@0.000ns)
+  Data Path Delay:        0.333ns  (logic 0.246ns (73.912%)  route 0.087ns (26.088%))
+  Logic Levels:           1  (LUT3=1)
+  Clock Path Skew:        0.022ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    0.432ns
+    Source Clock Delay      (SCD):    0.410ns
+    Clock Pessimism Removal (CPR):    -0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock s_axi_aclk rise edge)
+                                                      0.000     0.000 r  <hidden>
+                                                      0.000     0.000 r  s_axi_aclk
+                         net (fo=198, unset)          0.410     0.410    s_axi_aclk
+    SLICE_X14Y64         FDRE                                         r  u_interfaz_axi_pwm/FSM_onehot_estado_escritura_reg[2]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X14Y64         FDRE (Prop_fdre_C_Q)         0.148     0.558 r  u_interfaz_axi_pwm/FSM_onehot_estado_escritura_reg[2]/Q
+                         net (fo=6, routed)           0.087     0.645    u_interfaz_axi_pwm/FSM_onehot_estado_escritura_reg_n_0_[2]
+    SLICE_X14Y64         LUT3 (Prop_lut3_I0_O)        0.098     0.743 r  FSM_onehot_estado_escritura[0]_i_1/O
+                         net (fo=1, routed)           0.000     0.743    FSM_onehot_estado_escritura[0]_i_1_n_0
+    SLICE_X14Y64         FDSE                                         r  u_interfaz_axi_pwm/FSM_onehot_estado_escritura_reg[0]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock s_axi_aclk rise edge)
+                                                      0.000     0.000 r  <hidden>
+                                                      0.000     0.000 r  s_axi_aclk
+                         net (fo=198, unset)          0.432     0.432    s_axi_aclk
+    SLICE_X14Y64         FDSE                                         r  u_interfaz_axi_pwm/FSM_onehot_estado_escritura_reg[0]/C
+                         clock pessimism              0.000     0.432    <hidden>
+    SLICE_X14Y64         FDSE (Hold_fdse_C_D)         0.121     0.553    u_interfaz_axi_pwm/FSM_onehot_estado_escritura_reg[0]
+  -------------------------------------------------------------------
+                         required time                         -0.553    <hidden>
+                         arrival time                           0.743    <hidden>
+  -------------------------------------------------------------------
+                         slack                                  0.190    <hidden>
+
+Slack (MET) :             0.192ns  (arrival time - required time)
+  Source:                 u_nucleo_pwm/FSM_sequential_g_pierna[1].estado_reg[0]/C
+                            (rising edge-triggered cell FDRE clocked by s_axi_aclk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            u_nucleo_pwm/g_pierna[1].baja_reg[1]/D
+                            (rising edge-triggered cell FDRE clocked by s_axi_aclk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             s_axi_aclk
+  Path Type:              Hold (Min at Fast Process Corner)
+  Requirement:            0.000ns  (s_axi_aclk rise@0.000ns - s_axi_aclk rise@0.000ns)
+  Data Path Delay:        0.335ns  (logic 0.186ns (55.575%)  route 0.149ns (44.425%))
+  Logic Levels:           1  (LUT6=1)
+  Clock Path Skew:        0.022ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    0.432ns
+    Source Clock Delay      (SCD):    0.410ns
+    Clock Pessimism Removal (CPR):    -0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock s_axi_aclk rise edge)
+                                                      0.000     0.000 r  <hidden>
+                                                      0.000     0.000 r  s_axi_aclk
+                         net (fo=198, unset)          0.410     0.410    s_axi_aclk
+    SLICE_X7Y67          FDRE                                         r  u_nucleo_pwm/FSM_sequential_g_pierna[1].estado_reg[0]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X7Y67          FDRE (Prop_fdre_C_Q)         0.141     0.551 f  u_nucleo_pwm/FSM_sequential_g_pierna[1].estado_reg[0]/Q
+                         net (fo=13, routed)          0.149     0.700    u_nucleo_pwm/g_pierna[1].estado[0]
+    SLICE_X6Y67          LUT6 (Prop_lut6_I2_O)        0.045     0.745 r  g_pierna[1].baja[1]_i_1/O
+                         net (fo=1, routed)           0.000     0.745    g_pierna[1].baja_reg0
+    SLICE_X6Y67          FDRE                                         r  u_nucleo_pwm/g_pierna[1].baja_reg[1]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock s_axi_aclk rise edge)
+                                                      0.000     0.000 r  <hidden>
+                                                      0.000     0.000 r  s_axi_aclk
+                         net (fo=198, unset)          0.432     0.432    s_axi_aclk
+    SLICE_X6Y67          FDRE                                         r  u_nucleo_pwm/g_pierna[1].baja_reg[1]/C
+                         clock pessimism              0.000     0.432    <hidden>
+    SLICE_X6Y67          FDRE (Hold_fdre_C_D)         0.121     0.553    u_nucleo_pwm/g_pierna[1].baja_reg[1]
+  -------------------------------------------------------------------
+                         required time                         -0.553    <hidden>
+                         arrival time                           0.745    <hidden>
+  -------------------------------------------------------------------
+                         slack                                  0.192    <hidden>
+
+Slack (MET) :             0.209ns  (arrival time - required time)
+  Source:                 u_interfaz_axi_pwm/wdata_reg_reg[7]/C
+                            (rising edge-triggered cell FDRE clocked by s_axi_aclk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Destination:            u_interfaz_axi_pwm/duty_ref_reg[7]/D
+                            (rising edge-triggered cell FDRE clocked by s_axi_aclk  {rise@0.000ns fall@5.000ns period=10.000ns})
+  Path Group:             s_axi_aclk
+  Path Type:              Hold (Min at Fast Process Corner)
+  Requirement:            0.000ns  (s_axi_aclk rise@0.000ns - s_axi_aclk rise@0.000ns)
+  Data Path Delay:        0.241ns  (logic 0.128ns (53.025%)  route 0.113ns (46.975%))
+  Logic Levels:           0  
+  Clock Path Skew:        0.022ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    0.432ns
+    Source Clock Delay      (SCD):    0.410ns
+    Clock Pessimism Removal (CPR):    -0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock s_axi_aclk rise edge)
+                                                      0.000     0.000 r  <hidden>
+                                                      0.000     0.000 r  s_axi_aclk
+                         net (fo=198, unset)          0.410     0.410    s_axi_aclk
+    SLICE_X13Y62         FDRE                                         r  u_interfaz_axi_pwm/wdata_reg_reg[7]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X13Y62         FDRE (Prop_fdre_C_Q)         0.128     0.538 r  u_interfaz_axi_pwm/wdata_reg_reg[7]/Q
+                         net (fo=1, routed)           0.113     0.652    u_interfaz_axi_pwm/wdata_reg_reg_n_0_[7]
+    SLICE_X12Y62         FDRE                                         r  u_interfaz_axi_pwm/duty_ref_reg[7]/D
+  -------------------------------------------------------------------    -------------------
+
+                         (clock s_axi_aclk rise edge)
+                                                      0.000     0.000 r  <hidden>
+                                                      0.000     0.000 r  s_axi_aclk
+                         net (fo=198, unset)          0.432     0.432    s_axi_aclk
+    SLICE_X12Y62         FDRE                                         r  u_interfaz_axi_pwm/duty_ref_reg[7]/C
+                         clock pessimism              0.000     0.432    <hidden>
+    SLICE_X12Y62         FDRE (Hold_fdre_C_D)         0.011     0.443    u_interfaz_axi_pwm/duty_ref_reg[7]
+  -------------------------------------------------------------------
+                         required time                         -0.443    <hidden>
+                         arrival time                           0.652    <hidden>
+  -------------------------------------------------------------------
+                         slack                                  0.209    <hidden>
+
+
+
+
+
+Pulse Width Checks
+--------------------------------------------------------------------------------------
+Clock Name:         s_axi_aclk
+Waveform(ns):       { 0.000 5.000 }
+Period(ns):         10.000
+Sources:            { s_axi_aclk }
+
+Check Type        Corner  Lib Pin  Reference Pin  Required(ns)  Actual(ns)  Slack(ns)  Location      Pin
+Min Period        n/a     FDSE/C   n/a            1.000         10.000      9.000      SLICE_X14Y64  u_interfaz_axi_pwm/FSM_onehot_estado_escritura_reg[0]/C
+Min Period        n/a     FDRE/C   n/a            1.000         10.000      9.000      SLICE_X14Y64  u_interfaz_axi_pwm/FSM_onehot_estado_escritura_reg[1]/C
+Min Period        n/a     FDRE/C   n/a            1.000         10.000      9.000      SLICE_X14Y64  u_interfaz_axi_pwm/FSM_onehot_estado_escritura_reg[2]/C
+Min Period        n/a     FDRE/C   n/a            1.000         10.000      9.000      SLICE_X13Y64  u_interfaz_axi_pwm/aw_pendiente_reg/C
+Min Period        n/a     FDRE/C   n/a            1.000         10.000      9.000      SLICE_X12Y64  u_interfaz_axi_pwm/awaddr_reg_reg[0]/C
+Min Period        n/a     FDRE/C   n/a            1.000         10.000      9.000      SLICE_X12Y64  u_interfaz_axi_pwm/awaddr_reg_reg[1]/C
+Min Period        n/a     FDRE/C   n/a            1.000         10.000      9.000      SLICE_X12Y64  u_interfaz_axi_pwm/awaddr_reg_reg[2]/C
+Min Period        n/a     FDRE/C   n/a            1.000         10.000      9.000      SLICE_X12Y64  u_interfaz_axi_pwm/awaddr_reg_reg[3]/C
+Min Period        n/a     FDRE/C   n/a            1.000         10.000      9.000      SLICE_X12Y62  u_interfaz_axi_pwm/duty_ref_reg[0]/C
+Min Period        n/a     FDRE/C   n/a            1.000         10.000      9.000      SLICE_X10Y63  u_interfaz_axi_pwm/duty_ref_reg[10]/C
+Low Pulse Width   Slow    FDSE/C   n/a            0.500         5.000       4.500      SLICE_X14Y64  u_interfaz_axi_pwm/FSM_onehot_estado_escritura_reg[0]/C
+Low Pulse Width   Fast    FDSE/C   n/a            0.500         5.000       4.500      SLICE_X14Y64  u_interfaz_axi_pwm/FSM_onehot_estado_escritura_reg[0]/C
+Low Pulse Width   Slow    FDRE/C   n/a            0.500         5.000       4.500      SLICE_X14Y64  u_interfaz_axi_pwm/FSM_onehot_estado_escritura_reg[1]/C
+Low Pulse Width   Fast    FDRE/C   n/a            0.500         5.000       4.500      SLICE_X14Y64  u_interfaz_axi_pwm/FSM_onehot_estado_escritura_reg[1]/C
+Low Pulse Width   Slow    FDRE/C   n/a            0.500         5.000       4.500      SLICE_X14Y64  u_interfaz_axi_pwm/FSM_onehot_estado_escritura_reg[2]/C
+Low Pulse Width   Fast    FDRE/C   n/a            0.500         5.000       4.500      SLICE_X14Y64  u_interfaz_axi_pwm/FSM_onehot_estado_escritura_reg[2]/C
+Low Pulse Width   Slow    FDRE/C   n/a            0.500         5.000       4.500      SLICE_X13Y64  u_interfaz_axi_pwm/aw_pendiente_reg/C
+Low Pulse Width   Fast    FDRE/C   n/a            0.500         5.000       4.500      SLICE_X13Y64  u_interfaz_axi_pwm/aw_pendiente_reg/C
+Low Pulse Width   Slow    FDRE/C   n/a            0.500         5.000       4.500      SLICE_X12Y64  u_interfaz_axi_pwm/awaddr_reg_reg[0]/C
+Low Pulse Width   Fast    FDRE/C   n/a            0.500         5.000       4.500      SLICE_X12Y64  u_interfaz_axi_pwm/awaddr_reg_reg[0]/C
+High Pulse Width  Slow    FDSE/C   n/a            0.500         5.000       4.500      SLICE_X14Y64  u_interfaz_axi_pwm/FSM_onehot_estado_escritura_reg[0]/C
+High Pulse Width  Fast    FDSE/C   n/a            0.500         5.000       4.500      SLICE_X14Y64  u_interfaz_axi_pwm/FSM_onehot_estado_escritura_reg[0]/C
+High Pulse Width  Slow    FDRE/C   n/a            0.500         5.000       4.500      SLICE_X14Y64  u_interfaz_axi_pwm/FSM_onehot_estado_escritura_reg[1]/C
+High Pulse Width  Fast    FDRE/C   n/a            0.500         5.000       4.500      SLICE_X14Y64  u_interfaz_axi_pwm/FSM_onehot_estado_escritura_reg[1]/C
+High Pulse Width  Slow    FDRE/C   n/a            0.500         5.000       4.500      SLICE_X14Y64  u_interfaz_axi_pwm/FSM_onehot_estado_escritura_reg[2]/C
+High Pulse Width  Fast    FDRE/C   n/a            0.500         5.000       4.500      SLICE_X14Y64  u_interfaz_axi_pwm/FSM_onehot_estado_escritura_reg[2]/C
+High Pulse Width  Slow    FDRE/C   n/a            0.500         5.000       4.500      SLICE_X13Y64  u_interfaz_axi_pwm/aw_pendiente_reg/C
+High Pulse Width  Fast    FDRE/C   n/a            0.500         5.000       4.500      SLICE_X13Y64  u_interfaz_axi_pwm/aw_pendiente_reg/C
+High Pulse Width  Slow    FDRE/C   n/a            0.500         5.000       4.500      SLICE_X12Y64  u_interfaz_axi_pwm/awaddr_reg_reg[0]/C
+High Pulse Width  Fast    FDRE/C   n/a            0.500         5.000       4.500      SLICE_X12Y64  u_interfaz_axi_pwm/awaddr_reg_reg[0]/C
+
+
+
