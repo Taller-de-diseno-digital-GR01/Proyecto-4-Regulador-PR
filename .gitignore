@@ -58,3 +58,11 @@ project_4_PR/
 potencia/sim/lazo_cerrado_*.csv
 !src/sim_temporizada.tcl
 !docs/informe/evidencia/*.log
+
+# auxiliares de LaTeX y biber
+*.bbl
+*.bcf
+*.blg
+*.run.xml
+*.thm
+*.out

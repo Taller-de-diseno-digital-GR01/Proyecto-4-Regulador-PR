@@ -1,11 +1,12 @@
-function simular_conmutado(R, L, vdc, vdc_pr)
+function simular_conmutado(R, L, vdc, vdc_pr, factor_r)
   % lazo cerrado conmutado con puente H unipolar, tiempo muerto, muestra en el valle, orden aplicada en el valle siguiente y ADC cuantizado
   % se corre desde la raiz con octave --eval "addpath('potencia'); simular_conmutado" y acepta R, L y vdc medidos
   if nargin < 3, R = 9; L = 200e-6; vdc = 18; end
   if nargin < 4, vdc_pr = vdc; end % tension con que se normalizaron los coeficientes del firmware
+  if nargin < 5, factor_r = 4 / 3; end % cambio de R del ensayo de carga, el banco usó 14,3/11,8
   graphics_toolkit('gnuplot');
   casos = {'0,2 A', 0.2, 0.2, R, R; '0,5 A', 0.5, 0.5, R, R; '1,0 A', 1.0, 1.0, R, R; ...
-           '0,2 a 0,5 A', 0.2, 0.5, R, R; '0,5 a 1,0 A', 0.5, 1.0, R, R; 'R +33 %, 0,5 A', 0.5, 0.5, R, R * 4 / 3; ...
+           '0,2 a 0,5 A', 0.2, 0.5, R, R; '0,5 a 1,0 A', 0.5, 1.0, R, R; sprintf('R %+.0f %%, 0,5 A', 100 * (factor_r - 1)), 0.5, 0.5, R, R * factor_r; ...
            'esquina R -25 %, 1,0 A', 1.0, 1.0, 0.75 * R, 0.75 * R; 'esquina R +25 %, 1,0 A', 1.0, 1.0, 1.25 * R, 1.25 * R};
   fid = fopen('docs/informe/evidencia/modelo_conmutado.txt', 'w');
   fprintf(fid, 'R=%g ohm, L=%g uH, Vdc=%g V, 20 kHz, tiempo muerto 1 us, paso 0,5 us, ADC de 1,1118 mA por cuenta\n', R, L * 1e6, vdc);
