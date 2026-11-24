@@ -942,7 +942,7 @@ La trazabilidad todavía requiere reunir las herramientas y documentos en la ram
 
 [3] N. Mohan, T. M. Undeland y W. P. Robbins, *Power Electronics: Converters, Applications, and Design*, 3.ª ed., Wiley, 2003.
 
-[4] R. Teodorescu, F. Blaabjerg, M. Liserre y P. C. Loh, “Proportional-resonant controllers and filters for grid-connected voltage-source converters”, *IEE Proceedings—Electric Power Applications*, vol. 153, n.º 5, pp. 750–762, 2006. DOI: 10.1049/ip-epa:20060008.
+[4] R. Teodorescu, F. Blaabjerg, M. Liserre y P. C. Loh, “Proportional-resonant controllers and filters for grid-connected voltage-source converters”, *IEE Proceedings, Electric Power Applications*, vol. 153, n.º 5, pp. 750–762, 2006. DOI: 10.1049/ip-epa:20060008.
 
 [5] A. G. Yepes et al., “Effects of discretization methods on the performance of resonant controllers”, *IEEE Transactions on Power Electronics*, vol. 25, n.º 7, pp. 1692–1712, 2010.
 
