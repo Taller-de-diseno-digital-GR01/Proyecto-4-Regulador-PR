@@ -49,7 +49,7 @@ La frecuencia de conmutación es $f_{sw}=\SI{20}{kHz}$, y el lazo muestrea una v
 
 \subsection{Puente H y modulación}
 \label{sec:puente}
-El puente tiene dos piernas, cada una con un MOSFET alto y uno bajo (Fig.~\ref{fig:puente}). La carga ve $v_o=v_A-v_B$, con valores $+V_{dc}$, \num{0} y $-V_{dc}$. En la modulación unipolar las dos piernas se comparan contra la misma portadora triangular, la A contra $d$ y la B contra $-d$, de modo que el promedio sobre un período de conmutación es $\bar v_o=V_{dc}\,d$ mientras $|d|\le1$ \cite{mohan2003power}. Cada transistor conmuta a $f_{sw}$, pero la tensión sobre la carga pulsa a $2f_{sw}$, porque en cada semiciclo hay dos pulsos por período. Con el índice de modulación $m_a=V_{m,ref}/V_{m,portadora}\le1$, la fundamental de la tensión es $V_1\approx m_aV_{dc}$, y el primer armónico importante queda en $2f_{sw}$ (Fig.~\ref{fig:unipolar}).
+El puente tiene dos piernas, cada una con un MOSFET alto y uno bajo (Fig.~\ref{fig:puente}). La carga ve $v_o=v_A-v_B$, con valores $+V_{dc}$, \num{0} y $-V_{dc}$. En la modulación unipolar las dos piernas se comparan contra la misma portadora triangular, la A contra $d$ y la B contra $-d$, de modo que el promedio sobre un período de conmutación es $\bar v_o=V_{dc}\,d$ mientras $|d|\le1$ \cite[sec.~8-3-2]{mohan2003power}, \cite[sec.~8.10]{hart2011}. Cada transistor conmuta a $f_{sw}$, pero la tensión sobre la carga pulsa a $2f_{sw}$, porque en cada semiciclo hay dos pulsos por período. Con el índice de modulación $m_a=V_{m,ref}/V_{m,portadora}\le1$, la fundamental de la tensión es $V_1\approx m_aV_{dc}$, y el primer armónico importante queda en $2f_{sw}$ (Fig.~\ref{fig:unipolar}).
 
 \begin{figure}[!ht]
 	\centering
@@ -275,7 +275,7 @@ Durante un pulso de $+V_{dc}$ la bobina ve $V_{dc}(1-d)$, y el pulso dura $d/(2f
 	\Delta i_{max}=\frac{V_{dc}}{8Lf_{sw}}.
 	\label{eq:rizado}
 \end{equation}
-La fórmula es una derivación propia, y la duplicación efectiva de la frecuencia es la que traen los libros \cite{mohan2003power,hart2011}. Con $\tau=\SI{20.8}{\micro s}$, del orden de los \SI{25}{\micro s} entre pulsos, la corriente no sube en rampa y la fórmula lineal sobrestima un poco. La Fig.~\ref{fig:rizado} muestra el rizado en el pico de la senoidal con la solución exponencial exacta, y la Tabla~\ref{tab:conmutado} lo da con el modelo conmutado completo.
+La fórmula es una derivación propia, y la duplicación efectiva de la frecuencia es la que traen los libros \cite[sec.~8-3-2]{mohan2003power}, \cite[sec.~8.11]{hart2011}. Con $\tau=\SI{20.8}{\micro s}$, del orden de los \SI{25}{\micro s} entre pulsos, la corriente no sube en rampa y la fórmula lineal sobrestima un poco. La Fig.~\ref{fig:rizado} muestra el rizado en el pico de la senoidal con la solución exponencial exacta, y la Tabla~\ref{tab:conmutado} lo da con el modelo conmutado completo.
 
 \begin{figure}[!ht]
 	\centering
@@ -292,7 +292,7 @@ Con esta carga piso y techo se cruzan, y no hay frecuencia del núcleo que cumpl
 
 \subsection{Efecto del tiempo muerto y de $R_{DS(on)}$}
 \label{sec:tm_modelo}
-Durante el tiempo muerto la corriente de la bobina circula por un diodo de cuerpo, y el valor de la pierna lo fija el signo de la corriente y no el PWM. La tensión promedio pierde $\Delta v=2V_{dc}T_Mf_{sw}$ en el sentido de la corriente, \SI{0.50}{V} con \SI{12.5}{V} y \SI{0.72}{V} con \SI{18}{V}, una onda cuadrada en fase con ella cuya fundamental vale $4\Delta v/\pi$, \SI{0.64}{V} y \SI{0.92}{V} \cite{mohan2003power}. Además, en cualquier estado conducen dos MOSFET en serie con la carga, que suman hasta \SI{0.4}{\ohm} a $R$. Con ambos efectos, el índice que pide una corriente $I$ es aproximadamente $d=(|Z'|I+4\Delta v/\pi)/V_{dc}$, con $Z'$ la impedancia con los \SI{0.4}{\ohm}, y la corriente en lazo abierto resulta menor que la pedida (Tabla~\ref{tab:lazo_abierto}). La pérdida es casi una tensión fija, y pesa más cuanto menos tensión pide la referencia.
+Durante el tiempo muerto la corriente de la bobina circula por un diodo de cuerpo, y el valor de la pierna lo fija el signo de la corriente y no el PWM. La tensión promedio pierde $\Delta v=2V_{dc}T_Mf_{sw}$ en el sentido de la corriente, \SI{0.50}{V} con \SI{12.5}{V} y \SI{0.72}{V} con \SI{18}{V}, una onda cuadrada en fase con ella cuya fundamental vale $4\Delta v/\pi$, \SI{0.64}{V} y \SI{0.92}{V} \cite[sec.~8-5]{mohan2003power}. Además, en cualquier estado conducen dos MOSFET en serie con la carga, que suman hasta \SI{0.4}{\ohm} a $R$. Con ambos efectos, el índice que pide una corriente $I$ es aproximadamente $d=(|Z'|I+4\Delta v/\pi)/V_{dc}$, con $Z'$ la impedancia con los \SI{0.4}{\ohm}, y la corriente en lazo abierto resulta menor que la pedida (Tabla~\ref{tab:lazo_abierto}). La pérdida es casi una tensión fija, y pesa más cuanto menos tensión pide la referencia.
 
 \begin{table}[!ht]
 	\centering
