@@ -473,6 +473,9 @@ La ganancia del sensor se comprueba contra una medición independiente, la tensi
 	\item Desconexión ante falla, con una compuerta y el LED de falla en la misma captura.
 \end{enumerate}
 
+\subsection{Qué se ejecutó}
+Este plan se ejecutó en parte el 23 y 24 de noviembre y no se repite. Se hicieron la verificación de compuertas con captura en la pierna B, la medición de la resistencia y de uno de los dos inductores, el cero con \SI{0}{A}, la comparación de ganancia contra el osciloscopio (sin el mismo minuto), el régimen a \num{0.2}, \num{0.5} y \SI{1.0}{A} (este último sin alcanzarse), el cambio de \num{0.5} a \SI{0.2}{A} y el cambio de carga a \SI{1.0}{A}. No se ejecutaron con registro los cambios de \num{0.2} a \num{0.5} y de \num{0.5} a \SI{1.0}{A}, el cambio de resistencia a \SI{0.5}{A}, la captura de la pierna A, la medición del jitter de la rutina ni la desconexión ante falla. El informe técnico dice qué consecuencia tiene cada uno para los criterios del enunciado.
+
 \subsection{Montaje y adquisición}
 \label{sec:montaje}
 Cada ensayo se registra por dos caminos. El controlador exporta por la UART a \num{115200} baudios un histórico de \num{2048} muestras, una por período de portadora, con la referencia, la corriente medida, el índice y las banderas de saturación y falla. El osciloscopio captura la tensión sobre las resistencias externas, que es la corriente física por \SI{9.6}{\ohm}, en dos ventanas, una de al menos cinco períodos de \SI{50}{Hz} para la fundamental y otra de unos pocos períodos de conmutación, cerca del pico de la corriente, para el rizado. En otra captura se toma la tensión entre las salidas de las dos piernas, que es la tensión aplicada a la carga y la evidencia del PWM unipolar. El período y el jitter de la rutina de control se miden con un pin de depuración que sube al entrar a la rutina y baja al salir.
