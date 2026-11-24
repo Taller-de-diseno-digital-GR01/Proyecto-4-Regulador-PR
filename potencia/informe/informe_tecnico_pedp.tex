@@ -1,0 +1,247 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Informe técnico y análisis de resultados del Proyecto 4, EL-4201 Procesamiento Electrónico de Potencia
+% Compilar con make. Los datos que todavía no existen van con \pendiente{...}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass[journal]{IEEEtran}
+\input{preambulo}
+
+\begin{document}
+\deactivatequoting
+\title{Informe técnico del control de corriente de un inversor monofásico en puente H con regulador PR discreto}
+
+\author{Jefferson~Chinchilla~Q.,~\IEEEmembership{Estudiante,~ITCR,}
+	Nicolás~Mena~V.,~\IEEEmembership{Estudiante,~ITCR,}
+	y~Mattio~Coghi~Q.,~\IEEEmembership{Estudiante,~ITCR}
+}
+
+\markboth{Procesamiento Electrónico de Potencia, IIS2026}%
+{Proyecto 4: control de corriente con regulador PR}
+
+\maketitle
+
+\begin{abstract}
+	\pendiente{resumen con los resultados medidos}
+\end{abstract}
+
+
+\begin{IEEEkeywords}
+	Controlador proporcional-resonante, inversor en puente H, modulación unipolar, tiempo muerto.
+\end{IEEEkeywords}
+
+\section{Introducción}
+\label{sec:intro}
+\IEEEPARstart{E}{ste} informe reúne los resultados experimentales del componente de potencia del Proyecto 4, un inversor monofásico en puente H con carga $R$--$L$ y un regulador proporcional-resonante discreto que corre en un MicroBlaze V sobre una Basys~3. Se presentan los parámetros medidos del montaje, el método de adquisición y de procesamiento, los registros de los ensayos, el error de amplitud y el desfase de la fundamental, el rizado de conmutación y la comparación con el análisis y con las simulaciones. El dimensionamiento, el modelo de la planta y el diseño del regulador están en el documento de diseño, y aquí se citan solo los valores que hacen falta para comparar.
+
+Los criterios que debe cumplir el sistema son un error relativo de amplitud de la fundamental menor a \SI{10}{\percent} en una ventana de al menos cinco períodos de \SI{50}{Hz} para referencias de \num{0.2}, \num{0.5} y \SI{1.0}{A} pico, y un rizado de conmutación menor a \SI{0.20}{A} pico a pico. Además se evalúan los cambios de referencia de \num{0.2} a \num{0.5} y de \num{0.5} a \SI{1.0}{A}, y un cambio de la resistencia de al menos \SI{25}{\percent} con \SI{0.5}{A}.
+
+\section{Parámetros medidos del montaje}
+\label{sec:caract}
+Antes de los ensayos con el regulador se miden los parámetros que el diseño supone. Los valores esperados son los nominales del documento de diseño, y las medidas se completan en el banco.
+
+\begin{table}[!ht]
+	\centering
+	\caption{Caracterización previa a los ensayos.}
+	\label{tab:caract}
+	\begin{tabular}{lcc}
+		\toprule
+		Magnitud & Nominal & Medido \\
+		\midrule
+		$L$ del transformador & \SI{30}{mH} & \SI{30}{mH} \\
+		$R$ total de la carga & \SI{12}{\ohm} & \SI{12.5}{\ohm} \\
+		$R$ del devanado & --- & \pendiente{medir} \\
+		$L$ a \SI{1.0}{A} (saturación) & \SI{30}{mH} & \pendiente{medir} \\
+		Tiempo muerto en las compuertas & \SI{1.00}{\micro s} & \SI{1}{\micro s} (16/11, potencia apagada) \\
+		Retardo de la cadena de compuertas & \num{0.1} a \SI{0.91}{\micro s} & \pendiente{medir} \\
+		Offset del sensor a \SI{0}{A} & \num{2048} cuentas & \num{2048} cuentas (adoptado) \\
+		Ganancia del sensor y acondicionador & \SI{0.24}{V/A} o \SI{0.12}{V/A} & \SI{0.2196}{V/A} \\
+		Ruido del sensor & \SI{25}{mV} pico a pico & \pendiente{medir} \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+\section{Montaje y adquisición}
+\label{sec:montaje}
+Cada ensayo se registra por dos caminos al mismo tiempo. El osciloscopio captura la corriente de la carga, la tensión sobre la carga y las compuertas, con una ventana local de unos pocos períodos de conmutación para el rizado y otra de al menos cinco períodos de \SI{50}{Hz} para la fundamental \pendiente{muestreo y ventana de cada captura}. La corriente se mide con una sonda o un resistor de bajo valor \pendiente{método de medición de la corriente y su escala}. El histórico del controlador se toma por la UART a \num{115200} baudios, una trama de \num{12310} bytes que tarda \SI{1.07}{s}, con un registro por período de portadora, es decir a \SI{20}{kS/s}. Las compuertas y el pin de depuración de la rutina periódica se miran con un analizador lógico de \SI{24}{MHz} o más, que resuelve el tiempo muerto con unos $\pm\SI{40}{ns}$, y con el osciloscopio para el valor final.
+
+Las dos fuentes de datos miden la corriente por caminos distintos, el sensor y el acondicionador de la placa por un lado y la sonda por el otro, y por eso se comparan. Una diferencia sistemática entre ambas apunta a la ganancia del sensor o al offset, y se corrige antes de aceptar un error de la fundamental. Los archivos de cada captura se nombran por ensayo y punto de operación, con una tabla de ventana, muestreo y escala \pendiente{tabla de archivos de captura}.
+
+\section{Procesamiento y resultados}
+\label{sec:resultados}
+\subsection{Procesamiento}
+\label{sec:proc}
+La corriente se muestrea una vez por período de portadora, en el valle, así que el histórico de la ejecución no contiene el rizado de conmutación. El histórico se exporta por la UART de la placa a la PC, sin afectar el lazo. Ahí se ajusta por mínimos cuadrados una senoidal de \SI{50}{Hz} más un término constante sobre períodos enteros, y se obtienen la amplitud y el desfase de la fundamental de la corriente y de la referencia. El error de amplitud es $(|I_1|-|R_1|)/|R_1|$ sobre al menos cinco períodos. Ese error se calcula con los registros del controlador, que ven la corriente a través del sensor, y se contrasta con el osciloscopio. El rizado se mide aparte, con el osciloscopio, en una ventana local de unos pocos períodos de conmutación, restando a la corriente su promedio por período, el mismo procedimiento que se usó en el modelo conmutado. Las dos cantidades se informan por separado, y se distinguen valores pico y RMS en cada figura.
+
+\subsection{Resultados}
+\label{sec:res}
+Solo la prueba de compuertas con la potencia apagada estaba hecha al cierre de este documento. Las mediciones energizadas se dejan con la predicción del documento de diseño y la celda de medición marcada, para completar sin reescribir el análisis. Ninguna cifra de la columna de medición se estimó a partir de la simulación.
+
+\subsubsection{Prueba de compuertas con la potencia apagada}
+\label{sec:res_compuertas}
+La prueba la hizo Jefferson el 16 de noviembre, con solo los \SI{15}{V} del lado del puente (límite de \SI{50}{mA}), $V_{dc}$ apagado y la carga suelta. La Basys~3 corría el bitstream y el programa de control del 9 de noviembre. Como el JXADC estaba al aire la falla quedó enclavada, y \texttt{enable}, \texttt{duty\_ref} y \texttt{freq\_sel} se escribieron a mano por XSDB. Las compuertas de los IRF520N se midieron con el DSO-X 2002A contra la tierra de potencia.
+
+\begin{itemize}
+	\item El tiempo muerto es de \SI{1}{\micro s} en los cuatro flancos, medido entre los cruces de \SI{2}{V}, a \num{10}, \num{20} y \SI{40}{kHz}. Con la fuente de \SI{15}{V} cayendo a unos \SI{11}{V} salieron \SI{440}{ns} en un flanco y \SI{1.2}{\micro s} en el otro, así que el tiempo muerto depende de que la alimentación de los drivers esté firme. Con \SI{15}{V} estables los cuatro quedan en \SI{1}{\micro s}.
+	\item Los \SI{15}{V} consumen \SI{10}{mA} con el puente conmutando a \SI{20}{kHz}, y las cuatro compuertas llegan a \SI{15}{V}.
+	\item La precarga dura unos \SI{70}{\micro s} con las dos bajas encendidas y las altas apagadas, y el primer pulso del alto sale completo. Al terminar, el bajo hace un hueco de \SI{1}{\micro s} y vuelve a encender, que es el paso por el estado de tiempo muerto del núcleo.
+	\item Al apagar, las cuatro compuertas quedan en \SI{0}{V} en el valle, pero el último pulso del alto sale a la mitad, unos \SI{20}{\micro s} en vez de \SI{36.5}{\micro s} en la pierna A. Es consecuencia del diseño, porque el alto está centrado en el valle y el núcleo apaga ahí. El criterio de la lista de pruebas que pedía que el último pulso no saliera recortado no se puede cumplir así, y hay que corregirlo.
+	\item Con \texttt{duty\_ref} en \texttt{0x7FFF} el alto de A queda cerca del \SI{98}{\percent} con el hueco de \SI{1}{\micro s} en cada pico, el bajo de A nunca enciende y la pierna B hace lo contrario. El registro se lee de vuelta como \texttt{0x7FFF}.
+	\item Con \num{10} y \SI{40}{kHz} el PWM funciona, y el código \num{11} de \texttt{freq\_sel} queda igual que \SI{20}{kHz}.
+\end{itemize}
+
+El \SI{1}{\micro s} medido coincide con el que usa \texttt{verificar\_pr.m}. Con $V_{dc}$ aplicado se espera que quede algo menos por la meseta de Miller, y eso se mide con el escalón en el nodo de la carga al energizar. Quedaron sin medir la tensión del bus con $V_{dc}$ apagado, porque en la precarga el gate alto contra tierra subió a unos \SI{20}{V}, lo que apunta a un bus de \num{5} o \SI{6}{V} \pendiente{medir la tensión del bus con $V_{dc}$ apagado}, el tiempo de almacenamiento del PN2222A \pendiente{medir $t_s$ del PN2222A}, el riel de \SI{3.3}{V} del Pmod \pendiente{medir el riel de 3,3 V} y el estado de las compuertas mientras se configura la FPGA \pendiente{medir las compuertas durante la configuración}.
+
+\begin{table}[!ht]
+	\centering
+	\caption{Compuertas y lazo, predicción contra medición.}
+	\label{tab:med_compuertas}
+	\begin{tabular}{lcc}
+		\toprule
+		Magnitud & Esperado & Medido \\
+		\midrule
+		Período de la compuerta & \SI{50.0}{\micro s} & \pendiente{medir} \\
+		Tiempo muerto, 2 piernas, 2 flancos & \SI{1.00}{\micro s} & \SI{1}{\micro s} \\
+		Conducción simultánea & ninguna & \pendiente{medir} \\
+		Período de la rutina & \SI{50.0}{\micro s} & \pendiente{medir} \\
+		Jitter pico a pico & --- & \pendiente{medir} \\
+		Duración de la rutina & --- & \pendiente{medir} \\
+		Retardo efectivo del lazo & \SI{75}{\micro s} más $\tau_F$ & \pendiente{medir} \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+\begin{table}[!ht]
+	\centering
+	\caption{Lazo abierto con \SI{18}{V}, predicción contra medición.}
+	\label{tab:med_abierto}
+	\begin{tabular}{ccccc}
+		\toprule
+		Pedida (A) & Pred. (A) & Medida (A) & Pred. (°) & Medido (°) \\
+		\midrule
+		\num{0.2} & \num{0.146} & \pendiente{medir} & $-26.8$ & \pendiente{medir} \\
+		\num{0.5} & \num{0.442} & \pendiente{medir} & $-33.1$ & \pendiente{medir} \\
+		\num{1.0} & \num{0.932} & \pendiente{medir} & $-35.2$ & \pendiente{medir} \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+\begin{table}[!ht]
+	\centering
+	\caption{Seguimiento nominal. Criterios, error menor a \SI{10}{\percent} y rizado menor a \SI{0.20}{A} pico a pico.}
+	\label{tab:med_nominal}
+	\begin{tabular}{cccccc}
+		\toprule
+		Ref. (A) & Solo P pred. (\%) & Solo P med. & Error PR (\%) & Desfase (°) & Rizado (A) \\
+		\midrule
+		\num{0.2} & \num{9.2} & \pendiente{medir} & \pendiente{medir} & \pendiente{medir} & \pendiente{medir} \\
+		\num{0.5} & \num{7.4} & \pendiente{medir} & \pendiente{medir} & \pendiente{medir} & \pendiente{medir} \\
+		\num{1.0} & \num{6.8} & \pendiente{medir} & \pendiente{medir} & \pendiente{medir} & \pendiente{medir} \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+\begin{table}[!ht]
+	\centering
+	\caption{Cambios de consigna y de carga, error de la fundamental por período en porcentaje.}
+	\label{tab:med_cambios}
+	\begin{tabular}{lcccc}
+		\toprule
+		Cambio & Período & Sim. & Medido & Saturó \\
+		\midrule
+		\num{0.2} a \SI{0.5}{A} & 2 & \num{4.5} & \pendiente{medir} & \pendiente{medir} \\
+		\num{0.5} a \SI{1.0}{A} & 2 & \num{4.4} & \pendiente{medir} & \pendiente{medir} \\
+		$R$ \SI{+25}{\percent}, \SI{0.5}{A} & 2 & \num{1.2} & \pendiente{medir} & \pendiente{medir} \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+Quedan además \pendiente{temperatura de los MOSFET, de la carga y de la fuente tras unos minutos a 1,0 A} y \pendiente{falla con carga, sobrecorriente real sobre 1,3 A con el PR corriendo}. Los registros crudos y el comando de procesamiento de cada ensayo van al repositorio como evidencia.
+
+\section{Simulación en PLECS}
+\label{sec:plecs_res}
+El modelo conmutado del documento de diseño se corre con los valores medidos de la Sección~\ref{sec:caract}, con el regulador, la saturación y el instante de muestreo del firmware, en los mismos puntos de los ensayos. \pendiente{lazo cerrado en PLECS con R, L y Vdc medidos, en los tres puntos nominales, los dos cambios de amplitud y el cambio de R}
+
+\section{Comparación entre teoría, simulación y experimento}
+\label{sec:comparacion}
+La Tabla~\ref{tab:cmp} pone en una sola fila cada magnitud con su valor de análisis, de simulación y medido. El análisis son las ecuaciones de las secciones de modelo y de diseño con los parámetros nominales, la simulación es Octave con el lazo promedio o el modelo conmutado, y el error se calcula contra la medición cuando exista. Las celdas de medición y las de simulación con la carga vigente que no se han corrido están marcadas.
+
+\begin{table*}[!t]
+	\centering
+	\caption{Comparación por magnitud. Error es (medido $-$ predicho)/predicho.}
+	\label{tab:cmp}
+	\begin{tabular}{lcccc}
+		\toprule
+		Magnitud & Análisis & Simulación & Medición & Error (\%) \\
+		\midrule
+		Corriente en lazo abierto, \SI{0.2}{A} & \SI{0.146}{A} & \pendiente{PLECS, carga vigente} & \pendiente{medir} & \pendiente{calcular} \\
+		Corriente en lazo abierto, \SI{0.5}{A} & \SI{0.442}{A} & \pendiente{PLECS, carga vigente} & \pendiente{medir} & \pendiente{calcular} \\
+		Corriente en lazo abierto, \SI{1.0}{A} & \SI{0.932}{A} & \pendiente{PLECS, carga vigente} & \pendiente{medir} & \pendiente{calcular} \\
+		Rizado máximo, \SI{18}{V} & \SI{3.75}{mA} & \pendiente{PLECS, carga vigente} & \pendiente{medir} & \pendiente{calcular} \\
+		Margen de fase nominal & \ang{66.5} & \ang{66.5} (Octave) & \pendiente{inferir del retardo medido} & --- \\
+		Error de la fundamental, solo P, \SI{0.2}{A} & \SI{8.4}{\percent} & \SI{8.4}{\percent} (Octave) & \pendiente{medir} & \pendiente{calcular} \\
+		Error de la fundamental, PR, período 2 & --- & \num{4.5}, \num{4.4} y \SI{1.2}{\percent} (Octave) & \pendiente{medir} & \pendiente{calcular} \\
+		Error por captura de la muestra & --- & $\le$ \SI{0.20}{\percent} (Octave) & \pendiente{medir} & --- \\
+		Tiempo muerto & \SI{1.00}{\micro s} & \SI{1.00}{\micro s} (RTL) & \SI{1}{\micro s} & \num{0} \\
+		Período de la rutina de control & \SI{50}{\micro s} & \SI{50}{\micro s} (RTL) & \pendiente{medir} & \pendiente{calcular} \\
+		\bottomrule
+	\end{tabular}
+\end{table*}
+
+Con lo que existe hoy, la comparación solo está completa entre el análisis y el modelo conmutado, y con la carga anterior. En esa carga el análisis acierta la amplitud con \SI{2}{\percent} de diferencia, y el desfase con la onda cuadrada no, por el tramo de corriente nula alrededor del cruce que se explica en el documento de diseño. Con \num{0.5} y \SI{1.0}{A} el modelo conmutado da \SI{0.393}{A} y \SI{0.874}{A}, ambos con unos \ang{3.4}, y coinciden con la predicción con tiempo muerto y $R_{DS(on)}$ de esa carga. El rizado en lazo abierto da \num{0.0149}, \num{0.0408} y \SI{0.0563}{A} pico a pico, iguales a la fórmula evaluada en el $d$ que llega a la carga.
+
+\section{Discusión}
+\label{sec:discusion}
+\subsection{Efecto del cambio de carga}
+La carga cambió de \SI{10}{\ohm} y \SI{2}{mH} a \SI{12}{\ohm} y \SI{30}{mH} cuando el diseño del regulador ya estaba hecho, y el cambio toca casi todo. $K_p$ subió casi doce veces, el margen de fase nominal bajó de \ang{99.8} a \ang{66.5}, el límite de retardo adicional pasó de unos \SI{153}{\micro s} a \SI{60}{\micro s}, y el escalón de amplitud empezó a saturar. El rizado, en cambio, pasó a ser irrelevante, y el aliasing del rizado también. Un parámetro de potencia que parecía solo una cuenta terminó tocando el filtro del sensor, la rampa de la referencia y el umbral de falla.
+
+\subsection{Saturación y rampa}
+La sintonización cumple en el lazo promedio y falla cuando entra la saturación, y la segunda no se vio hasta simular con el recorte y el anti-windup del código real. La primera estimación de la rampa, hecha en Octave, medía el error contra la referencia ya rampeada y no contra la amplitud pedida, lo que escondía el problema. Al repetir la medición con el código real, \num{200} muestras fallaban. Una rampa más lenta tampoco mejora de forma monótona, porque la corriente pasa demasiado tiempo en una amplitud intermedia, y hay un mínimo ancho alrededor de un período completo.
+
+\subsection{Diferencias entre predicción y práctica}
+Sobre las diferencias esperables entre predicción y práctica, la mayor es la ganancia del sensor. El software usa \SI{0.3}{V/A} y el diseño del acondicionador da otro valor, y un error de ganancia cambia por igual la amplitud medida y la que el lazo cree que tiene. Si el sensor lee distinto de la sonda, el lazo converge al valor equivocado con error de fundamental pequeño según el histórico y grande según el osciloscopio. Por eso la calibración contra la sonda va antes del ensayo con el PR. Otras fuentes de diferencia son el retardo real del lazo contra el modelo de \SI{75}{\micro s}, la saturación del transformador a \SI{1.0}{A}, que baja $L$ y mueve las esquinas, y el valor real del tiempo muerto, que escala la pérdida de \SI{0.72}{V} en proporción.
+
+\subsection{Limitaciones del modelo}
+Las limitaciones del modelo son varias. El lazo promedio no tiene rizado, cuantización ni ruido. El modelo conmutado se validó con la carga anterior. Los márgenes de esquina cubren \SI{\pm30}{\percent} de $L$ y \SI{\pm25}{\percent} de $R$ pero no la saturación. Y las armónicas impares de la onda cuadrada del tiempo muerto (tercera, quinta) no las corrige el resonante, que solo actúa en \SI{50}{Hz}, y se ven como una deformación de la corriente en los cruces por cero, sin afectar la fundamental.
+
+\subsection{Mejoras al procedimiento}
+Medir $L$ con la corriente de trabajo, para ver la saturación del transformador. Calibrar el sensor contra la sonda antes de cualquier ensayo con el PR, y registrar la ganancia y el offset con que se corrió cada uno. Medir el retardo efectivo del lazo antes de fijar el filtro del sensor, porque con el margen de ganancia actual no sobra para un filtro lento. Repetir la validación del modelo conmutado con la carga vigente, y agregar a la simulación el ruido del sensor y la cuantización del ADC. Y, a futuro, un apagado por hardware a partir de una comparación de corriente cubriría el caso del cortocircuito en la carga, que hoy no está cubierto para los MOSFET.
+
+\section{Conclusiones}
+\label{sec:conclusiones}
+El diseño cumple, en simulación, los criterios del enunciado para la fundamental, con un error entre \num{5.3} y \SI{2.9}{\percent} en los cinco períodos tras un escalón y \ang{66.5} de margen de fase, y con un rizado de \SI{3.75}{mA} muy bajo el límite. En el banco, con la potencia apagada, el tiempo muerto medido en las compuertas es de \SI{1}{\micro s}, igual al del diseño. La conclusión sobre el error de la corriente queda abierta hasta completar las mediciones de la Sección~\ref{sec:resultados}.
+
+Quedan para cerrar el trabajo las mediciones de la Sección~\ref{sec:resultados}, la repetición de la validación en PLECS con la carga vigente y la medición de $L$, $R$ y de la ganancia del sensor. De esas, la ganancia del sensor es la que más condiciona la lectura de todo lo demás.
+
+\appendix
+\section{Archivos para reproducir los resultados}
+\label{app:archivos}
+Todas las rutas son relativas a la raíz del repositorio.
+
+\begin{itemize}
+	\item \texttt{potencia/diseno\_pr.md}, \texttt{potencia/diseno\_puente\_h.md} y \texttt{potencia/docs/modelo\_planta.md}, con el diseño del regulador, del puente y de la planta.
+	\item \texttt{potencia/verificar\_pr.m} y \texttt{potencia/aliasing\_pr.m}, los cálculos y simulaciones del lazo en Octave.
+	\item \texttt{potencia/informe/figuras\_informe.m}, que genera las figuras de este informe.
+	\item \texttt{sw/generar\_pr\_params.m}, que escribe los coeficientes en \texttt{sw/pr\_params.h}.
+	\item \texttt{potencia/sim/}, el modelo conmutado en PLECS y su archivo de parámetros.
+	\item \texttt{sw/receptor\_pc.py}, el procesamiento de los registros exportados.
+\end{itemize}
+
+\printbibliography
+
+\begin{IEEEbiography}[{\includegraphics[width=1in,height=1.25in,clip,keepaspectratio]{jch_BN}}]{Jefferson Chinchilla-Quesada}
+	Estudiante de Ingeniería Electrónica, Instituto Tecnológico de Costa Rica.
+	Correo, jechinchilla@estudiantec.cr
+\end{IEEEbiography}
+
+\begin{IEEEbiography}[{\includegraphics[width=1in,height=1.25in,clip,keepaspectratio]{nmv_bn}}]{Nicolás Mena-Valerio}
+	Estudiante de Ingeniería Electrónica, Instituto Tecnológico de Costa Rica, desde 2022.
+	Correo, nimena@estudiantec.cr
+\end{IEEEbiography}
+
+\begin{IEEEbiography}[{\includegraphics[width=1in,height=1.25in,clip,keepaspectratio]{mcq_bn}}]{Mattio Coghi-Quirós}
+	Estudiante de Ingeniería Electrónica, Instituto Tecnológico de Costa Rica.
+	Correo, mcoghi@estudiantec.cr
+\end{IEEEbiography}
+
+\vfill
+\end{document}

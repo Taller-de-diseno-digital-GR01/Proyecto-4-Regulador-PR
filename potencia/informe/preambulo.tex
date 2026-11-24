@@ -1,0 +1,18 @@
+% Preámbulo común del documento de diseño y del informe técnico de PEDP
+\usepackage{instructivo}
+\renewcommand{\IEEEkeywordsname}{Palabras clave}
+\usepackage[american,siunitx]{circuitikz}
+
+\sisetup{per-mode=symbol, group-digits=integer, output-decimal-marker={,}}
+\graphicspath{{./}{./fig/}}
+
+\usepackage{amsmath}
+\usepackage{float}
+\usepackage[natbib=true,style=trad-unsrt,backend=biber]{biblatex}
+\addbibresource{literatura.bib}
+\renewcommand*{\bibfont}{\footnotesize}
+
+% Marcador visible para datos que todavía no existen, nunca se llena con un valor calculado
+\newcommand{\pendiente}[1]{\textcolor{red}{\textbf{[#1]}}}
+
+\hyphenation{op-tical net-works semi-conduc-tor}
