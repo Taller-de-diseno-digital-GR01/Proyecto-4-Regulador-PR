@@ -203,32 +203,56 @@ Con la carga montada se corrió en lazo abierto, con \SI{12}{V}, $R=\SI{9.6}{\oh
 	\end{tabular}
 \end{table}
 
+Para el lazo cerrado se agregó al mismo modelo el regulador del firmware en un bloque C-Script (\texttt{potencia/sim/lazo\_cerrado.plecs}). El bloque muestrea la corriente en cada valle, aplica los coeficientes de \texttt{sw/pr\_params.h} con la saturación en $\pm\num{0.92}$ y el mismo anti-windup del firmware, y entrega el índice al modulador una muestra después, igual que el periférico, que lo carga en el valle siguiente. La carga es la medida en banco, \SI{11.8}{\ohm} y \SI{200}{\micro H}, y el sensor se toma ideal, sin filtro ni error de ganancia. Los ensayos se corren con \texttt{potencia/sim/lazo\_cerrado.py}, que ajusta la fundamental en los últimos cinco períodos de \SI{0.2}{s} simulados (Tabla~\ref{tab:plecs_cerrado}).
+
+Con un sensor perfecto, la corriente física queda entre \num{6} y \SI{10}{\percent} sobre la referencia, porque el regulador lleva a la referencia la muestra del valle y no el promedio del período. A \SI{1.0}{A} con \SI{12.5}{V} la acción satura, y la corriente queda \SI{8.9}{\percent} por debajo, con \ang{11.5} de desfase. Con \SI{18}{V} el mismo punto no satura, con un índice máximo de \num{0.78}, y tampoco satura con los \SI{2.5}{\ohm} añadidos, donde llega a \num{0.91}. El rizado simulado va de \num{0.28} a \SI{0.56}{A} pico a pico.
+
+\begin{table}[!ht]
+	\centering
+	\caption{Lazo cerrado en PLECS con el PR del firmware, $L=\SI{200}{\micro H}$ y sensor ideal. $|I_1|$ es la amplitud pico de la fundamental de la corriente física.}
+	\label{tab:plecs_cerrado}
+	\resizebox{\columnwidth}{!}{%
+	\begin{tabular}{cccccccc}
+		\toprule
+		$I_{ref}$ (A) & $V_{dc}$ (V) & $R$ (\si{\ohm}) & $|I_1|$ (A) & Error (\%) & Desfase & $|m|_{max}$ & Rizado (A pp) \\
+		\midrule
+		\num{0.2} & \num{12.5} & \num{11.8} & \num{0.2192} & $+9.59$ & \ang{0.20} & \num{0.262} & \num{0.280} \\
+		\num{0.5} & \num{12.5} & \num{11.8} & \num{0.5388} & $+7.75$ & \ang{0.19} & \num{0.573} & \num{0.384} \\
+		\num{1.0} & \num{12.5} & \num{11.8} & \num{0.9113} & $-8.87$ & \ang{11.50} & \num{0.920} & \num{0.396} \\
+		\num{1.0} & \num{18} & \num{11.8} & \num{1.0593} & $+5.93$ & \ang{0.17} & \num{0.776} & \num{0.560} \\
+		\num{0.5} & \num{12.5} & \num{14.3} & \num{0.5485} & $+9.71$ & \ang{0.20} & \num{0.691} & \num{0.381} \\
+		\num{1.0} & \num{18} & \num{14.3} & \num{1.0604} & $+6.04$ & \ang{0.16} & \num{0.913} & \num{0.555} \\
+		\bottomrule
+	\end{tabular}}
+\end{table}
+
 
 \section{Comparación entre teoría, simulación y experimento}
 \label{sec:comparacion}
-La Tabla~\ref{tab:cmp} pone en una fila cada magnitud con su valor de análisis, de simulación y medido. El análisis son las ecuaciones del documento de diseño con \SI{9.6}{\ohm}, \SI{200}{\micro H} y \SI{12}{V}, y la simulación es el modelo conmutado de Octave con las mismas condiciones.
+La Tabla~\ref{tab:cmp} pone en una fila cada magnitud con su valor de análisis, de simulación y medido. El análisis son las ecuaciones del documento de diseño con \SI{9.6}{\ohm}, \SI{200}{\micro H} y \SI{12}{V}, y la simulación es el modelo conmutado de Octave con las mismas condiciones y el lazo cerrado de PLECS con la carga de \SI{11.8}{\ohm} medida.
 
 \begin{table*}[!t]
 	\centering
 	\caption{Comparación por magnitud con \SI{12.5}{V}, salvo donde se indica.}
 	\label{tab:cmp}
-	\begin{tabular}{lccc}
+	\resizebox{\textwidth}{!}{%
+	\begin{tabular}{lcccc}
 		\toprule
-		Magnitud & Análisis & Simulación conmutada & Medición \\
+		Magnitud & Análisis & Simulación conmutada & PLECS lazo cerrado & Medición \\
 		\midrule
-		Error según el sensor, 0,2 / 0,5 A & \SI{0}{\percent} (resonante ideal) & \SI{0.00}{\percent} & \num{0.39} / \SI{0.19}{\percent} \\
-		Error de la corriente física, 0,2 / 0,5 A & sesgo del valle, \SI{6.0}{\percent} a \SI{0.2}{A} & \num{3.47} / \SI{2.83}{\percent} & \num{14.6} / \SI{18.7}{\percent} (osciloscopio) \\
-		Saturación a \SI{1.0}{A}, $R$ de \SI{11.8}{\ohm} & satura sobre \SI{11}{\ohm} & satura con \SI{12}{\ohm}, \SI{9.1}{\percent} & satura, \SI{34.9}{\percent} \\
-		Saturación a \SI{1.0}{A}, \SI{18}{V} & no satura & no satura con \SI{9}{\ohm}, \SI{1.95}{\percent} & satura, \SI{11.8}{\percent} \\
-		Error con $R$ \SI{+26}{\percent}, \SI{0.5}{A}, sensor & \SI{0}{\percent} & \SI{0.00}{\percent} & \SI{0.14}{\percent} \\
-		Rizado, 0,2 / 0,5 / 1,0 A (A pp) & \num{0.198} / \num{0.350} / \num{0.364} & \num{0.258} / \num{0.388} / \num{0.395} & \num{0.25} a \num{0.66}, \num{0.35} en banco \\
-		Tiempo muerto & \SI{1.00}{\micro s} & \SI{1.00}{\micro s} (RTL) & B \SI{1.00}{\micro s}, A \SI{1.23}{\micro s} y \SI{430}{ns} \\
-		Período de la rutina & \SI{50}{\micro s} & \SI{50}{\micro s} (RTL) & \SI{50}{\micro s} \\
+		Error según el sensor, 0,2 / 0,5 A & \SI{0}{\percent} (resonante ideal) & \SI{0.00}{\percent} & --- & \num{0.39} / \SI{0.19}{\percent} \\
+		Error de la corriente física, 0,2 / 0,5 A & sesgo del valle, \SI{6.0}{\percent} a \SI{0.2}{A} & \num{3.47} / \SI{2.83}{\percent} & \num{9.59} / \SI{7.75}{\percent} & \num{14.6} / \SI{18.7}{\percent} (osciloscopio) \\
+		Saturación a \SI{1.0}{A}, $R$ de \SI{11.8}{\ohm} & satura sobre \SI{11}{\ohm} & satura con \SI{12}{\ohm}, \SI{9.1}{\percent} & satura, $-\SI{8.9}{\percent}$ & satura, \SI{34.9}{\percent} \\
+		Saturación a \SI{1.0}{A}, \SI{18}{V} & no satura & no satura con \SI{9}{\ohm}, \SI{1.95}{\percent} & no satura, \SI{5.9}{\percent} & satura, \SI{11.8}{\percent} \\
+		Error con $R$ \SI{+26}{\percent}, \SI{0.5}{A}, sensor & \SI{0}{\percent} & \SI{0.00}{\percent} & \SI{9.71}{\percent} (física) & \SI{0.14}{\percent} \\
+		Rizado, 0,2 / 0,5 / 1,0 A (A pp) & \num{0.198} / \num{0.350} / \num{0.364} & \num{0.258} / \num{0.388} / \num{0.395} & \num{0.280} / \num{0.384} / \num{0.396} & \num{0.25} a \num{0.66}, \num{0.35} en banco \\
+		Tiempo muerto & \SI{1.00}{\micro s} & \SI{1.00}{\micro s} (RTL) & --- & B \SI{1.00}{\micro s}, A \SI{1.23}{\micro s} y \SI{430}{ns} \\
+		Período de la rutina & \SI{50}{\micro s} & \SI{50}{\micro s} (RTL) & --- & \SI{50}{\micro s} \\
 		\bottomrule
-	\end{tabular}
+	\end{tabular}}
 \end{table*}
 
-Lo que coincide es todo lo que depende del lazo visto desde el sensor. El error según el sensor es casi nulo como predicen el análisis y la simulación, el tiempo muerto y el período de la rutina son los programados, la saturación a \SI{1.0}{A} con \SI{12.5}{V} era esperable con \SI{11.8}{\ohm}, y el rizado medido cae en el rango de la simulación conmutada. Lo que no coincide depende de la medición de la corriente. La corriente física supera a la del sensor bastante más que el sesgo del valle, y con \SI{18}{V} el lazo saturó cuando no debía, lo que apunta a la fuente y no al regulador.
+Lo que coincide es todo lo que depende del lazo visto desde el sensor. El error según el sensor es casi nulo como predicen el análisis y la simulación, el tiempo muerto y el período de la rutina son los programados, la saturación a \SI{1.0}{A} con \SI{12.5}{V} era esperable con \SI{11.8}{\ohm}, y el rizado medido cae en el rango de la simulación conmutada. Lo que no coincide depende de la medición de la corriente. La corriente física supera a la referencia más de lo que predicen las simulaciones. PLECS, con la carga medida, da entre \num{7.8} y \SI{9.6}{\percent} por el muestreo en el valle, y el modelo de Octave entre \num{2.8} y \SI{3.5}{\percent}, contra \num{14.6} y \SI{18.7}{\percent} en el banco. El sesgo del valle explica cerca de la mitad, y el resto apunta a la ganancia del sensor. Con \SI{18}{V}, PLECS no satura a \SI{1.0}{A} ni con la resistencia aumentada, y en el banco el lazo saturó y la corriente cayó al añadir la resistencia, lo que apunta a la fuente y no al regulador.
 
 \section{Discusión}
 \label{sec:discusion}
@@ -265,7 +289,7 @@ Todas las rutas son relativas a la raíz del repositorio.
 	\item \texttt{potencia/verificar\_pr.m} y \texttt{potencia/aliasing\_pr.m}, los cálculos y simulaciones del lazo en Octave.
 	\item \texttt{potencia/informe/figuras\_informe.m}, que genera las figuras de este informe.
 	\item \texttt{sw/generar\_pr\_params.m}, que escribe los coeficientes en \texttt{sw/pr\_params.h}.
-	\item \texttt{potencia/sim/}, el modelo conmutado en PLECS y su archivo de parámetros.
+	\item \texttt{potencia/sim/}, el modelo conmutado en PLECS y su archivo de parámetros, con \texttt{lazo\_cerrado.plecs} y \texttt{lazo\_cerrado.py} para el lazo cerrado, cuya salida está en \texttt{docs/\allowbreak informe/\allowbreak evidencia/\allowbreak plecs\_lazo\_cerrado\_11p8ohm.txt}.
 	\item \texttt{sw/receptor\_pc.py}, que recibe los registros exportados, y \texttt{potencia/analizar\_csv.m}, \texttt{potencia/analizar\_osc.m} y \texttt{potencia/figuras\_banco.py}, que los procesan.
 	\item \texttt{muestras\_Inversor/} y \texttt{potencia/mediciones/2026-11-24/registro.md}, los registros y capturas de banco del 23 y 24 de noviembre.
 \end{itemize}
