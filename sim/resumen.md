@@ -102,8 +102,17 @@ Exportación del histórico por UART en `sw/exportador_uart.c`. Prueba en `sw/pr
 
 Volcado VCD de cada testbench con `vvp ... +VCD` (plusarg ya soportado en `tb_periferico_pwm.sv`, agregado ahora en `tb_envoltura_xadc.sv` con el mismo patrón, condicionado a `$test$plusargs("VCD")` así que no cambia nada si no se pide). El `.vcd` no se versiona (`*.vcd` en `.gitignore`, se regenera con el comando de abajo), lo que queda en el repo es una imagen recortada a una ventana representativa de cada uno.
 
-- `sim/img/tb_periferico_pwm.png`, las cuatro compuertas (`ah`, `al`, `bh`, `bl`) y `trigger` durante la modulación unipolar normal, se ve el tiempo muerto entre cada conmutación y las dos piernas complementadas.
-- `sim/img/tb_envoltura_xadc.png`, la secuencia completa de una conversión disparada por el valle (`pwm_trigger_o` a `xadc_convst` con los 20 ns de la sección 9 del testbench) seguida de un valle que llega con la conversión en curso y se ignora (sección 10), sin `convst` ni `busy` adicional hasta que termina la que ya estaba en marcha.
+periferico_pwm, tres escenas:
+
+- `sim/img/tb_periferico_pwm_modulacion.png`, las cuatro compuertas (`ah`, `al`, `bh`, `bl`) y `trigger` durante la modulación unipolar normal, se ve el tiempo muerto entre cada conmutación y las dos piernas complementadas.
+- `sim/img/tb_periferico_pwm_portadora.png`, adentro de `u_nucleo_pwm`, la portadora triangular (`portadora`) contra la referencia saturada de cada pierna (`ref_a_etapa2`) y las dos salidas del comparador (`comparacion_a`, `comparacion_b`), el mecanismo que después da lugar a las compuertas de la escena anterior.
+- `sim/img/tb_periferico_pwm_axi.png`, handshake AXI4-Lite con AW y W retenidas mientras B está pendiente (`bvalid` alto y `bready` todavía en 0) y la siguiente escritura esperando a que se libere, caso AX07/PW17 del testbench.
+
+envoltura_xadc, tres escenas:
+
+- `sim/img/tb_envoltura_xadc_valle.png`, la secuencia completa de una conversión disparada por el valle (`pwm_trigger_o` a `xadc_convst` con los 20 ns de la sección 9 del testbench) seguida de un valle que llega con la conversión en curso y se ignora (sección 10), sin `convst` ni `busy` adicional hasta que termina la que ya estaba en marcha.
+- `sim/img/tb_envoltura_xadc_calibracion.png`, sección 2 del testbench, una escritura de software al bit de inicio se acepta en el AXI (`s_axi_bvalid` pulsa) pero no dispara nada mientras `xadc_busy` sigue en 1 por la calibración.
+- `sim/img/tb_envoltura_xadc_software.png`, sección 3, el mismo inicio por software ya fuera de la calibración, con la escritura disparando `xadc_convst` directamente (sin pasar por `pwm_trigger_o`) y la conversión completa hasta `xadc_drdy`.
 
 Para regenerar cualquiera de los dos VCD:
 
