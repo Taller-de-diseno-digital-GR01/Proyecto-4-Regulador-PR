@@ -15,6 +15,7 @@ static uint8_t trama[22 + 6 * BUFFER_REGISTROS]; // la trama más larga posible
 static uint32_t largo;
 static uint32_t en_fifo;
 static uint32_t llamadas;
+volatile uint32_t offset_adc_cuentas = 2400u; // reemplaza al de lazo_control.c, distinto del ADC_OFFSET_CUENTAS para ver que la cabecera sigue a la variable
 
 static void revisar(int condicion, const char *que)
 {
@@ -62,7 +63,7 @@ static void revisar_trama(uint32_t n)
   memcpy(&escala, &trama[15], 4);
   revisar(cantidad == n, "cantidad");
   revisar(frecuencia == 20000u, "frecuencia de muestreo");
-  revisar(offset == (float)ADC_OFFSET_CUENTAS, "offset del ADC"); // sigue a lazo_control.h, el offset se calibra
+  revisar(offset == 2400.0f, "offset del ADC, la cabecera no trae el offset vigente");
   revisar(fabsf(ganancia - ADC_AMPERES_POR_CUENTA) < 1e-9f, "amperes por cuenta"); // float, no se compara exacto
   revisar(escala == 1.0f / 16384.0f, "escala de duty"); // Q2.14
   revisar(trama[19] == 1, "duty con signo");

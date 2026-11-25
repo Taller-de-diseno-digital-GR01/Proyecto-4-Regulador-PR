@@ -31,7 +31,7 @@ Ejecuta una iteración del control en cada interrupción del Timer, siempre en e
 - `control_habilitado` y `amplitud_ref`, escritas por [`control_principal`](control_principal.md).
 - `i_ref` de [`ref_senoidal`](ref_senoidal.md), `duty_ref` y `saturado` de [`pr_discreto`](pr_discreto.md), y `falla` de [`supervisor_falla`](supervisor_falla.md).
 - La calibración del sensor, como `#define` en `lazo_control.h`.
-  - `ADC_OFFSET_CUENTAS`, la cuenta que corresponde a 0 A.
+  - `ADC_OFFSET_CUENTAS`, la cuenta que corresponde a 0 A. Es el valor con que arranca `offset_adc_cuentas` y el que se usa hasta el primer autocero (h.7).
   - `ADC_AMPERES_POR_CUENTA`, cuántos amperes vale una cuenta.
 
 ## e) Salidas
@@ -39,6 +39,7 @@ Ejecuta una iteración del control en cada interrupción del Timer, siempre en e
 - `duty_ref` hacia el offset `0x04` del periférico PWM, y `enable` en cero si hay falla, por `drivers`.
 - Un `registro_t` por iteración hacia [`buffer_muestras`](buffer_muestras.md).
 - `falla`, variable compartida que lee `control_principal`.
+- `offset_adc_cuentas`, la cuenta de 0 A vigente, que lee [`exportador_uart`](exportador_uart.md) para la cabecera de la trama.
 - La salida de depuración temporal, en alto mientras dura la rutina, por `drivers`.
 
 ## f) Explicación de la relación con otros módulos
@@ -51,13 +52,13 @@ Cada interrupción sigue esta secuencia.
 
 1. Sube la salida de depuración.
 2. Reconoce la interrupción del Timer.
-3. Lee una vez el registro del ADC por medio de `drivers`. Si hay muestra nueva, actualiza la cuenta y la corriente con `corriente = (cuenta - ADC_OFFSET_CUENTAS) · ADC_AMPERES_POR_CUENTA` y llama a `supervisor_falla_revisar`. Si falta la muestra, conserva la última cuenta válida, marca `dato_ausente` y llama a `supervisor_falla_sin_dato`.
+3. Lee una vez el registro del ADC por medio de `drivers`. Si hay muestra nueva, actualiza la cuenta y la corriente con `corriente = (cuenta - offset_adc_cuentas) · ADC_AMPERES_POR_CUENTA` y llama a `supervisor_falla_revisar`. Si falta la muestra, conserva la última cuenta válida, marca `dato_ausente` y llama a `supervisor_falla_sin_dato`.
 4. Con el resultado de cualquiera de las dos llamadas, detecta una transición a falla. Si aparece, escribe `enable = 0` mediante `drivers_pwm_apagar()`, preserva `freq_sel` y publica `falla = 1`.
-5. Si el control está habilitado y libre de falla, rampea la amplitud hacia `amplitud_ref` y obtiene `i_ref` para esta iteración con esa amplitud ya rampeada. Con muestra nueva, ejecuta el PR y escribe su `duty_ref`. Con muestra ausente dentro de la tolerancia, avanza la fase y la rampa de la referencia, conserva los estados del PR y mantiene el último `duty_ref`. Con el control deshabilitado o en falla, registra `i_ref = 0`, `duty_ref = 0` y `saturado` en cero, y omite el PR.
+5. Si el control está habilitado y libre de falla, pero todavía no terminó el autocero (h.7), no corre el PR ni la referencia. Con muestra nueva suma la cuenta al promedio del cero, el `duty_ref` registrado vale 0 y el puente conmuta con las dos piernas al 50 %. Terminado el autocero, o si ya estaba hecho, rampea la amplitud hacia `amplitud_ref` y obtiene `i_ref` para esta iteración con esa amplitud ya rampeada. Con muestra nueva, ejecuta el PR y escribe su `duty_ref`. Con muestra ausente dentro de la tolerancia, avanza la fase y la rampa de la referencia, conserva los estados del PR y mantiene el último `duty_ref`. Con el control deshabilitado o en falla, registra `i_ref = 0`, `duty_ref = 0` y `saturado` en cero, y omite el PR.
 6. Arma el registro con la cuenta, el `duty_ref` vigente, `i_ref` y las cuatro banderas, y se lo pasa a `buffer_muestras`.
 7. Baja la salida de depuración.
 
-Con el control deshabilitado la rutina sigue registrando la corriente cuando el Timer está en marcha. Esto permite revisar el offset del sensor con el puente deshabilitado.
+Con el control deshabilitado la rutina sigue registrando la corriente cuando el Timer está en marcha. Esa lectura con el puente apagado no sirve para fijar el cero, porque el cero se corre unas 800 cuentas respecto de cuando el puente conmuta (h.7).
 
 ## h) Diseño
 
@@ -108,6 +109,21 @@ El offset es el del nivel 2, 0 A en 0,5 V, o sea 2048 cuentas, la mitad de la es
 
 Esos son los valores de diseño. En el montaje, la calibración contra el osciloscopio del 24/11 dio `ADC_OFFSET_CUENTAS = 2569`, con el cero en unos 0,63 V, y `ADC_AMPERES_POR_CUENTA = -1,292e-3`, que incluye el sesgo de muestrear en el valle. Con ese cero el ADC ve hasta 1,97 A hacia un lado y 3,32 A hacia el otro, así que el umbral de 1,3 A sigue dentro.
 
+#### Autocero del offset
+
+El cero del sensor no es una constante. En el banco se corrió unas 100 cuentas en cuatro minutos, y unas 800 entre el puente apagado y el puente conmutando (`informe.md`, 12.8.2). Como el resonante no actúa en continua, el proporcional convierte todo error del cero en corriente continua real de signo contrario, y con +0,21 A de error del sensor quedaba una continua física de unos −0,06 A. Una constante fija siempre queda mal en algún estado, así que cada vez que se habilita el control la rutina mide el cero con el puente en las condiciones en que va a trabajar.
+
+- Con `control_habilitado` en 1, sin falla y sin autocero hecho, el puente conmuta con `duty_ref = 0`, o sea las dos piernas al 50 % y 0 V en promedio sobre la carga (`nucleo_pwm.md`), así que la corriente física es nula.
+- Se descartan las primeras `AUTOCERO_DESCARTE` muestras con dato, 256 (12,8 ms), para dejar que se asiente la referencia del acondicionador tras arrancar la conmutación.
+- Las siguientes `AUTOCERO_PROMEDIO` muestras con dato, 1024 (51,2 ms), se suman en un `uint32_t`, que alcanza porque 1024 · 4095 queda lejos de 2^32. El promedio redondeado es el nuevo `offset_adc_cuentas`. 1024 muestras son más de dos períodos de 50 Hz, así que el promedio también aplana cualquier rizado lento que se cuele.
+- Las muestras sin dato no cuentan, y la ISR sigue avanzando mientras tanto. Mientras dura el autocero no corren el PR, la referencia ni la rampa, y la fase de la referencia arranca en 0 cuando termina.
+- Si hay falla o se deshabilita antes de terminar, la suma y el contador vuelven a 0 y se repite completo la siguiente vez. El offset anterior se conserva.
+- Mientras dura el autocero la corriente se calcula con el offset anterior, y `supervisor_falla` sigue vigilando con ese valor. Si el cero real estuviera a más de unas 1000 cuentas de él (1,3 A / 1,292e-3) la falla por sobrecorriente apaga el puente igual que antes.
+- `ADC_OFFSET_CUENTAS` queda como valor de partida y respaldo, y como el cero del modelo del sensor en `PLANTA_SIMULADA`.
+- El control tarda unos 64 ms en empezar a actuar después de habilitar, y eso se ve como `i_ref` en 0 en esos registros. El histórico de 2048 muestras (102 ms) apenas alcanza a mostrar el autocero y el arranque del lazo, así que conviene exportar poco después de habilitar si se quiere ver la transición.
+- La cabecera de la trama manda el offset vigente al exportar. Un registro anterior al último autocero se convierte con el offset nuevo, y a ese error no se le da más importancia porque el histórico solo cubre 102 ms.
+- Los 1024 y 256 son provisionales, hay que confirmarlos en el banco mirando cuánto tarda en asentarse la referencia del acondicionador tras arrancar la conmutación.
+
 ### h.8) Presupuesto de tiempo
 
 El período del Timer sale de `PR_FRECUENCIA_MUESTREO_HZ`, que con los valores de partida es 20 kHz, o sea 5000 ciclos de 100 MHz por iteración. La rutina hace un puñado de accesos AXI, seis multiplicaciones del PR, una de la referencia y una de la conversión, así que con FPU debería quedar en cientos de ciclos. Sin FPU, cada operación en `float` por software cuesta del orden de 50 a 100 ciclos, y las unas veinte operaciones de la rutina suman entre 1500 y 2500 ciclos, de 15 a 25 µs. Es una estimación gruesa y lo que vale es lo que mida la salida de depuración, antes de decidir si se pasa a punto fijo.
@@ -120,11 +136,11 @@ El [plan de verificación](../plan_verificacion_pwm.md) mide estas condiciones t
 
 - `void lazo_control_isr(void *ref)`, la rutina que `control_principal` registra como manejador de la interrupción del procesador.
 - `void lazo_control_reiniciar_rampa(void)`, pone `amplitud_actual` en 0. La llama `control_principal` al habilitar, junto con `pr_discreto_reiniciar` y `ref_senoidal_reiniciar_fase` (control_principal.md#h2-orden-al-habilitar-y-al-deshabilitar).
-- Las variables compartidas `volatile uint32_t control_habilitado`, `volatile valor_t amplitud_ref` y `volatile uint32_t falla`, declaradas en `lazo_control.h`.
+- Las variables compartidas `volatile uint32_t control_habilitado`, `volatile valor_t amplitud_ref` y `volatile uint32_t falla`, declaradas en `lazo_control.h`, y `volatile uint32_t offset_adc_cuentas`, que solo escribe la ISR al terminar un autocero y que `exportador_uart` lee una vez al armar la cabecera. Es de 32 bits, así que se lee y escribe en una instrucción y no hace falta sección crítica.
 
 La rutina copia `control_habilitado` y `amplitud_ref` a variables locales al entrar y no las vuelve a leer. Así toda la iteración trabaja con los mismos valores aunque el lazo principal los cambie a la mitad. Cada una ocupa 32 bits, que el MicroBlaze V lee y escribe en una sola instrucción, así que alcanza con `volatile` y no hace falta sección crítica para leerlas.
 
-La cuenta, el último `duty_ref`, `saturado` y `amplitud_actual` pasan de una iteración a la siguiente como `static` sin `volatile`, porque solo los toca esta rutina. El registro se arma en la pila de la rutina y se pasa por puntero a `buffer_muestras_guardar`, que lo copia.
+La cuenta, el último `duty_ref`, `saturado`, `amplitud_actual`, la suma del autocero y su contador pasan de una iteración a la siguiente como `static` sin `volatile`, porque solo los toca esta rutina. El registro se arma en la pila de la rutina y se pasa por puntero a `buffer_muestras_guardar`, que lo copia.
 
 ### h.10) Prueba en la PC
 
