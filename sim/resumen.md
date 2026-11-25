@@ -121,11 +121,17 @@ iverilog -g2012 -s tb_periferico_pwm -o /tmp/tb.vvp src/design/*.sv src/sim/tb_p
 iverilog -g2012 -s tb_envoltura_xadc -o /tmp/tb.vvp src/design/*.sv src/sim/tb_envoltura_xadc.sv && vvp /tmp/tb.vvp +VCD
 ```
 
-## JB1, diagrama ilustrativo, no una simulación
+## JB1, simulación propia de la cadencia (sim/jb1_cadencia_tb.sv)
 
-`sim/img/jb1_cadencia_lazo_ilustrativo.png`. JB1 es la señal de depuración de `lazo_control.c` (`drivers_depuracion`, sube al entrar a la ISR y baja al salir, `lazo_control.c:49` y `:112`), pensada para verse con el osciloscopio en hardware real, tal como quedó anotado en el diagnóstico de LD1 del 2026-11-19. No existe en ningún testbench de `src/sim/` (ninguno modela la ISR ni el AXI Timer) y en `prueba_lazo_control.c` tampoco tiene tiempo real, esa prueba solo cuenta llamadas, no mide microsegundos.
+JB1 es la señal de depuración de `lazo_control.c` (`drivers_depuracion`, sube al entrar a la ISR y baja al salir, `lazo_control.c:49` y `:112`), pensada para verse con el osciloscopio en hardware real, tal como quedó anotado en el diagnóstico de LD1 del 2026-11-19. No existe en ningún testbench de `src/sim/` (ninguno modela la ISR ni el AXI Timer) y en `prueba_lazo_control.c` tampoco tiene tiempo real, esa prueba solo cuenta llamadas, no mide microsegundos. No verifica ningún módulo de `src/design`, por eso vive aparte en `sim/jb1_cadencia_tb.sv` y no en `src/sim/` junto a los testbenches de verificación.
 
-El diagrama arma el período de 50 µs a partir de la constante real `PR_FRECUENCIA_MUESTREO_HZ = 20000` (`sw/pr_params.h`), y dibuja el ancho del pulso con la estimación sin FPU que ya está en `docs/diseño/modulos/lazo_control.md` (15 a 25 µs, tramo sólido hasta el mínimo y sombreado hasta el máximo). El ancho real de cada pulso, y si de verdad cae dentro de ese rango, solo se sabe midiendo JB1 con el osciloscopio.
+`sim/jb1_cadencia_tb.sv` es una simulación standalone, sin DUT. Un contador de ciclos real reproduce el AXI Timer con el mismo cálculo de `TIMER_TLR` de `sw/control_principal.h` (`RELOJ_HZ/PR_FRECUENCIA_MUESTREO_HZ − 2` = 4998, +2 = 5000 ciclos de reloj de 100 MHz), así que el período de 50 µs entre ticks de `sim/img/jb1_cadencia_lazo.png` (log en `sim/sv/jb1_cadencia_tb.log`) sale de contar ciclos de verdad, no de un dibujo. Lo único que sigue siendo una estimación y no una medición es el ancho del pulso `jb1` después de cada tick, fijado en el código a 2000 ciclos (20 µs), el punto medio del rango sin FPU que ya está documentado en `lazo_control.md` (15 a 25 µs). El ancho real, y si de verdad cae en ese rango, solo se sabe midiendo JB1 con el osciloscopio en hardware.
+
+Para regenerar:
+
+```
+iverilog -g2012 -s jb1_cadencia_tb -o /tmp/jb1.vvp sim/jb1_cadencia_tb.sv && vvp /tmp/jb1.vvp +VCD
+```
 
 ## No corridas en esta ronda
 
