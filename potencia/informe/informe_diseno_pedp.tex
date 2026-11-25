@@ -455,7 +455,7 @@ El modelo conmutado en Octave resuelve el puente unipolar con tiempo muerto de \
 	\label{fig:conmutado}
 \end{figure}
 
-El modelo de PLECS se usa en lazo abierto (Tabla~\ref{tab:lazo_abierto}), y el lazo cerrado se valida con este modelo de Octave, que tiene el mismo puente, la misma modulación y el mismo tiempo muerto, y agrega el PR, la saturación y la escala del ADC del firmware.
+El modelo de PLECS se usa en lazo abierto (Tabla~\ref{tab:lazo_abierto}) y, con el regulador del firmware en un bloque C-Script, en lazo cerrado con la carga medida, con los resultados en el informe técnico. El modelo de Octave tiene el mismo puente y la misma modulación, con el tiempo muerto aplicado como en el núcleo, y agrega el PR, la saturación y la escala del ADC del firmware.
 
 \section{Plan de validación}
 \label{sec:plan}
