@@ -48,6 +48,8 @@ vitis/
 *.run.xml
 *.thm
 *.synctex.gz
+*.fls
+*.fdb_latexmk
 
 # Proyecto de Vivado local fuera de vivado/
 project_4_PR/
