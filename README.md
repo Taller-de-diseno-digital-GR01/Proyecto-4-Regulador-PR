@@ -42,10 +42,14 @@ El enunciado y las rúbricas están en
   [`entregables/documento_diseno_pedp.pdf`](entregables/documento_diseno_pedp.pdf).
 - Informe técnico de PEDP,
   [`entregables/informe_tecnico_pedp.pdf`](entregables/informe_tecnico_pedp.pdf).
-- `entregables/entrega_pedp.zip`, con los dos documentos de PEDP y, en `evidencia/`, los modelos
-  de PLECS, los cálculos, los registros de banco y los scripts que los procesan, con las mismas
-  rutas del repositorio que citan los documentos. Las fuentes en LaTeX están en
-  `potencia/informe/`.
+- `entregables/documento_diseno_pedp.zip`, con el documento de diseño de PEDP, los documentos de
+  diseño de `potencia/`, los modelos de PLECS, los cálculos en Octave con sus salidas y las hojas
+  de datos citadas.
+- `entregables/informe_tecnico_pedp.zip`, con el informe técnico de PEDP, los registros de
+  banco, los scripts que los procesan, los modelos de PLECS y los cálculos con la carga medida.
+
+Los dos zips conservan las rutas del repositorio que citan los documentos. Las fuentes en LaTeX
+están en `potencia/informe/`.
 
 ## Estado del proyecto
 
@@ -97,7 +101,7 @@ la discusión del informe técnico de PEDP.
   mediciones e informes de PEDP. El detalle está en [Carpeta `potencia/`](#carpeta-potencia).
 - `muestras_Inversor/`, registros exportados por UART y capturas del osciloscopio de los
   ensayos de banco del 23 y 24 de noviembre.
-- `entregables/`, los dos PDF de PEDP y el zip de la entrega de PEDP.
+- `entregables/`, los dos PDF de PEDP y un zip para cada uno.
 - `Makefile`, accesos a simulación, compilación, programación y recepción de muestras.
 
 ## Carpeta `potencia/`
