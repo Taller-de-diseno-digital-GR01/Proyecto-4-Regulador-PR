@@ -27,7 +27,7 @@ Saca el histórico congelado por la UART en una trama que [`receptor_pc`](recept
 - Si la FIFO de transmisión de la AXI UART Lite tiene espacio, por [`drivers`](drivers.md).
 - Las constantes de la cabecera, de los headers de otros módulos.
   - `PR_FRECUENCIA_MUESTREO_HZ`, de `pr_params.h`.
-  - `ADC_OFFSET_CUENTAS` y `ADC_AMPERES_POR_CUENTA`, de `lazo_control.h`.
+  - `offset_adc_cuentas`, el offset vigente tras el último autocero, y `ADC_AMPERES_POR_CUENTA`, de `lazo_control.h`.
   - `DUTY_ESCALA` y `DUTY_CON_SIGNO`, de `pr_discreto.h`.
 
 ## e) Salidas
