@@ -9,6 +9,7 @@
 volatile uint32_t control_habilitado;
 volatile valor_t amplitud_ref;
 volatile uint32_t falla;
+volatile uint32_t offset_adc_cuentas = ADC_OFFSET_CUENTAS;
 
 #define AMPLITUD_PASO_MAX VALOR(0.0025f) // A por muestra, 1 A tarda 400 muestras (20 ms, un período de 50 Hz) en alcanzarse, diseno_pr.md sección de saturación
 
@@ -16,6 +17,8 @@ volatile uint32_t falla;
 static uint16_t cuenta = ADC_OFFSET_CUENTAS; // si la primera iteración no trae dato se registra 0 A y no una cuenta inventada
 static uint16_t duty_ref; // el último escrito al PWM, arranca en 0 igual que el registro del periférico
 static bool saturado;
+static uint32_t autocero_muestras; // muestras con dato desde que se habilitó, el autocero termina al llegar a DESCARTE + PROMEDIO
+static uint32_t autocero_suma;
 static valor_t amplitud_actual; // rampea hacia amplitud_ref, así un cambio de switch no pega un escalón completo en el PR
 
 void lazo_control_reiniciar_rampa(void)
@@ -60,7 +63,7 @@ void lazo_control_isr(void *ref)
 #else
     cuenta = drivers_adc_leer();
 #endif
-    corriente = valor_mul(VALOR((int32_t)cuenta - (int32_t)ADC_OFFSET_CUENTAS), VALOR(ADC_AMPERES_POR_CUENTA)); // a int32 antes de restar, en uint16 una cuenta bajo el offset daría la vuelta
+    corriente = valor_mul(VALOR((int32_t)cuenta - (int32_t)offset_adc_cuentas), VALOR(ADC_AMPERES_POR_CUENTA)); // a int32 antes de restar, en uint16 una cuenta bajo el offset daría la vuelta
     en_falla = supervisor_falla_revisar(cuenta, corriente);
   }
   else en_falla = supervisor_falla_sin_dato(); // cuenta se queda con la última válida
@@ -70,7 +73,16 @@ void lazo_control_isr(void *ref)
     falla = 1;
   }
 
-  if(habilitado && !en_falla) {
+  if(habilitado && !en_falla && autocero_muestras < AUTOCERO_DESCARTE + AUTOCERO_PROMEDIO) { // puente conmutando con duty_ref en 0, el cero medido así es el que ve el lazo después
+    if(hay_dato) {
+      if(autocero_muestras >= AUTOCERO_DESCARTE) autocero_suma += cuenta;
+      autocero_muestras++;
+      if(autocero_muestras == AUTOCERO_DESCARTE + AUTOCERO_PROMEDIO) offset_adc_cuentas = (autocero_suma + AUTOCERO_PROMEDIO / 2u) / AUTOCERO_PROMEDIO;
+    }
+    duty_ref = 0; // el registro del PWM ya está en 0 desde deshabilitar o el reset, no se escribe
+    saturado = false;
+  }
+  else if(habilitado && !en_falla) {
     if(amplitud_actual < amplitud) { // rampa también sin dato, junto con la fase
       amplitud_actual += AMPLITUD_PASO_MAX;
       if(amplitud_actual > amplitud) amplitud_actual = amplitud;
@@ -88,6 +100,8 @@ void lazo_control_isr(void *ref)
   else { // el puente no aplica ninguna orden, así el histórico no arrastra la de la sesión anterior
     duty_ref = 0;
     saturado = false;
+    autocero_muestras = 0; // si se interrumpe o se deshabilita, el próximo habilitar repite el autocero completo
+    autocero_suma = 0;
   }
 
   registro.cuenta_banderas = (uint16_t)((cuenta & CUENTA_MASCARA) | (saturado ? BANDERA_SATURADO : 0u) | (hay_dato ? 0u : BANDERA_DATO_AUSENTE) | (habilitado ? BANDERA_HABILITADO : 0u) | (en_falla ? BANDERA_FALLA : 0u));
