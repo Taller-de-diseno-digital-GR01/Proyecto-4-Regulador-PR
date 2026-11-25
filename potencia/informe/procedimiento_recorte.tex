@@ -1,0 +1,119 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-nodecimaldot]{babel}
+\usepackage{siunitx}
+\usepackage{geometry}
+\usepackage{enumitem}
+\usepackage{parskip}
+\usepackage{titlesec}
+\geometry{margin=2.3cm}
+\sisetup{output-decimal-marker={,},group-separator={\,},range-phrase={ a }}
+\setlist{itemsep=2pt,topsep=3pt}
+\titleformat{\section}{\large\bfseries}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection.}{0.5em}{}
+\pagestyle{plain}
+
+\begin{document}
+
+\begin{center}
+{\Large Procedimiento para eliminar el recorte a 1,0 A pico}\\[4pt]
+Proyecto 4, rama \texttt{arreglo-final}, con el offset del sensor ya corregido por el autocero
+\end{center}
+
+\section{Qué se quiere lograr}
+
+Los registros del 23 de noviembre no llegan a la referencia de \SI{1.0}{A}. Con \SI{12.5}{V} la corriente se frena cerca de \SI{+0.72}{A} y con \SI{18}{V} se queda en \SI{+0.71}{A} mientras el semiciclo negativo llega a \SI{-1.03}{A}. El enunciado pide error de la fundamental menor a \SI{10}{\percent} en una ventana de cinco períodos, y el punto de \SI{1.0}{A} es el único de los tres que hoy no cumple. Este documento fija qué medir, en qué orden y qué se hace según lo que salga, para llegar al laboratorio sin improvisar.
+
+El firmware no puede arreglar esto. El PR ya satura en \num{0.92} y esa cifra viene del tiempo muerto y el bootstrap, así que lo que falta es tensión en el bus, y eso se resuelve en la fuente y el montaje.
+
+\section{Lo que ya se sabe}
+
+\begin{itemize}
+\item La carga medida es de \SI{11.8}{\ohm}, de los cuales \SI{9.46}{\ohm} son las dos resistencias de \SI{4.7}{\ohm}, con unos \SI{212}{\micro H}. Con las \SI{2.5}{\ohm} añadidas queda en \SI{14.3}{\ohm}. La reactancia a \SI{50}{Hz} es de \SI{0.07}{\ohm} y se puede ignorar.
+\item Para \SI{1.0}{A} pico el puente tiene que dar \SI{11.8}{V} pico, o \SI{14.3}{V} con las \SI{2.5}{\ohm} añadidas. Con el tope de \num{0.92} hace falta un bus de al menos \SI{12.8}{V} en el primer caso y \SI{15.5}{V} en el segundo, antes de contar caídas en los MOSFET.
+\item A \SI{12.5}{V} el 92 \% son \SI{11.5}{V}, menos de los \SI{11.8}{V} que pide la resistencia sola. Con esa carga y esa tensión el punto de \SI{1.0}{A} es inalcanzable, sea cual sea el resto del ajuste.
+\item A \SI{18}{V} el 92 \% son \SI{16.6}{V}, que cubre los \SI{11.8}{V} con margen de \SI{41}{\percent} y los \SI{14.3}{V} con margen de \SI{16}{\percent}. Ahí la tensión nominal alcanza y el recorte que quedó es el que hay que explicar.
+\item Los registros no anotaron el bus durante el pico, ni el límite de corriente que tenía la fuente. La guía de mediciones habla de \SI{0.52}{A} y el informe menciona \SI{1}{A} para el ensayo de \SI{18}{V}, así que ese dato hoy no se sabe.
+\end{itemize}
+
+\section{Presupuesto de potencia}
+
+Este cálculo es lo que justifica subir el límite de la fuente. Con \SI{1.0}{A} pico la carga consume $R I^2/2$, y se toma la cota de \SI{2}{W} de pérdidas del documento del puente.
+
+\begin{itemize}
+\item Con \SI{11.8}{\ohm} y \SI{18}{V} son \SI{5.9}{W} más \SI{2}{W}, unos \SI{0.44}{A} en promedio. Con \SI{14.3}{\ohm} son \SI{9.2}{W}, unos \SI{0.51}{A}.
+\item El promedio engaña porque la corriente que toma el puente sigue a $R I^2 \sin^2(\omega t)$, así que pulsa a \SI{100}{Hz} y llega a su máximo en el pico de la senoide. A \SI{18}{V} ese máximo es de unos \SI{0.77}{A} con \SI{11.8}{\ohm} y de unos \SI{0.90}{A} con \SI{14.3}{\ohm}. A \SI{12.5}{V} serían \SI{1.1}{A}.
+\item El electrolítico de \SI{470}{\micro F} cubre una parte de esa pulsación y el resto lo tiene que dar la fuente. Con el límite en \SI{0.52}{A} la fuente podría entrar en corriente constante justo en esos picos, que es donde el bus hace falta.
+\item El fusible ve el valor eficaz de esa corriente pulsante y no solo el promedio. Se estima en unos \SI{0.50}{A} con \SI{11.8}{\ohm} y unos \SI{0.58}{A} con \SI{14.3}{\ohm}, que son 79 \% y 92 \% de un fusible de \SI{630}{mA}. El documento del puente pide no pasar del 75 \%, así que con \SI{1}{A} de nominal quedan en 50 \% y 58 \%.
+\end{itemize}
+
+Estas cifras son estimaciones hechas con las pérdidas en su cota. Sirven para decidir qué ajustar, y la medición del laboratorio es la que manda.
+
+\section{Antes de energizar}
+
+Con la fuente apagada y el electrolítico descargado.
+
+\begin{enumerate}
+\item Cargar en la Basys 3 el firmware de \texttt{arreglo-final} (commit \texttt{79374d3} o posterior) y verificar que el control tarda unos \SI{64}{ms} en arrancar tras habilitar, que es el autocero.
+\item Revisar que el electrolítico de \SI{470}{\micro F} y \SI{63}{V} está montado entre el fusible y las piernas, con la polaridad correcta, y anotar el valor del fusible instalado, que puede ser de \SI{630}{mA} o de \SI{1}{A}.
+\item Medir con multímetro la resistencia total en frío y anotarla. El cálculo de tensión depende de ese número.
+\item Armar las sondas. El canal 1 va al bus, sobre los terminales del electrolítico, con acoplamiento AC, \SI{1}{V/div} y \SI{5}{ms/div}, para ver la caída durante el pico. El nivel de continua del bus se anota con multímetro. El canal 2 lee la tensión sobre las dos resistencias de \SI{4.7}{\ohm}, igual que en las capturas del 23 de noviembre, y de ahí sale la corriente física.
+\item Confirmar con el multímetro la continuidad entre las tierras de las sondas y de la placa, y que cada sonda tiene una sola referencia. Después de lo que pasó con la tierra el 19 de noviembre, esto se revisa antes de cada ensayo.
+\end{enumerate}
+
+\section{Procedimiento}
+
+\subsection*{Etapa 1, comprobar el autocero}
+
+Con \SI{18}{V} y el límite con que se hicieron los ensayos anteriores, que se anota. Con el interruptor de amplitud en 0, habilitar, esperar un segundo y exportar. La media de la corriente del CSV debe quedar entre \SI{-0.03}{A} y \SI{+0.03}{A}, y la del osciloscopio también cerca de cero. Repetir a \SI{0.2}{A} y \SI{0.5}{A}, donde el error debe seguir bajo \SI{1}{\percent} y la continua dentro del mismo margen. Si esto no se cumple se detiene todo, porque un offset que sobrevive al autocero ensucia cualquier diagnóstico del recorte.
+
+\subsection*{Etapa 2, diagnóstico sin cambiar nada}
+
+Mismas condiciones de la etapa 1, con la amplitud en \SI{1.0}{A}. Habilitar, esperar un segundo y capturar a la vez el CSV por UART y el osciloscopio con el bus y la corriente física. Anotar si el indicador de corriente constante de la fuente se enciende, la corriente que marca su pantalla y el bus mínimo en el pico. Con el CSV se calcula el error de la fundamental sobre cinco períodos con \texttt{analizar\_csv} y se cuenta cuántas muestras traen la bandera de saturado. Con lo que salga se sigue por la rama que corresponda de la etapa 3.
+
+\subsection*{Etapa 3, según lo que se vio}
+
+\begin{itemize}
+\item Error menor a \SI{10}{\percent} y ninguna muestra saturada. El recorte lo causaba el offset y no hay nada más que hacer en esta parte. Pasar a la etapa 4.
+\item Muestras saturadas y bus mínimo bajo \SI{14.1}{V}, o corriente constante encendida. La causa es la fuente o el bus. Se hacen estos pasos en orden y se repite la etapa 2 después de cada uno.
+  \begin{enumerate}
+  \item Cambiar el fusible a \SI{1}{A} si el instalado es de \SI{630}{mA}, con todo apagado y el electrolítico descargado. Subir el límite de la fuente a \SI{1.0}{A} solo mientras duren los registros de \SI{1.0}{A} y volver al límite anterior al terminar.
+  \item Si el bus sigue cayendo, revisar el electrolítico (capacitancia, ESR si hay instrumento, conexiones cortas al puente) y poner otro en paralelo, de \SI{470}{\micro F} a \SI{1000}{\micro F} y al menos \SI{35}{V}, pegado a los terminales del puente. La caída del bus es aproximadamente la carga que falta dividida entre la capacitancia, así que duplicar $C$ la reduce a la mitad.
+  \item Si todavía no alcanza y la fuente lo permite, subir el bus a \SI{20}{V}. La corriente de entrada baja y el 92 \% son \SI{18.4}{V}.
+  \end{enumerate}
+\item Muestras saturadas con el bus sano, o sea sobre \SI{14.1}{V} en el pico. El bus no es la causa. Medir la tensión sobre la carga con sonda diferencial en el pico y compararla con $0{,}92\,V_{dc}$. La diferencia son caídas del puente y tiempo muerto. Si es grande, la salida es el plan B de abajo.
+\item El osciloscopio muestra la senoide completa pero el CSV sale plano. El problema está en la cadena de medida. Medir con el osciloscopio la entrada del XADC mientras corre \SI{1.0}{A}. Debe moverse entre unos \SI{0.41}{V} y \SI{0.85}{V}, dentro del rango de \SI{0}{V} a \SI{1}{V}. Si se aplana a un valor fijo, el acondicionador está recortando y le toca a Nicolás y a Jefferson.
+\end{itemize}
+
+\subsection*{Plan B, solo si lo anterior no alcanza}
+
+Bajar la resistencia total a unos \SI{9}{\ohm}, que era el valor de diseño. A \SI{12.5}{V} hacen falta \SI{9.8}{V} para \SI{1.0}{A} y hay \SI{11.5}{V}, con margen de \SI{17}{\percent}. Es un cambio físico, así que obliga a repetir los registros de \SI{0.2}{A} y \SI{0.5}{A}, a actualizar la tabla de parámetros medidos y a seguir con fusible de \SI{1}{A}, porque la corriente de entrada a \SI{12.5}{V} queda en unos \SI{0.5}{A} de promedio. La parte proporcional sigue estable, con un polo de módulo cercano a \num{0.56} en una cuenta con un período de retardo, que es una estimación y no un cálculo del lazo completo.
+
+\subsection*{Etapa 4, registros finales}
+
+Con la configuración que resolvió el recorte, y sin tocar nada entre un registro y el siguiente, tomar estos.
+
+\begin{itemize}
+\item \SI{1.0}{A} con la carga original.
+\item \SI{1.0}{A} con las \SI{2.5}{\ohm} añadidas, solo si el bus mínimo medido supera los \SI{17}{V}. A \SI{18}{V} el margen es chico, y con \SI{20}{V} sobra.
+\item El escalón de \SI{0.5}{A} a \SI{1.0}{A}, que es uno de los dos que pide el enunciado y no tiene registro.
+\end{itemize}
+
+En cada uno se guardan el CSV, la captura del osciloscopio con el bus, y una nota con $V_{dc}$ medido, límite de la fuente, fusible, $R$ y $L$ medidos, \texttt{freq\_sel} y el commit del firmware. Se procesan con \texttt{analizar\_csv} y \texttt{analizar\_osc}, igual que los del 23 de noviembre.
+
+\section{Cuándo se da por resuelto}
+
+\begin{itemize}
+\item Ninguna muestra con bandera de saturado en la ventana de cinco períodos, o la saturación explicada con una medición.
+\item Error de la fundamental menor a \SI{10}{\percent} con el CSV y también con la corriente física del osciloscopio.
+\item Continua del CSV dentro de \SI{\pm 0.03}{A}.
+\item Bus mínimo en el pico al menos 10 \% sobre la tensión necesaria, o sea \SI{14.1}{V} con \SI{11.8}{\ohm} y \SI{17.0}{V} con \SI{14.3}{\ohm}.
+\item La fuente sin entrar en corriente constante durante la ventana.
+\end{itemize}
+
+\section{Si no se logra}
+
+Se declara como limitación y se conserva casi todo el puntaje de control y de concordancia con la simulación. Para eso el informe tiene que cambiar la hipótesis de la fuente por la medición, con el bus mínimo en el pico, el límite y el fusible usados, la cuenta de tensión de la sección 2 y la corriente máxima que sí se alcanzó con error menor a \SI{10}{\percent}. Se actualizan la sección 12.8.1, el resumen y la tabla de limitaciones.
+
+\end{document}
