@@ -1,0 +1,4 @@
+### prueba_ref_senoidal ###
++ -std=c99 -Wall -I sw sw/ref_senoidal.c sw/pruebas/prueba_ref_senoidal.c -lm -o sw/build/prueba_ref_senoidal
+prueba_ref_senoidal, 0 errores
+exit=0

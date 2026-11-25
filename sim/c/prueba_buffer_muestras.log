@@ -1,0 +1,4 @@
+### prueba_buffer_muestras ###
++ -std=c99 -Wall -I sw sw/buffer_muestras.c sw/pruebas/prueba_buffer_muestras.c -o sw/build/prueba_buffer_muestras
+prueba_buffer_muestras, 0 errores
+exit=0
