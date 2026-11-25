@@ -39,6 +39,9 @@ vitis/
 *.raw
 *.net
 
+# Volcados VCD de los testbenches, se regeneran con make sim TB=<nombre> +VCD
+*.vcd
+
 # Intermedios de LaTeX
 *.aux
 *.bbl

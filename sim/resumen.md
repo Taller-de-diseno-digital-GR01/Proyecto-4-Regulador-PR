@@ -98,6 +98,20 @@ Exportación del histórico por UART en `sw/exportador_uart.c`. Prueba en `sw/pr
 - Orden de los registros dentro de la trama y suma de verificación.
 - Un pedido repetido a media trama no reinicia nada, y el buffer queda liberado al terminar.
 
+## Formas de onda, sim/img
+
+Volcado VCD de cada testbench con `vvp ... +VCD` (plusarg ya soportado en `tb_periferico_pwm.sv`, agregado ahora en `tb_envoltura_xadc.sv` con el mismo patrón, condicionado a `$test$plusargs("VCD")` así que no cambia nada si no se pide). El `.vcd` no se versiona (`*.vcd` en `.gitignore`, se regenera con el comando de abajo), lo que queda en el repo es una imagen recortada a una ventana representativa de cada uno.
+
+- `sim/img/tb_periferico_pwm.png`, las cuatro compuertas (`ah`, `al`, `bh`, `bl`) y `trigger` durante la modulación unipolar normal, se ve el tiempo muerto entre cada conmutación y las dos piernas complementadas.
+- `sim/img/tb_envoltura_xadc.png`, la secuencia completa de una conversión disparada por el valle (`pwm_trigger_o` a `xadc_convst` con los 20 ns de la sección 9 del testbench) seguida de un valle que llega con la conversión en curso y se ignora (sección 10), sin `convst` ni `busy` adicional hasta que termina la que ya estaba en marcha.
+
+Para regenerar cualquiera de los dos VCD:
+
+```
+iverilog -g2012 -s tb_periferico_pwm -o /tmp/tb.vvp src/design/*.sv src/sim/tb_periferico_pwm.sv && vvp /tmp/tb.vvp +VCD
+iverilog -g2012 -s tb_envoltura_xadc -o /tmp/tb.vvp src/design/*.sv src/sim/tb_envoltura_xadc.sv && vvp /tmp/tb.vvp +VCD
+```
+
 ## No corridas en esta ronda
 
 `sw/pruebas/prueba_generar_pr_params.m` (Octave) y `sw/pruebas/test_receptor_pc.py` (pytest) quedan fuera, lo pedido fue SystemVerilog y C.
