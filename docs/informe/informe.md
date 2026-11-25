@@ -586,6 +586,8 @@ Los contadores finales AW/W/B y AR/R no constituyen por sí solos una medida de 
 
 El banco de la envoltura cubre doce situaciones y termina con `PASA: tb_envoltura_xadc sin errores`. Comprueba secuencia DRP, rechazo de triggers durante conversión, fuentes de disparo, publicaciones y vuelta del contador módulo cuatro.
 
+En banco, la adquisición no perdió ninguna conversión. La bandera `dato_ausente` de los trece registros que exportó el controlador el 23 y 24 de noviembre (`muestras_Inversor/`, en la raíz y en `muestras_prueba_25/`, `muestras_recorte/` y `muestras_sensor/`) vale 0 en las 2048 muestras de cada uno, 26 624 en total. La ISR la levanta cuando el contador de la envoltura no cambió desde la lectura anterior, así que en cada período de 50 µs el lazo usó una conversión nueva, disparada por `pwm_trigger_o` en el valle. La bandera `falla` también vale 0 en todas las muestras, y `supervisor_falla` nunca llegó a las `ITERACIONES_SIN_DATO_MAX` seguidas sin dato.
+
 El diagnóstico adicional de núcleo PWM más envoltura confirma 10 ns de valle a trigger y otros 20 ns de trigger a `CONVST`. También identifica el último pulso truncado descrito en la sección 6.4. El código de ese diagnóstico no está versionado en el repositorio, así que se presenta como observación del equipo y no como evidencia archivada.
 
 ### 12.3 Pruebas del software
@@ -1002,6 +1004,7 @@ Las diferencias de esta tabla deben leerse con las limitaciones de 12.8.6. En 1,
 | Error de fundamental y fase en banco | Según el sensor, menos de 0,5 % y 0,1° a 0,2 y 0,5 A. Según el osciloscopio, 14,6 y 18,7 %, fuera del 10 %. A 1,0 A no se llega. |
 | Rizado ≤0,20 A pp | No cumple, 0,25 a 0,66 A pp medidos. |
 | Cambios de consigna y resistencia | Registrados solo 0,5→0,2 A y el cambio de carga a 1,0 A con la acción saturada. Sin registro 0,2→0,5, 0,5→1,0 y el cambio de R a 0,5 A. |
+| Adquisición sincronizada con el PWM | `CONVST` 20 ns después de `pwm_trigger_o` en el testbench de la envoltura. En banco, 0 muestras sin dato nuevo en 26 624 (12.2). |
 | Uso de recursos y timing | Reportes disponibles, con advertencias y alcance delimitados. |
 | Informe Markdown enriquecido | Este documento conserva formato, tablas, ecuaciones, figuras y evidencia reproducible. |
 

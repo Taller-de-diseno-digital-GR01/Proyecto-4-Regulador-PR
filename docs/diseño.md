@@ -722,7 +722,7 @@ flowchart LR
     SW(["SW[1:0]"]) --> BD
     ANA(["vauxp6 y vauxn6, JXADC"]) --> BD
     BD["sistema<br/>MicroBlaze V, memoria local, MDM,<br/>SmartConnect, seis esclavos AXI4-Lite,<br/>XADC Wizard y dos debounce"]
-    BD --> LED(["led[1:0]"])
+    BD --> LED(["led[4:0]"])
     BD --> TX(["tx, A18"])
     BD --> DEP(["depuracion, JB1"])
     BD --> GATE(["cuatro compuertas, JA7 a JA10"])
@@ -742,7 +742,7 @@ Fija cómo se arman e interconectan las instancias de la plataforma, con su conf
 
 ## e) Salidas
 
-- `led[1:0]`, `led[0]` para control habilitado y `led[1]` para falla, como fija [`control_principal`](modulos/control_principal.md).
+- `led[4:0]`, `led[0]` para control habilitado, `led[1]` a `led[3]` para la causa de la falla (sobrecorriente, cuenta del ADC fuera de escala y falta de dato) y `led[4]` para el error de arranque, como fija [`control_principal`](modulos/control_principal.md).
 - `tx`, la línea serie hacia el puente USB-UART.
 - `depuracion`, la salida de depuración que escribe la rutina periódica, para medir período y jitter con el osciloscopio.
 - `compuerta_a_alta`, `compuerta_a_baja`, `compuerta_b_alta` y `compuerta_b_baja`, de [`periferico_pwm`](modulos/periferico_pwm.md), hacia el aislamiento de las compuertas.
@@ -773,7 +773,7 @@ El procesador busca instrucciones y datos en la memoria local de 32 KB por los d
 - AXI SmartConnect, con un esclavo (`M_AXI_DP`) y seis maestros, uno por periférico.
 - `axi_timer_0`, AXI Timer con el Timer 2 desactivado y 32 bits.
 - `axi_uartlite_0`, AXI UART Lite a 115200 baudios, 8 bits de datos y sin paridad.
-- `axi_gpio_0`, AXI GPIO de dos canales. El canal 1 tiene 4 bits de entrada y el canal 2 tiene 2 bits de salida.
+- `axi_gpio_0`, AXI GPIO de dos canales. El canal 1 tiene 4 bits de entrada y el canal 2 tiene 5 bits de salida.
 - `axi_gpio_1`, AXI GPIO de un canal con 1 bit de salida.
 - `periferico_pwm_0`, instancia de `periferico_pwm`, con `DEAD_TIME_CICLOS = 100` y `PRECARGA_CICLOS = 7000` de `potencia/diseno_puente_h.md`, y `MAX_FREQ_00 = 5000`, `MAX_FREQ_01 = 2500`, `MAX_FREQ_10 = 1250` y `MAX_FREQ_11 = 2500` de la tabla de `freq_sel` de [`nucleo_pwm`](modulos/nucleo_pwm.md).
 - `envoltura_xadc_0`, instancia de `envoltura_xadc`. Su DRP es la interfaz maestra `m_drp`, conectada al `s_drp` del wizard.
@@ -839,8 +839,11 @@ Los switches quedan juntos y en orden, así que la amplitud se lee como `(entrad
 
 Canal 2 de `axi_gpio_0`, salidas.
 
-- Bit 0, `led[0]`, en LD0.
-- Bit 1, `led[1]`, en LD1.
+- Bit 0, `led[0]`, en LD0, control habilitado.
+- Bit 1, `led[1]`, en LD1, falla por sobrecorriente.
+- Bit 2, `led[2]`, en LD2, falla por cuenta del ADC fuera de escala.
+- Bit 3, `led[3]`, en LD3, falla por falta de dato.
+- Bit 4, `led[4]`, en LD4, error de arranque.
 
 Canal 1 de `axi_gpio_1`, salida.
 
@@ -855,7 +858,7 @@ Todos los pines digitales van en LVCMOS33. Los pines del paquete salen del archi
 - `BTN_HABILITAR` en T18 (BTNU).
 - `BTN_EXPORTAR` en U17 (BTND).
 - `SW[0]` en V17 y `SW[1]` en V16.
-- `led[0]` en U16 (LD0) y `led[1]` en E19 (LD1).
+- `led[0]` en U16 (LD0), `led[1]` en E19 (LD1), `led[2]` en U19 (LD2), `led[3]` en V19 (LD3) y `led[4]` en W18 (LD4).
 - `tx` en A18.
 - `depuracion` en A14 (JB1).
 - `compuerta_a_alta` en G3 (JA10).
@@ -900,7 +903,7 @@ flowchart TD
     DB1 -->|"In1"| CC
     SWI(["SW[1:0]"]) -->|"In2"| CC
     CC -->|"gpio_io_i[3:0]"| G0
-    G0 -->|"gpio2_io_o[1:0]"| LED(["led[1:0]"])
+    G0 -->|"gpio2_io_o[4:0]"| LED(["led[4:0]"])
     G1 -->|"gpio_io_o[0]"| DEP(["depuracion"])
     UA --> TX(["tx"])
     PWM -->|"pwm_trigger_o"| ENV
@@ -923,6 +926,9 @@ flowchart LR
         S1["SW1"] -->|"V16"| FPGA
         FPGA -->|"U16"| L0["LD0"]
         FPGA -->|"E19"| L1["LD1"]
+        FPGA -->|"U19"| L2["LD2"]
+        FPGA -->|"V19"| L3["LD3"]
+        FPGA -->|"W18"| L4["LD4"]
         FPGA -->|"A18"| USB["puente USB-UART"]
         FPGA -->|"G3, H2, K2, H1"| JA["JA7 a JA10"]
         FPGA -->|"A14"| JB["JB1"]
