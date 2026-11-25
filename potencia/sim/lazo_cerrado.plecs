@@ -28,18 +28,10 @@ Plecs {
   AlgebraicLoopWithStateMachineMsg "3"
   AssertionAction "1"
   FixedPointDatatypeOverride "1"
-  InitializationCommands "run('parametros.m');\n"
-"% Lazo cerrado: carga y bus medidos en banco y coeficientes de sw/pr_params.h\n"
-"R = 11.8;\n"
-"Vdc = 12.5;\n"
-"Iref = 0.5;\n"
-"PR_KP = 0.25;\n"
-"PR_B0 = 0.0138883177;\n"
-"PR_B1 = 0;\n"
-"PR_B2 = -0.0138883177;\n"
-"PR_A1 = -1.99975326;\n"
-"PR_A2 = 1.0;\n"
-"PR_U_MAX = 0.92;"
+  InitializationCommands "run('parametros.m');\n% Lazo cerrado: carga y bus me"
+"didos en banco y coeficientes de sw/pr_params.h\nR = 11.8;\nVdc = 12.5;\nIref"
+" = 0.5;\nPR_KP = 0.25;\nPR_B0 = 0.0138883177;\nPR_B1 = 0;\nPR_B2 = -0.0138883"
+"177;\nPR_A1 = -1.99975326;\nPR_A2 = 1.0;\nPR_U_MAX = 0.92;"
   InitialState  "1"
   SystemState   ""
   JacobianComputation "2"
@@ -609,6 +601,11 @@ Plecs {
         Show          off
       }
       Parameter {
+        Variable      "TerminalBasedSampleTimes"
+        Value         "1"
+        Show          off
+      }
+      Parameter {
         Variable      "Parameters"
         Value         "[PR_KP, PR_B0, PR_B1, PR_B2, PR_A1, PR_A2, PR_U_MAX]"
         Show          off
@@ -629,6 +626,11 @@ Plecs {
         Show          off
       }
       Parameter {
+        Variable      "HighlightLevel"
+        Value         "0"
+        Show          off
+      }
+      Parameter {
         Variable      "Declarations"
         Value         ""
         Show          off
@@ -641,14 +643,18 @@ Plecs {
       }
       Parameter {
         Variable      "OutputFcn"
-        Value         "OutputSignal(0, 0) = DiscState(4); // el PWM carga en el valle siguiente lo que calculó la ISR anterior"
+        Value         base64 "T3V0cHV0U2lnbmFsKDAsIDApID0gRGlzY1N0YXRlKDQpOyAv"
+"LyBlbCBQV00gY2FyZ2EgZW4gZWwgdmFsbGUgc2lndWllbnRlIGxvIHF1ZSBjYWxjdWzDg8KzIGxhI"
+"ElTUiBhbnRlcmlvcg=="
         Show          off
       }
       Parameter {
         Variable      "UpdateFcn"
         Value         "double e = InputSignal(0, 0) - InputSignal(1, 0);\n"
 "double up = ParamRealData(0, 0)*e;\n"
-"double r = ParamRealData(0, 1)*e + ParamRealData(0, 2)*DiscState(0) + ParamRealData(0, 3)*DiscState(1) - ParamRealData(0, 4)*DiscState(2) - ParamRealData(0, 5)*DiscState(3);\n"
+"double r = ParamRealData(0, 1)*e + ParamRealData(0, 2)*DiscState(0) + ParamRe"
+"alData(0, 3)*DiscState(1) - ParamRealData(0, 4)*DiscState(2) - ParamRealData("
+"0, 5)*DiscState(3);\n"
 "double u = up + r;\n"
 "double umax = ParamRealData(0, 6);\n"
 "if (u > umax || u < -umax) {\n"
@@ -1158,23 +1164,31 @@ Plecs {
     }
     Component {
       Type          Scope
-      Name          "Scope"
+      Name          "Load"
       Show          on
       Position      [570, 450]
       Direction     up
       Flipped       off
       LabelPosition south
       Frame         [-15, -20; 15, 20]
-      Location      [672, 58; 1181, 545]
-      State         ""
-      SavedViews    ""
-      HeaderState   ""
-      PlotPalettes  ""
+      Location      [0, 55; 1920, 1059]
+      State         "AAAA/wAAAAD9AAAAAgAAAAEAAAAAAAAAAPwCAAAAA/sAAAAQAFoAbwBvA"
+"G0AQQByAGUAYQAAAAAA/////wAAAIAA////+wAAABQAUwBhAHYAZQBkAFYAaQBlAHcAcwAAAAAA//"
+"///wAAAGIA////+wAAAAwAVAByAGEAYwBlAHMAAAAAAP////8AAABiAP///wAAAAMAAAeAAAAAovw"
+"BAAAAAfsAAAAUAEQAYQB0AGEAVwBpAGQAZwBlAHQBAAAAAAAAB4AAAABEAP///wAAB4AAAAMlAAAA"
+"BAAAAAQAAAAIAAAACPwAAAABAAAAAgAAAAEAAAAOAFQAbwBvAGwAQgBhAHIBAAAAAP////8AAAAAA"
+"AAAAA=="
+      SavedViews    "AAAAAgAAAAA="
+      HeaderState   "{\"DefaultSecSize\":100,\"FirstSecSize\":178,\"Labels\":["
+"\"Delta\"],\"VisualIdxs\":[3]}"
+      PlotPalettes  "AAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+"=="
       Axes          "3"
       TimeRange     "0"
       ScrollingMode "1"
       SingleTimeAxis "1"
-      Open          "0"
+      Open          "1"
       Ts            "-1"
       SampleLimit   "0"
       XAxisLabel    "Tiempo / s"
@@ -1271,6 +1285,22 @@ Plecs {
         Value         "1"
         Show          off
       }
+      Parameter {
+        Variable      "NoMatchingCounterpartAction"
+        Value         "1"
+        Show          off
+      }
+      Parameter {
+        Variable      "CustomMessage"
+        Value         ""
+        Show          off
+        Evaluate      on
+      }
+      Parameter {
+        Variable      "HighlightLevel"
+        Value         "0"
+        Show          off
+      }
     }
     Component {
       Type          From
@@ -1290,6 +1320,22 @@ Plecs {
         Value         "1"
         Show          off
       }
+      Parameter {
+        Variable      "NoMatchingCounterpartAction"
+        Value         "1"
+        Show          off
+      }
+      Parameter {
+        Variable      "CustomMessage"
+        Value         ""
+        Show          off
+        Evaluate      on
+      }
+      Parameter {
+        Variable      "HighlightLevel"
+        Value         "0"
+        Show          off
+      }
     }
     Component {
       Type          Output
@@ -1302,7 +1348,7 @@ Plecs {
       Parameter {
         Variable      "Index"
         Value         "1"
-        Show          off
+        Show          on
       }
       Parameter {
         Variable      "Width"
@@ -1321,11 +1367,309 @@ Plecs {
       Parameter {
         Variable      "Index"
         Value         "2"
-        Show          off
+        Show          on
       }
       Parameter {
         Variable      "Width"
         Value         "-1"
+        Show          off
+      }
+    }
+    Component {
+      Type          Scope
+      Name          "Dead_time"
+      Show          on
+      Position      [740, 450]
+      Direction     up
+      Flipped       off
+      LabelPosition south
+      Frame         [-15, -25; 15, 25]
+      Location      [0, 55; 1920, 1059]
+      State         "AAAA/wAAAAD9AAAAAgAAAAEAAAAAAAAAAPwCAAAAA/sAAAAQAFoAbwBvA"
+"G0AQQByAGUAYQAAAAAA/////wAAAKgA////+wAAABQAUwBhAHYAZQBkAFYAaQBlAHcAcwAAAAAA//"
+"///wAAAGIA////+wAAAAwAVAByAGEAYwBlAHMAAAAAAP////8AAABiAP///wAAAAMAAAeAAAAAwvw"
+"BAAAAAfsAAAAUAEQAYQB0AGEAVwBpAGQAZwBlAHQBAAAAAAAAB4AAAABEAP///wAAB4AAAAMFAAAA"
+"BAAAAAQAAAAIAAAACPwAAAABAAAAAgAAAAEAAAAOAFQAbwBvAGwAQgBhAHIBAAAAAP////8AAAAAA"
+"AAAAA=="
+      SavedViews    "AAAAAgAAAAA="
+      HeaderState   "{\"DefaultSecSize\":100,\"FirstSecSize\":145,\"Labels\":["
+"\"Delta\"],\"VisualIdxs\":[3]}"
+      PlotPalettes  "AAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+      Axes          "4"
+      TimeRange     "0"
+      ScrollingMode "1"
+      SingleTimeAxis "1"
+      Open          "1"
+      Ts            "-1"
+      SampleLimit   "0"
+      XAxisLabel    "Time / s"
+      ShowLegend    "2"
+      Axis {
+        Name          ""
+        AutoScale     1
+        MinValue      0
+        MaxValue      1
+        Signals       {}
+        SignalTypes   [ ]
+        Untangle      0
+        KeepBaseline  off
+        BaselineValue 0
+      }
+      Axis {
+        Name          ""
+        AutoScale     1
+        MinValue      0
+        MaxValue      1
+        Signals       {}
+        SignalTypes   [ ]
+        Untangle      0
+        KeepBaseline  off
+        BaselineValue 0
+      }
+      Axis {
+        Name          ""
+        AutoScale     1
+        MinValue      0
+        MaxValue      1
+        Signals       {}
+        SignalTypes   [ ]
+        Untangle      0
+        KeepBaseline  off
+        BaselineValue 0
+      }
+      Axis {
+        Name          ""
+        AutoScale     1
+        MinValue      0
+        MaxValue      1
+        Signals       {}
+        SignalTypes   [ ]
+        Untangle      0
+        KeepBaseline  off
+        BaselineValue 0
+      }
+      Fourier {
+        SingleXAxis       on
+        AxisLabel         "Frequency / Hz"
+        Scaling           0
+        PhaseDisplay      0
+        ShowFourierLegend off
+        Axis {
+          Name          ""
+          AutoScale     1
+          MinValue      0
+          MaxValue      1
+          Signals       {}
+          Untangle      0
+          KeepBaseline  off
+          BaselineValue 0
+        }
+        Axis {
+          Name          ""
+          AutoScale     1
+          MinValue      0
+          MaxValue      1
+          Signals       {}
+          Untangle      0
+          KeepBaseline  off
+          BaselineValue 0
+        }
+        Axis {
+          Name          ""
+          AutoScale     1
+          MinValue      0
+          MaxValue      1
+          Signals       {}
+          Untangle      0
+          KeepBaseline  off
+          BaselineValue 0
+        }
+        Axis {
+          Name          ""
+          AutoScale     1
+          MinValue      0
+          MaxValue      1
+          Signals       {}
+          Untangle      0
+          KeepBaseline  off
+          BaselineValue 0
+        }
+      }
+    }
+    Component {
+      Type          From
+      Name          "From"
+      Show          off
+      Position      [680, 415]
+      Direction     right
+      Flipped       off
+      LabelPosition south
+      Parameter {
+        Variable      "Tag"
+        Value         "gAH"
+        Show          off
+      }
+      Parameter {
+        Variable      "Visibility"
+        Value         "1"
+        Show          off
+      }
+      Parameter {
+        Variable      "NoMatchingCounterpartAction"
+        Value         "1"
+        Show          off
+      }
+      Parameter {
+        Variable      "CustomMessage"
+        Value         ""
+        Show          off
+        Evaluate      on
+      }
+      Parameter {
+        Variable      "HighlightLevel"
+        Value         "0"
+        Show          off
+      }
+    }
+    Component {
+      Type          From
+      Name          "From1"
+      Show          off
+      Position      [655, 435]
+      Direction     right
+      Flipped       off
+      LabelPosition south
+      Parameter {
+        Variable      "Tag"
+        Value         "gAL"
+        Show          off
+      }
+      Parameter {
+        Variable      "Visibility"
+        Value         "1"
+        Show          off
+      }
+      Parameter {
+        Variable      "NoMatchingCounterpartAction"
+        Value         "1"
+        Show          off
+      }
+      Parameter {
+        Variable      "CustomMessage"
+        Value         ""
+        Show          off
+        Evaluate      on
+      }
+      Parameter {
+        Variable      "HighlightLevel"
+        Value         "0"
+        Show          off
+      }
+    }
+    Component {
+      Type          From
+      Name          "From2"
+      Show          off
+      Position      [655, 465]
+      Direction     right
+      Flipped       off
+      LabelPosition south
+      Parameter {
+        Variable      "Tag"
+        Value         "d"
+        Show          off
+      }
+      Parameter {
+        Variable      "Visibility"
+        Value         "1"
+        Show          off
+      }
+      Parameter {
+        Variable      "NoMatchingCounterpartAction"
+        Value         "1"
+        Show          off
+      }
+      Parameter {
+        Variable      "CustomMessage"
+        Value         ""
+        Show          off
+        Evaluate      on
+      }
+      Parameter {
+        Variable      "HighlightLevel"
+        Value         "0"
+        Show          off
+      }
+    }
+    Component {
+      Type          Goto
+      Name          "Goto"
+      Show          off
+      Position      [105, 500]
+      Direction     right
+      Flipped       off
+      LabelPosition south
+      Parameter {
+        Variable      "Tag"
+        Value         "portH"
+        Show          off
+      }
+      Parameter {
+        Variable      "Visibility"
+        Value         "1"
+        Show          off
+      }
+      Parameter {
+        Variable      "NoMatchingCounterpartAction"
+        Value         "2"
+        Show          off
+      }
+      Parameter {
+        Variable      "CustomMessage"
+        Value         ""
+        Show          off
+        Evaluate      on
+      }
+      Parameter {
+        Variable      "HighlightLevel"
+        Value         "0"
+        Show          off
+      }
+    }
+    Component {
+      Type          From
+      Name          "From3"
+      Show          off
+      Position      [680, 490]
+      Direction     right
+      Flipped       off
+      LabelPosition south
+      Parameter {
+        Variable      "Tag"
+        Value         "portH"
+        Show          off
+      }
+      Parameter {
+        Variable      "Visibility"
+        Value         "1"
+        Show          off
+      }
+      Parameter {
+        Variable      "NoMatchingCounterpartAction"
+        Value         "1"
+        Show          off
+      }
+      Parameter {
+        Variable      "CustomMessage"
+        Value         ""
+        Show          off
+        Evaluate      on
+      }
+      Parameter {
+        Variable      "HighlightLevel"
+        Value         "0"
         Show          off
       }
     }
@@ -1469,6 +1813,7 @@ Plecs {
       Type          Signal
       SrcComponent  "Referencia"
       SrcTerminal   1
+      Points        [80, 415]
       DstComponent  "PR"
       DstTerminal   1
     }
@@ -1512,22 +1857,6 @@ Plecs {
         Points        [230, 685]
         DstComponent  "Cmp_BL"
         DstTerminal   2
-      }
-    }
-    Connection {
-      Type          Signal
-      SrcComponent  "Portadora altas"
-      SrcTerminal   1
-      Points        [140, 530]
-      Branch {
-        Points        [140, 495]
-        DstComponent  "Cmp_AH"
-        DstTerminal   1
-      }
-      Branch {
-        Points        [140, 615]
-        DstComponent  "Cmp_BH"
-        DstTerminal   1
       }
     }
     Connection {
@@ -1579,14 +1908,14 @@ Plecs {
       SrcComponent  "F_i"
       SrcTerminal   1
       Points        [520, 405; 520, 440]
-      DstComponent  "Scope"
+      DstComponent  "Load"
       DstTerminal   1
     }
     Connection {
       Type          Signal
       SrcComponent  "F_vo"
       SrcTerminal   1
-      DstComponent  "Scope"
+      DstComponent  "Load"
       DstTerminal   2
     }
     Connection {
@@ -1594,7 +1923,7 @@ Plecs {
       SrcComponent  "F_d"
       SrcTerminal   1
       Points        [520, 500; 520, 460]
-      DstComponent  "Scope"
+      DstComponent  "Load"
       DstTerminal   3
     }
     Connection {
@@ -1611,13 +1940,68 @@ Plecs {
       DstComponent  "Out_d"
       DstTerminal   1
     }
-
     Connection {
       Type          Signal
       SrcComponent  "F_i_pr"
       SrcTerminal   1
+      Points        [69, 425]
       DstComponent  "PR"
       DstTerminal   2
+    }
+    Connection {
+      Type          Signal
+      SrcComponent  "From"
+      SrcTerminal   1
+      Points        [700, 415; 700, 435]
+      DstComponent  "Dead_time"
+      DstTerminal   1
+    }
+    Connection {
+      Type          Signal
+      SrcComponent  "From1"
+      SrcTerminal   1
+      Points        [695, 435; 695, 445]
+      DstComponent  "Dead_time"
+      DstTerminal   2
+    }
+    Connection {
+      Type          Signal
+      SrcComponent  "From2"
+      SrcTerminal   1
+      Points        [695, 465; 695, 455]
+      DstComponent  "Dead_time"
+      DstTerminal   3
+    }
+    Connection {
+      Type          Signal
+      SrcComponent  "Portadora altas"
+      SrcTerminal   1
+      Points        [85, 530]
+      Branch {
+        Points        [140, 530]
+        Branch {
+          Points        [140, 495]
+          DstComponent  "Cmp_AH"
+          DstTerminal   1
+        }
+        Branch {
+          Points        [140, 615]
+          DstComponent  "Cmp_BH"
+          DstTerminal   1
+        }
+      }
+      Branch {
+        DstComponent  "Goto"
+        DstTerminal   1
+      }
+    }
+    Connection {
+      Type          Signal
+      SrcComponent  "From3"
+      SrcTerminal   1
+      Points        [700, 490; 700, 465]
+      DstComponent  "Dead_time"
+      DstTerminal   4
     }
   }
 }
