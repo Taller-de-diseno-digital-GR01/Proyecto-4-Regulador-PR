@@ -121,6 +121,12 @@ iverilog -g2012 -s tb_periferico_pwm -o /tmp/tb.vvp src/design/*.sv src/sim/tb_p
 iverilog -g2012 -s tb_envoltura_xadc -o /tmp/tb.vvp src/design/*.sv src/sim/tb_envoltura_xadc.sv && vvp /tmp/tb.vvp +VCD
 ```
 
+## JB1, diagrama ilustrativo, no una simulación
+
+`sim/img/jb1_cadencia_lazo_ilustrativo.png`. JB1 es la señal de depuración de `lazo_control.c` (`drivers_depuracion`, sube al entrar a la ISR y baja al salir, `lazo_control.c:49` y `:112`), pensada para verse con el osciloscopio en hardware real, tal como quedó anotado en el diagnóstico de LD1 del 2026-11-19. No existe en ningún testbench de `src/sim/` (ninguno modela la ISR ni el AXI Timer) y en `prueba_lazo_control.c` tampoco tiene tiempo real, esa prueba solo cuenta llamadas, no mide microsegundos.
+
+El diagrama arma el período de 50 µs a partir de la constante real `PR_FRECUENCIA_MUESTREO_HZ = 20000` (`sw/pr_params.h`), y dibuja el ancho del pulso con la estimación sin FPU que ya está en `docs/diseño/modulos/lazo_control.md` (15 a 25 µs, tramo sólido hasta el mínimo y sombreado hasta el máximo). El ancho real de cada pulso, y si de verdad cae dentro de ese rango, solo se sabe midiendo JB1 con el osciloscopio.
+
 ## No corridas en esta ronda
 
 `sw/pruebas/prueba_generar_pr_params.m` (Octave) y `sw/pruebas/test_receptor_pc.py` (pytest) quedan fuera, lo pedido fue SystemVerilog y C.
