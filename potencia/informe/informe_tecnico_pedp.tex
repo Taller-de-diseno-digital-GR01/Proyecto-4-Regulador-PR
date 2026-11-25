@@ -287,7 +287,7 @@ Con la carga de diseño se corrió en lazo abierto, con \SI{12}{V}, $R=\SI{9.6}{
 	\end{tabular}
 \end{table}
 
-Para el lazo cerrado se agregó al mismo modelo el regulador del firmware en un bloque C-Script (\texttt{potencia/sim/lazo\_cerrado.plecs}). El bloque muestrea la corriente en cada valle, aplica los coeficientes de \texttt{sw/pr\_params.h} con la saturación en $\pm\num{0.92}$ y el mismo anti-windup del firmware, y entrega el índice al modulador una muestra después, igual que el periférico, que lo carga en el valle siguiente. La carga es la medida en banco, \SI{11.8}{\ohm} y \SI{200}{\micro H}, y el sensor se toma ideal, sin filtro ni error de ganancia. Los ensayos se corren con \texttt{potencia/sim/lazo\_cerrado.py}, que ajusta la fundamental en los últimos cinco períodos de \SI{0.2}{s} simulados (Tabla~\ref{tab:plecs_cerrado}).
+Para el lazo cerrado (Fig.~\ref{fig:plecs_cerrado}) se agregó al mismo modelo el regulador del firmware en un bloque C-Script (\texttt{potencia/sim/lazo\_cerrado.plecs}). El bloque muestrea la corriente en cada valle, aplica los coeficientes de \texttt{sw/pr\_params.h} con la saturación en $\pm\num{0.92}$ y el mismo anti-windup del firmware, y entrega el índice al modulador una muestra después, igual que el periférico, que lo carga en el valle siguiente. La carga es la medida en banco, \SI{11.8}{\ohm} y \SI{200}{\micro H}, y el sensor se toma ideal, sin filtro ni error de ganancia. Los ensayos se corren con \texttt{potencia/sim/lazo\_cerrado.py}, que ajusta la fundamental en los últimos cinco períodos de \SI{0.2}{s} simulados (Tabla~\ref{tab:plecs_cerrado}).
 
 Con un sensor perfecto, la corriente física queda entre \num{6} y \SI{10}{\percent} sobre la referencia, porque el regulador lleva a la referencia la muestra del valle y no el promedio del período. A \SI{1.0}{A} con \SI{12.5}{V} la acción satura, y la corriente queda \SI{8.9}{\percent} por debajo, con \ang{11.5} de desfase. Con \SI{18}{V} el mismo punto no satura, con un índice máximo de \num{0.78}, y tampoco satura con los \SI{2.5}{\ohm} añadidos, donde llega a \num{0.91}. El rizado simulado va de \num{0.28} a \SI{0.56}{A} pico a pico.
 
@@ -309,6 +309,13 @@ Con un sensor perfecto, la corriente física queda entre \num{6} y \SI{10}{\perc
 		\bottomrule
 	\end{tabular}}
 \end{table}
+
+\begin{figure}[!ht]
+	\centering
+	\includegraphics[width=\columnwidth]{plecs_lazo_cerrado}
+	\caption{Corriente física y referencia en el lazo cerrado de PLECS, con $R=\SI{11.8}{\ohm}$ y $L=\SI{200}{\micro H}$, en los últimos cinco períodos de la fundamental. Arriba, \num{0.2} y \SI{0.5}{A} con \SI{12.5}{V}. Abajo, \SI{1.0}{A} con \SI{12.5}{V}, donde la acción satura, y con \SI{18}{V}.}
+	\label{fig:plecs_cerrado}
+\end{figure}
 
 La simulación usa los \SI{200}{\micro H} nominales. Con la inductancia medida en un inductor, la total sería un \SI{6}{\percent} mayor, lo que baja el rizado en una proporción parecida y reduce un poco el sesgo del valle, que depende de $\tau=L/R$.
 
