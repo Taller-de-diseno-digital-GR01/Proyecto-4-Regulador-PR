@@ -916,6 +916,8 @@ El 24 de noviembre se agregó al mismo modelo el PR del firmware en un bloque C-
 
 Con sensor perfecto la corriente física queda entre 6 y 10 % por encima de la referencia a 0,2 y 0,5 A, porque el regulador lleva a la referencia la muestra del valle y no el promedio del período. A 1,0 A con 12,5 V la acción satura. Con 18 V el mismo punto no satura, ni siquiera con los 2,5 Ω añadidos (índice máximo de 0,91). El rizado simulado va de 0,28 a 0,56 A pp. Este modelo usa 200 µH nominales, mientras que un inductor midió 106,2 µH.
 
+![PLECS en lazo cerrado con el PR, 11,8 Ω, últimos cinco períodos](figuras/plecs_lazo_cerrado.png)
+
 ### 12.12 Simulación conmutada en Octave con la carga medida
 
 Se corrió `simular_conmutado(11.8, 200e-6, 12.5, 18)`, es decir 11,8 Ω, 200 µH, bus de 12,5 V y coeficientes normalizados con 18 V como los de `sw/pr_params.h`. La salida está en `evidencia/modelo_conmutado_11p8ohm_12p5V_pr18V.txt`.
