@@ -6,14 +6,14 @@ Firmware de `arreglo-final` con el autocero del offset y el AD822 del acondicion
 
 - Bus de 18 V con límite de la fuente en 0,74 A en todas las mediciones.
 - R total de la carga original, 11,8 Ω con multímetro. El segundo inductor dio igual que el primero con el LCR.
-- R total de la carga +25 %, 18,7 Ω con multímetro.
+- R total de la carga +25 %, 18,7 Ω con multímetro a dos hilos. En los informes no se usa, porque no es compatible con la acción de control, y se toman 15,7 Ω.
 - Salida del AD822 medida en 0,74 V.
 
 ## Carga original
 
 - `0A.csv`, consigna 0. Continua de +0,002 A, 0,023 A RMS de ruido.
 - `0.2A.csv`, 0,2002 A contra 0,1993 A, error 0,42 %, fase −0,02°, continua +0,010 A.
-- `0.5A.csv`, 0,4997 A contra 0,4993 A, error 0,08 %, fase +0,02°, continua −0,003 A. El primer intento llegó con la trama cortada (7378 de 118358 bytes) y se repitió.
+- `0.5A.csv`, 0,4997 A contra 0,4993 A, error 0,08 %, fase +0,02°, continua −0,003 A. El primer intento llegó con la trama cortada (7378 de 118358 bytes) porque se desconectó el cable USB por accidente, y se repitió.
 - `1.0A.csv`, 1,0001 A contra 0,9994 A, error 0,07 %, fase +0,01°, continua +0,010 A.
 
 Ninguno tiene muestras saturadas, datos ausentes ni falla. Error y fase según el sensor, sobre los últimos cinco períodos.

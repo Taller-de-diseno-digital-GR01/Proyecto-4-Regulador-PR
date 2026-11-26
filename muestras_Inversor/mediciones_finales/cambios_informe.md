@@ -88,15 +88,15 @@ Con 18 V, el tope de acción de 0,92 da 16,6 V. Para 1,0 A pico hacen falta R·1
 
 De la acción de los CSV a 0,2 y 0,5 A sale una relación V/I que baja con la corriente, señal de una caída casi constante en el puente. Ajustando R más una caída fija, la carga original da unos 12,2 Ω con 0,65 V de caída, cerca de los 11,8 Ω medidos. La carga +25 % da unos 15,7 Ω con 1,0 V. Con esos números, 1,0 A pide unos 16,7 V, justo por encima de los 16,6 V disponibles.
 
-## Discrepancia en la R de la carga +25 %
+## R de la carga +25 %
 
-Hay tres valores que no cuadran entre sí, y en el informe va como diferencia sin aislar.
+Hay tres valores para la misma carga.
 
-- 11,8 Ω más los 2,5 Ω agregados dan 14,3 Ω, un 21 % más.
-- El multímetro dio 18,7 Ω, un 58 % más.
-- La acción de control da unos 15,7 Ω, un 29 % más.
+- 11,8 Ω más los 2,5 Ω agregados dan 14,3 Ω, un 21 % más, que no llega al 25 %.
+- El multímetro dio 18,7 Ω a dos hilos.
+- La acción de control da unos 15,7 Ω, un 29 % más que los 12,2 Ω que da el mismo método con la carga original.
 
-En los tres casos el cambio supera el 25 % que pide el enunciado, así que el ensayo vale igual.
+Se decidió el 26 de noviembre usar los 15,7 Ω. Es el valor compatible con la tensión aplicada a 0,2 y 0,5 A y con la saturación a 1,0 A, y cumple el 25 %. La lectura del multímetro no se usa, porque con 18,7 Ω la acción a 0,5 A habría tenido que llegar a unos 10,4 V y llegó a 8,9 V.
 
 ## Limitaciones (12.8.6 y la sección del `.tex`)
 
