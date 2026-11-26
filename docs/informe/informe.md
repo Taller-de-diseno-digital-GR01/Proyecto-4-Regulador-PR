@@ -163,11 +163,25 @@ $$\Delta i_{pp}(D)=\frac{V_{dc}}R\frac{(1-e^{-RDh/L})(1-e^{-R(1-D)h/L})}{1-e^{-R
 
 Para una envolvente senoidal que alcanza `mpk`, el máximo de esta aproximación se evalúa en `D = min(mpk, 0,5)`. Supone envolvente local casi constante, componentes ideales y ausencia de tiempo muerto. Es una predicción de dimensionamiento, no una medición ni una simulación completa del inversor.
 
-### 3.6 Interfaces y tiempo real
+### 3.6 Sistema embebido, interfaces y tiempo real
 
-AXI4-Lite separa las direcciones de escritura, datos y respuestas en canales independientes. El periférico debe admitir que AW y W lleguen en distinto orden y mantener las respuestas estables mientras el maestro aplica contrapresión [7]. La interfaz de registros desacopla el programa del PWM, pero una escritura aceptada por AXI todavía debe atravesar el pipeline y esperar la actualización en el valle.
+#### Procesador y periféricos mapeados en memoria
 
-La ISR dispone nominalmente de 50 µs. Su duración máxima y el jitter solo se obtienen midiendo en la FPGA, y en este trabajo se midió el período (12.8.4). El cierre de timing a 100 MHz verifica caminos del circuito bajo las restricciones aplicadas; no acredita que el programa complete toda la ISR dentro de ese plazo.
+MicroBlaze V es un procesador blando de AMD basado en la arquitectura de conjunto de instrucciones RISC-V, que se instancia en la lógica de la FPGA y se configura desde Vivado [13]. Se conecta con su memoria de programa y datos por el bus local LMB, que en este diseño sirve los 32 KiB de BRAM, y con los periféricos por AXI. Cada periférico ocupa un rango de direcciones (5.1), y el programa lo maneja con lecturas y escrituras ordinarias a esas direcciones. En el firmware esos accesos pasan por las funciones `Xil_In32` y `Xil_Out32` del BSP de AMD (`sw/drivers.c`). Eso permite que el periférico PWM se trate como dos palabras de 32 bits, una de control y una de referencia (5.2).
+
+#### AXI4-Lite
+
+AXI separa una transacción en cinco canales independientes: dirección de escritura (AW), datos de escritura (W), respuesta de escritura (B), dirección de lectura (AR) y datos de lectura (R) [7]. Cada canal transfiere con el mismo par de señales. La fuente sube `VALID` cuando la información es válida, el destino sube `READY` cuando puede aceptarla, y la transferencia ocurre en el flanco de reloj en que ambas están en alto. La fuente no puede esperar a `READY` para subir `VALID`, y una vez que lo sube debe mantenerlo, junto con la información, hasta que la transferencia ocurra. Esa regla evita bloqueos entre maestro y esclavo y es la que obliga a retener `BVALID` o `RVALID` mientras el maestro no acepta la respuesta.
+
+AXI4-Lite es el subconjunto para registros de control. Cada transacción transfiere una sola palabra, sin ráfagas, y usa datos de 32 o 64 bits con habilitación por byte en `WSTRB` [7]. Una escritura termina cuando el esclavo devuelve la respuesta por B, que solo puede emitir después de haber recibido tanto la dirección como el dato, y AW y W pueden llegar en cualquier orden. El periférico PWM implementa exactamente esas reglas (6.1), y una escritura aceptada por AXI todavía atraviesa el pipeline y espera la actualización en el valle de la portadora (6.2).
+
+#### Interrupciones y tiempo real
+
+Un sistema de tiempo real es aquel cuya corrección depende también del instante en que se produce el resultado [14]. El lazo de corriente es una tarea periódica con período `Ts = 50 µs` y plazo igual al período. Si la ISR no termina antes de la siguiente interrupción, la orden se aplica tarde o se pierde, y el modelo discreto con el que se diseñó el PR (3.2) deja de representar al sistema. Por eso el lazo se trata como una tarea de tiempo real estricto.
+
+La latencia de interrupción es el tiempo entre el evento y el inicio de la rutina que lo atiende, y suma la respuesta del hardware, el guardado de contexto y lo que se esté ejecutando con interrupciones deshabilitadas. El jitter es la variación de ese instante, o del de finalización, entre activaciones sucesivas [14]. Para que el muestreo sea uniforme, el instante de muestreo no depende de la ISR. El disparo del ADC lo genera el hardware en el valle de la portadora, y la ISR, disparada por el AXI Timer a la misma frecuencia, solo lee la conversión ya terminada. El jitter del software afecta cuándo se calcula la orden, pero no cuándo se mide la corriente ni cuándo se aplica la orden, que espera al valle siguiente. En este diseño el determinismo viene de esa división. El hardware fija los instantes de muestreo y actuación, y al software solo se le exige terminar antes del plazo.
+
+La duración máxima de la ISR y su jitter solo se obtienen midiendo en la FPGA. En este trabajo se midió el período de la señal de depuración JB1 (12.8.4). El cierre de timing a 100 MHz verifica los caminos del circuito bajo las restricciones aplicadas, pero no acredita que el programa complete la ISR dentro del plazo.
 
 ## 4. Enfoque de la solución
 
@@ -920,40 +934,11 @@ La sensibilidad al punto de captura se calculó con `aliasing_pr.m` (`evidencia/
 
 El valle es un punto estable (el error cambia 1 punto porcentual por cada 200 ns), mientras que cerca del flanco o del centro del pulso un desvío de 200 ns pasa de 1 a −18 % a 0,2 A. Esto justifica muestrear en el valle y mantener fija la fase entre el disparo y la portadora.
 
-### 12.10 Carga medida de 9,6 Ω y bus de 12 V
+### 12.10 Análisis previo con 9,6 Ω y 12 V
 
-El equipo midió una resistencia total de aproximadamente 9,6 Ω con 200 µH y planteó operar a 12 V. Todo lo anterior de este capítulo se calculó para la carga de diseño (9 Ω y 18 V), así que se repitieron los scripts con estos valores (`verificar_pr(9.6, 200e-6, 12, 4.5)`, `aliasing_pr`, `figuras_informe` y `simular_conmutado(9.6, 200e-6, 12, 12)`). Las salidas llevan el sufijo `_9p6ohm_12V` en `evidencia/`. Se mantienen `Kp = 4,5 V/A` y `Kr = 10000`, y el modelo supone coeficientes normalizados con 12 V. Es un análisis previo a la medición de la carga, que está en 12.11 y 12.12.
+Antes de medir la carga, el equipo evaluó operar con unos 9,6 Ω y 12 V. Se repitieron los scripts con esos valores (`verificar_pr(9.6, 200e-6, 12, 4.5)`, `aliasing_pr`, `figuras_informe` y `simular_conmutado(9.6, 200e-6, 12, 12)`), y las salidas llevan el sufijo `_9p6ohm_12V` en `evidencia/`. El lazo conservaba márgenes de 111,0° y 8,2 dB, con 5,6 dB en la peor esquina, y el rizado conmutado bajaba a 0,26, 0,39 y 0,40 A pp, todavía sobre 0,20 A pp.
 
-| Magnitud | Valor |
-|---|---:|
-| Módulo de impedancia a 50 Hz | 9,60 Ω |
-| Índice de modulación para 0,2 / 0,5 / 1,0 A pico | 0,160 / 0,400 / 0,800 |
-| Cruce, margen de fase y de ganancia nominales | 200 Hz, 111,0°, 8,2 dB |
-| Esquinas de R ±25 % y L ±30 %, peor margen de ganancia | 5,6 dB (R de 7,2 Ω, L de 140 µH) |
-| Esquinas, peor margen de fase | 106,5° |
-| Con RC de 4,8 kHz, nominal y esquina baja | 108,6° y 9,9 dB, 115,2° y 7,3 dB |
-| Pérdida de tensión por tiempo muerto | 0,48 V |
-| Fundamental en lazo abierto a 0,2 / 0,5 / 1,0 A | −35 % / −16 % / −10 % |
-| Pico del escalón de 0,2 a 1,0 A | 1,034 A |
-| Índice máximo en ese escalón | 0,82 (1,02 con R de 12 Ω) |
-
-Simulación conmutada con las mismas condiciones del apartado 12.9.
-
-| Caso | Fundamental física (A pico) | Error físico (%) | Fase (°) | Fundamental muestreada (A pico) | Rizado máximo (A pp) | Saturación |
-|---|---:|---:|---:|---:|---:|---|
-| 0,2 A | 0,2069 | 3,46 | 0,67 | 0,2000 | 0,258 | No |
-| 0,5 A | 0,5142 | 2,83 | 0,64 | 0,5000 | 0,388 | No |
-| 1,0 A | 1,0061 | 0,61 | 0,61 | 1,0000 | 0,395 | No |
-| R de 9,6 a 12,8 Ω, 0,5 A | 0,5241 | 4,83 | 0,67 | 0,5000 | 0,378 | No |
-| Esquina R de 7,2 Ω, 1,0 A | 1,0063 | 0,63 | 0,58 | 1,0000 | 0,408 | No |
-| Esquina R de 12 Ω, 1,0 A | 0,9087 | 9,13 | 9,25 | 0,9040 | 0,382 | Sí |
-
-Lo que cambia con esta carga es lo siguiente.
-- A 12 V el índice de modulación a 1,0 A es 0,80, y el límite de 0,92 del firmware solo permite 11,04 Ω a esa corriente. Con la R en la esquina alta de 12 Ω el PR satura, el error físico sube a 9,1 % (11,3 % si se dejan los coeficientes normalizados con 18 V) y la fase se desvía 9°. Queda al borde del límite de 10 % y se cumple solo por muy poco, así que 12 V no deja margen para 1 A con R mayor de 11 Ω.
-- A 12 V y 20 kHz el rizado ideal es 0,198, 0,350 y 0,364 A pp, y el conmutado 0,26, 0,39 y 0,40 A pp. Es menor que a 18 V, pero sigue sobre 0,20 A pp. Con 40 kHz la predicción ideal baja a 0,100, 0,179 y 0,186 A pp, que cumple el límite. A 18 V y 40 kHz queda en 0,107, 0,219 y 0,279 A pp y no cumple.
-- En banco, la columna `saturado` del CSV (bit 15 del registro) delata este caso. Apareció con 1,0 A y la carga de +25 % (12.8.1).
-- Los coeficientes de `sw/pr_params.h` están normalizados con 18 V, el bus de los ensayos finales. Para 12 V habría que regenerarlos con `sw/generar_pr_params.m` (`KP = 0,375` y `B0 = 0,0208325`). La simulación con los coeficientes de 18 V a 12 V da prácticamente los mismos resultados, salvo en el caso saturado, porque la ganancia física baja a 3 V/A.
-- La sensibilidad a la captura en el valle (`aliasing_pr_9p6ohm_12V.log`) da 2,95 % a 1,0 A y 5,97 % a 0,2 A, y a 0,2 A una captura 200 ns después del centro del pulso da −14,95 %. El valle sigue siendo el punto estable.
+Lo que decidió el bus fue la tensión. A 12 V el límite de 0,92 del firmware solo alcanza para 1,0 A con hasta 11,04 Ω, y con 12 Ω la simulación ya saturaba, con 9,1 % de error y 9° de desfase. La carga medida resultó de 11,8 Ω, y los ensayos finales se hicieron con 18 V (12.8).
 
 ### 12.11 Estado de PLECS
 
@@ -1011,23 +996,21 @@ La aparente holgura del modelo no permite ignorar filtro, fase real del muestreo
 
 El resonante ideal explica el error estacionario casi nulo del modelo promediado. En el sistema real habrá cuantización, redondeo, error de sensibilidad y offset, distorsión de tiempo muerto, ruido y posible sesgo de muestreo. Una coincidencia entre referencia y CSV no demuestra por sí sola que la corriente física tenga la amplitud correcta.
 
-El error de continua tampoco conserva el valor de la sintonización antigua. En el modelo de baja frecuencia, el resonante ideal tiene ganancia nula en continua y la acción proporcional actual da `Kp/(R+Kp) = 1/3`. Un sesgo de medida `δi` puede inducir aproximadamente `−δi/3` de corriente continua física en ese modelo. Por ejemplo, 102 cuentas con la escala nominal representan cerca de 0,113 A de sesgo de lectura y del orden de 0,038 A de corriente física de continua inducida. Esto refuerza la necesidad de calibrar, sin presentar ese ejemplo como un resultado medido.
+El error de continua tampoco conserva el valor de la sintonización antigua. En el modelo de baja frecuencia, el resonante ideal tiene ganancia nula en continua y la acción proporcional actual da `Kp/(R+Kp) = 1/3`. Un sesgo de medida `δi` puede inducir aproximadamente `−δi/3` de corriente continua física en ese modelo. Por eso el cero se mide al habilitar con el puente conmutando (9.3), y en banco la continua quedó dentro de ±0,02 A (12.8.2).
 
-En banco, con el autocero y la ganancia calibrada, la continua quedó dentro de ±0,02 A y la corriente física medida con el osciloscopio entre 3 y 4,5 % por debajo de la referencia (12.8.3). El 10 % de error queda demostrado según el sensor y según el osciloscopio. Las simulaciones predicen que la muestra del valle queda por debajo del promedio físico, y en banco la corriente física queda por debajo de la muestreada. La causa más probable es que la constante de ganancia se calibró con el AD822 a 5 V, que comprimía la señal, y no se recalibró al pasarlo a 10 V (12.8.3). Un error de ganancia del sensor cambia igual la amplitud medida y la que el lazo cree que tiene, así que el lazo converge a una corriente física desplazada en esa proporción.
+En banco la corriente física quedó unos 4 % por debajo de la referencia (12.8.3). Las simulaciones predicen que la muestra del valle queda por debajo del promedio físico, y en banco la corriente física queda por debajo de la muestreada. La causa más probable es que la constante de ganancia se calibró con el AD822 a 5 V, que comprimía la señal, y no se recalibró al pasarlo a 10 V (12.8.3). Un error de ganancia del sensor cambia igual la amplitud medida y la que el lazo cree que tiene, así que el lazo converge a una corriente física desplazada en esa proporción.
 
 ### 13.4 Transitorios y rampa
 
-La rampa limita la velocidad de variación de la amplitud aplicada y reduce la exigencia de tensión respecto de un escalón ideal. Por ello hay que distinguir el cambio del interruptor de consigna de la referencia que utiliza el PR. Los modelos numéricos muestran transiciones estables bajo las hipótesis declaradas, pero no permiten atribuir un sobrepico físico máximo ni un tiempo de establecimiento experimental.
-
-En banco (12.8.6), el escalón de 0,5 a 1,0 A se establece en unos 30 ms, que es la rampa de 20 ms más un poco de respuesta del PR, sin oscilación visible. El de 0,2 a 0,5 A pasa por cero por la codificación de los switches, así que lo que se ve es un arranque desde cero hasta 0,48 A en unos 30 ms. En el cambio de R a 0,5 A la corriente no muestra transitorio a la escala de la captura. Para el PR el cambio de R es una perturbación de 50 Hz, y el resonante la rechaza mientras la acción absorbe el cambio, que subió 34 % en régimen.
+La rampa limita la velocidad de variación de la amplitud aplicada y reduce la exigencia de tensión respecto de un escalón ideal. Por ello hay que distinguir el cambio del interruptor de consigna de la referencia que utiliza el PR. En banco los escalones se establecieron en unos 30 ms sin oscilación visible (12.8.6). Como la rampa por sí sola dura 10 ms entre 0,5 y 1,0 A, la mayor parte de ese tiempo corresponde al resonante, que necesita algunos ciclos de 50 Hz para ajustar la amplitud. Un cambio de R es para el PR una perturbación de 50 Hz, y el resonante la rechaza mientras la acción absorbe el cambio. Por eso el cambio de carga no se distingue en la corriente y sí en la acción.
 
 ### 13.5 Rizado y aliasing
 
 El obstáculo principal de la carga actual es el rizado. Un PR puede corregir la fundamental sin reducir suficientemente la componente a frecuencia de conmutación. La predicción de aproximadamente 0,548 A pp a 1 A pico excede ampliamente 0,20 A pp. La validación de baja frecuencia, incluso con márgenes favorables, no resuelve esa diferencia.
 
-Un filtro en la cadena de medida puede suavizar lo que ve el ADC, pero no reduce por sí mismo el rizado físico de la carga. Tampoco una muestra síncrona permite reconstruir sus máximos. Por eso se midió con el osciloscopio a 50 MSa/s (12.8.5). Si el dimensionamiento cambia, se actualizan conjuntamente parámetros, análisis, simulaciones e informe.
+Un filtro en la cadena de medida puede suavizar lo que ve el ADC, pero no reduce por sí mismo el rizado físico de la carga. Tampoco una muestra síncrona permite reconstruir sus máximos. Por eso se midió con el osciloscopio a 50 MSa/s (12.8.5).
 
-El rizado medido con una sola punta y la consigna anotada da 0,275, 0,465 y 0,526 A pp a 0,2, 0,5 y 1,0 A, a 3, 4 y 12 % de la simulación conmutada a 18 V (12.8.5). La discrepancia de 0,66 A pp de los ensayos anteriores venía de restar dos puntas y desaparece. El criterio de 0,20 A pp no se cumple, y bajarlo pide más inductancia o más f_sw. La mitigación de 12 V con 40 kHz no se probó.
+La medición coincidió con la simulación conmutada dentro de 12 % (12.8.5), así que el modelo RL con tiempo muerto describe bien el rizado. El criterio de 0,20 A pp no se cumple, y bajarlo pide más inductancia o más f_sw (12.6). La mitigación de 12 V con 40 kHz no se probó.
 
 ### 13.6 Comparación entre predicción, simulación y medición
 
@@ -1128,6 +1111,10 @@ Quedan sin demostrar la captura del tiempo muerto de la pierna A, el ancho y el 
 [11] Digilent, [*Basys 3 Reference Manual*](https://digilent.com/reference/programmable-logic/basys-3/reference-manual). El conexionado concreto de esta implementación se verifica en el XDC del proyecto.
 
 [12] Equipo del proyecto, [informe de Proyecto 3: Batalla Naval](https://github.com/Taller-de-diseno-digital-GR01/Proyecto-3-Batalla-Naval), antecedente de organización documental.
+
+[13] AMD, [*MicroBlaze V Processor Reference Guide*](https://docs.amd.com/r/en-US/ug1629-microblaze-v-user-guide), UG1629.
+
+[14] G. C. Buttazzo, *Hard Real-Time Computing Systems: Predictable Scheduling Algorithms and Applications*, 3.ª ed., Springer, 2011.
 
 ## 18. Anexo, evidencia y cómo reproducirla
 
