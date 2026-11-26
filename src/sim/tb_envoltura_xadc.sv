@@ -244,6 +244,9 @@ module tb_envoltura_xadc;
     logic [1:0] contador_esperado;
 
     initial begin
+        if ($test$plusargs("VCD")) begin
+            $dumpfile("envoltura_xadc.vcd"); $dumpvars(0,tb_envoltura_xadc);
+        end
         repeat (10) @(posedge clk);
         rst_n <= 1'b1;
         repeat (2) @(posedge clk);

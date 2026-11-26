@@ -1,0 +1,4 @@
+### prueba_pr_discreto ###
++ -std=c99 -Wall -I sw sw/pr_discreto.c sw/pruebas/prueba_pr_discreto.c -lm -o sw/build/prueba_pr_discreto
+prueba_pr_discreto, 0 errores
+exit=0

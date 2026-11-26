@@ -1,0 +1,4 @@
+### prueba_control_principal ###
++ -std=c99 -Wall -I sw sw/control_principal.c sw/lazo_control.c sw/exportador_uart.c sw/buffer_muestras.c sw/pr_discreto.c sw/ref_senoidal.c sw/supervisor_falla.c sw/pruebas/prueba_control_principal.c -lm -o sw/build/prueba_control_principal
+prueba_control_principal, 0 errores
+exit=0

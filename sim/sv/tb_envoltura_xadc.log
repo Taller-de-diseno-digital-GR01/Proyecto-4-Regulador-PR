@@ -1,0 +1,40 @@
+### tb_envoltura_xadc ###
+src/design/envoltura_xadc.sv:137: sorry: constant selects in always_* processes are not fully supported (the process will be sensitive to all bits in 's_axi_araddr[3:0]').
+1. Valores después del reinicio
+ok    control = 0x00000000
+ok    dato = 0x00000000
+2. Inicio por software durante la calibración, se ignora
+ok    dato tras inicio en calibración = 0x00000000
+3. Inicio por software
+ok    dato = 0x00001abc
+ok    control, inicio se lee en 0 = 0x00000000
+4. pwm_trigger_o con fuente en software, se ignora
+ok    dato sin cambio = 0x00000001
+5. Escritura a 0x00 sin wstrb[0], se ignora
+ok    control = 0x00000000
+ok    contador sin cambio = 0x00000001
+6. Direcciones sin registro y escritura al dato
+ok    lectura de 0x08 = 0x00000000
+ok    lectura de 0x0C = 0x00000000
+ok    control = 0x00000000
+ok    dato sin cambio = 0x00001abc
+7. fuente en pwm_trigger_o, con AW antes que W
+ok    control = 0x00000002
+8. Inicio por software con fuente en pwm_trigger_o, se ignora
+ok    contador sin cambio = 0x00000001
+ok    control = 0x00000002
+9. Disparo por el valle, CONVST 20 ns después
+ok    dato = 0x00002123
+ok    CONVST 20.0 ns después del valle
+10. Un valle durante la conversión se ignora
+ok    dato, una sola conversión = 0x00003001
+11. El contador da la vuelta módulo 4
+ok    dato 0 = 0x00000fff
+ok    dato 1 = 0x00001fee
+ok    dato 2 = 0x00002fdd
+ok    dato 3 = 0x00003fcc
+12. Vuelta a software, W antes que AW y dos inicios seguidos
+ok    dato, una sola conversión = 0x000007ff
+PASA: tb_envoltura_xadc sin errores
+src/sim/tb_envoltura_xadc.sv:372: $finish called at 34795000 (1ps)
+exit=0
