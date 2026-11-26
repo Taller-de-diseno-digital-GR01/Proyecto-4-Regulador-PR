@@ -106,6 +106,35 @@ Se usa Tustin con precorrección en 50 Hz, `s = (ω0/tan(ω0T/2))(z-1)/(z+1)`. C
 
 La estructura de cinco coeficientes de `pr_discreto` y de `generar_pr_params.m` ya soporta esto sin cambios, y `coeficientes_resonante` implementa estas fórmulas para `tustin_prewarp`. `sw/pruebas/prueba_generar_pr_params.m` revisa que salgan los coeficientes de abajo y que el polo quede en 50 Hz después de redondear `A1`.
 
+### Deducción paso a paso
+
+Se parte de la parte resonante sola, `Gr(s) = Kr·s/(s²+ω0²)`, y se sustituye `s` por la forma con precorrección, con `K = ω0/tan(θ/2)` y `θ = ω0·Ts`.
+
+`Gr(z) = Kr·K·(z-1)/(z+1) / [K²·(z-1)²/(z+1)² + ω0²]`
+
+Multiplicando arriba y abajo por `(z+1)²` para sacar la fracción de adentro del denominador,
+
+`Gr(z) = Kr·K·(z-1)(z+1) / [K²(z-1)² + ω0²(z+1)²] = Kr·K·(z²-1) / [(K²+ω0²)·z² + 2(ω0²-K²)·z + (K²+ω0²)]`
+
+Dividiendo arriba y abajo entre `z²` para pasar a potencias de `z⁻¹`, y después entre `(K²+ω0²)` para dejar el término sin retardo del denominador en 1, que es la forma `a2 = 1` de `pr_discreto`,
+
+`Gr(z) = [Kr·K/(K²+ω0²)]·(1 - z⁻²) / [1 + (2·(ω0²-K²)/(K²+ω0²))·z⁻¹ + z⁻²]`
+
+Comparando término a término con `(b0 + b1·z⁻¹ + b2·z⁻²) / (1 + a1·z⁻¹ + a2·z⁻²)` ya quedan `b1 = 0`, `b2 = -b0` y `a2 = 1` sin hacer más cuentas, y faltan
+
+- `b0 = Kr·K/(K²+ω0²)`
+- `a1 = 2·(ω0²-K²)/(K²+ω0²)`
+
+Para llegar a la forma de arriba hace falta reemplazar `K` por su definición y simplificar con identidades trigonométricas. De `1/tan²(θ/2) + 1 = 1/sin²(θ/2)` sale `K² + ω0² = ω0²/sin²(θ/2)`, y con eso
+
+`b0 = Kr·[ω0·cos(θ/2)/sin(θ/2)]·[sin²(θ/2)/ω0²] = Kr·sin(θ/2)·cos(θ/2)/ω0 = Kr·sin(θ)/(2ω0)`
+
+usando `sin(θ) = 2·sin(θ/2)·cos(θ/2)`. Para `a1`, de `sin²(θ/2) - cos²(θ/2) = -cos(θ)` sale `ω0² - K² = -ω0²·cos(θ)/sin²(θ/2)`, y entonces
+
+`a1 = 2·[-ω0²·cos(θ)/sin²(θ/2)] / [ω0²/sin²(θ/2)] = -2·cos(θ)`
+
+Las dos coinciden con los coeficientes de arriba.
+
 ## Coeficientes resultantes
 
 Con los valores provisionales y dividiendo entre `Vdc` para que la salida sea índice de modulación, como ya prevé el script.

@@ -1,0 +1,6 @@
+### jb1_cadencia_tb ###
++ iverilog -g2012 -s jb1_cadencia_tb -o /tmp/jb1.vvp sim/jb1_cadencia_tb.sv && vvp /tmp/jb1.vvp +VCD
+VCD info: dumpfile jb1_cadencia.vcd opened for output.
+jb1_cadencia_tb: 6 periodos de 50000 ns simulados
+sim/jb1_cadencia_tb.sv:57: $finish called at 299995000 (1ps)
+exit=0
