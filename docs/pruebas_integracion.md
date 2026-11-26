@@ -11,7 +11,7 @@ Lista de lo que hay que medir al probar todo junto (Basys3, Block Design, `sw/`,
 ## Antes de tocar la potencia
 
 - Bitstream y plataforma. El bitstream carga, `main` arranca y el Timer espera al segundo avance del contador del XADC. Si el sondeo vence, queda el LED de falla y el Timer detenido.
-- Pines. Las cuatro compuertas, `pwm_trigger_o` y el pin de depuración de la ISR salen donde dice `basys3.xdc`, vistos con el analizador (sesión descrita en [`TODO.md`](TODO.md)).
+- Pines. Las cuatro compuertas, `pwm_trigger_o` y el pin de depuración de la ISR salen donde dice `basys3.xdc`, vistos con el analizador lógico.
 - Compuertas con `freq_sel = 01`. Período de portadora de 5000 ciclos (50 µs, 20 kHz) en cada pierna, complementarias dentro de la pierna, y con `duty_ref = 0` las dos piernas simétricas.
 - Tiempo muerto. Entre el apagado de una compuerta y el encendido de su complementaria pasan 1 µs (100 ciclos). Se mide en las dos piernas y en los dos flancos, con osciloscopio y no solo con el analizador. Si da distinto de 1 µs se recalcula la predicción del paso 1 energizado.
 - Nunca alta y baja de una misma pierna encendidas a la vez, ni en el arranque, ni al cambiar `duty_ref` a medio período, ni al bajar `enable`.

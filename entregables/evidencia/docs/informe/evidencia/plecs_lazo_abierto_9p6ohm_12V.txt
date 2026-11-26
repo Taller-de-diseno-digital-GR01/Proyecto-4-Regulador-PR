@@ -1,5 +1,0 @@
-# PLECS 5.0, modelo-planta.plecs en lazo abierto, R = 9,6 ohm, L = 200 uH, Vdc = 12 V, fsw = 20 kHz, tiempo muerto 1 us, RDS(on) = 0,2 ohm
-# Iref [A] | d1 | i1 [A] | desfase de i respecto de d [grados]
-1 0,8000 0,8989 -0,36
-0,5 0,4000 0,4190 -0,36
-0,2 0,1600 0,1315 -0,36

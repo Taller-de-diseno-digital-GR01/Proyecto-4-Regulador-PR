@@ -48,6 +48,8 @@ vitis/
 *.run.xml
 *.thm
 *.synctex.gz
+*.fls
+*.fdb_latexmk
 
 # Proyecto de Vivado local fuera de vivado/
 project_4_PR/
@@ -56,3 +58,13 @@ project_4_PR/
 *.mmi
 # Formas de onda que escribe potencia/sim/lazo_cerrado.py, unos 5 MB cada una, se regeneran con el script
 potencia/sim/lazo_cerrado_*.csv
+!src/sim_temporizada.tcl
+!docs/informe/evidencia/*.log
+
+# auxiliares de LaTeX y biber
+*.bbl
+*.bcf
+*.blg
+*.run.xml
+*.thm
+*.out

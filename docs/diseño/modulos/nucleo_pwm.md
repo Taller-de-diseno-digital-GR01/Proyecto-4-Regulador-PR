@@ -48,7 +48,7 @@ Hacia afuera, `pwm_trigger_o` llega a [`envoltura_xadc`](envoltura_xadc.md), que
 
 ## g) Explicación de funcionamiento
 
-La portadora es un contador que sube de 0 a `MAX` y baja de vuelta a 0, así que un período dura 2·`MAX` ciclos de `clk` y `f_sw = f_clk / (2·MAX)`. `MAX` es uno de los cuatro `parameter` `MAX_FREQ_00` a `MAX_FREQ_11`, según `freq_sel`. El contador corre siempre después del reinicio, aunque `enable` esté en cero, para que `pwm_trigger_o` siga llegando al ADC y [`lazo_control`](lazo_control.md) pueda medir el offset del sensor con el puente apagado.
+La portadora es un contador que sube de 0 a `MAX` y baja de vuelta a 0, así que un período dura 2·`MAX` ciclos de `clk` y `f_sw = f_clk / (2·MAX)`. `MAX` es uno de los cuatro `parameter` `MAX_FREQ_00` a `MAX_FREQ_11`, según `freq_sel`. El contador corre siempre después del reinicio, aunque `enable` esté en cero, para que `pwm_trigger_o` siga llegando al ADC y [`lazo_control`](lazo_control.md) siga recibiendo muestras. El offset del sensor no se mide con el puente apagado, porque se corre unas 800 cuentas respecto de cuando conmuta, así que `lazo_control` lo mide con `enable` en 1 y `duty_ref = 0`.
 
 El valle, cuando el contador vale 0, es el punto de sincronización de todo el núcleo. Dura un solo ciclo por período, y en ese ciclo pasan cuatro cosas.
 

@@ -70,12 +70,15 @@ static registro_t iterar(bool hay, uint16_t cuenta)
 }
 
 static void habilitar(valor_t amplitud)
-{ // el orden de control_principal.md h.2, sin la sección crítica que acá no hace falta
+{ // el orden de control_principal.md h.2, sin la sección crítica que acá no hace falta, y con el autocero ya hecho al cero nominal
+  control_habilitado = 0; // en la placa habilitar siempre viene después de un deshabilitar, que es lo que reinicia el autocero
+  iterar(true, ADC_OFFSET_CUENTAS);
   pr_discreto_reiniciar();
   ref_senoidal_reiniciar_fase();
   lazo_control_reiniciar_rampa();
   amplitud_ref = amplitud;
   control_habilitado = 1;
+  for(uint32_t k = 0; k < AUTOCERO_DESCARTE + AUTOCERO_PROMEDIO; k++) iterar(true, ADC_OFFSET_CUENTAS);
 }
 
 int main(void)
@@ -142,6 +145,46 @@ int main(void)
   revisar(falla == 1, "no publicó la falla por sobrecorriente");
   revisar(apagados == 2, "la sobrecorriente no apagó el PWM");
   revisar(escrituras == antes, "con sobrecorriente el PR escribió en la misma iteración");
+
+  // autocero, desde un cero de 2400 cuentas que el offset de partida no conoce
+  supervisor_falla_iniciar(); // la sobrecorriente de arriba dejó la falla enclavada
+  falla = 0;
+  habilitar(VALOR(0.0f)); // deja el offset en ADC_OFFSET_CUENTAS
+  control_habilitado = 0;
+  iterar(true, ADC_OFFSET_CUENTAS);
+  amplitud_ref = VALOR(1.0f);
+  control_habilitado = 1;
+  antes = escrituras;
+  iterar(false, 0u);
+  iterar(false, 0u); // dentro de la tolerancia, y sin dato el conteo no avanza
+  for(uint32_t k = 0; k < AUTOCERO_DESCARTE + AUTOCERO_PROMEDIO - 1u; k++) {
+    r = iterar(true, (k & 1u) ? 2402u : 2398u); // promedio 2400 en las 1024 muestras que se suman, las 256 descartadas son pares e impares por igual
+    revisar(r.duty_ref == 0 && r.i_ref_ma == 0, "durante el autocero el registro trae orden o referencia");
+  }
+  revisar(escrituras == antes, "durante el autocero se escribió duty_ref");
+  revisar(offset_adc_cuentas == ADC_OFFSET_CUENTAS, "el offset cambió antes de terminar el autocero");
+  iterar(true, 2400u);
+  revisar(offset_adc_cuentas == 2400u, "terminado el autocero el offset no es el promedio");
+  r = iterar(true, 2400u);
+  revisar(escrituras == antes + 1u, "terminado el autocero el PR no corrió");
+  revisar((int16_t)duty_escrito == 0, "con la cuenta igual al offset nuevo el PR no vio 0 A");
+
+  control_habilitado = 0; // un autocero interrumpido por falla se repite completo y no toca el offset vigente
+  iterar(true, 2400u);
+  control_habilitado = 1;
+  for(uint32_t k = 0; k < 500u; k++) iterar(true, 2000u);
+  iterar(true, 2400u + 1700u * 2u); // más de 1,3 A, aun con el offset de partida de 2400
+  revisar(falla == 1, "la sobrecorriente durante el autocero no publicó la falla");
+  revisar(offset_adc_cuentas == 2400u, "una falla durante el autocero cambió el offset");
+  supervisor_falla_iniciar();
+  falla = 0;
+  control_habilitado = 0;
+  iterar(true, 2400u);
+  control_habilitado = 1;
+  for(uint32_t k = 0; k < AUTOCERO_DESCARTE + AUTOCERO_PROMEDIO - 1u; k++) iterar(true, 2500u);
+  revisar(offset_adc_cuentas == 2400u, "el autocero no volvió a empezar desde cero después de la falla");
+  iterar(true, 2500u);
+  revisar(offset_adc_cuentas == 2500u, "el segundo autocero no dejó el offset nuevo");
 
   revisar(subidas == llamadas && bajadas == llamadas, "la depuración no subió y bajó una vez por iteración");
   revisar(reconocidos == llamadas, "el Timer no se reconoció una vez por iteración");
