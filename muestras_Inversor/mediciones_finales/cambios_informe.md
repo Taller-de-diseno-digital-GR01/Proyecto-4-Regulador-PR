@@ -1,6 +1,6 @@
 # Cambios al informe por las mediciones del 25 de noviembre
 
-Lista de lo que hay que cambiar en `docs/informe/informe.md` y en `potencia/informe/informe_tecnico_pedp.tex` con las mediciones finales. Todavía no se aplicó nada en los informes. Los datos crudos y lo anotado en banco están en `registro.md`, en esta misma carpeta.
+Lista de lo que hay que cambiar en `docs/informe/informe.md` y en `potencia/informe/informe_tecnico_pedp.tex` con las mediciones finales. Se aplicó el 26 de noviembre en los dos informes, con el PDF y `entregables/informe_tecnico_pedp.zip` regenerados. Los datos crudos y lo anotado en banco están en `registro.md`, en esta misma carpeta.
 
 ## Qué cambió en el montaje y el firmware
 

@@ -21,7 +21,7 @@
 \maketitle
 
 \begin{abstract}
-	Se presentan los ensayos de banco del 23 y 24 de noviembre de 2026 del inversor en puente H con carga de \SI{11.8}{\ohm} y unos \SI{212}{\micro H} controlado por un regulador proporcional-resonante en un MicroBlaze V. Según el sensor de la placa, el regulador lleva la corriente a la referencia con menos de \SI{0.5}{\percent} de error y menos de \ang{0.1} de desfase a \num{0.2} y \SI{0.5}{A} pico, con la carga nominal y con \SI{2.5}{\ohm} añadidos. A \SI{1.0}{A} la acción satura, con \SI{35}{\percent} de error a \SI{12.5}{V} y \SI{11.8}{\percent} a \SI{18}{V}. El osciloscopio sobre las resistencias de la carga da una corriente física entre \num{14.6} y \SI{18.7}{\percent} mayor que la del sensor, y un cero del sensor que se mueve unas \num{800} cuentas entre el puente apagado y conmutando. Calibrado contra el osciloscopio, el sensor queda a \SI{2}{\percent}, y con los registros tomados la corriente física no cumple el \SI{10}{\percent} a \num{0.2} y \SI{0.5}{A}. El desfase de la corriente física no se midió porque el osciloscopio no registró la referencia. El rizado medido, de \num{0.25} a \SI{0.66}{A} pico a pico, supera el límite de \SI{0.20}{A} como predijeron el análisis y la simulación conmutada. El tiempo muerto medido es de \SI{1}{\micro s} en la pierna B y de \SI{1.23}{\micro s} y \SI{430}{ns} en la pierna A.
+	Se presentan los ensayos de banco del 25 de noviembre de 2026 del inversor en puente H con carga de \SI{11.8}{\ohm} y \SI{212}{\micro H}, controlado por un regulador proporcional-resonante en un MicroBlaze V con bus de \SI{18}{V}. El firmware mide el cero del sensor al habilitar con el puente conmutando. Según el sensor de la placa, el regulador lleva la corriente a la referencia con menos de \SI{0.5}{\percent} de error y menos de \ang{0.02} de desfase a \num{0.2}, \num{0.5} y \SI{1.0}{A} pico. El osciloscopio sobre la resistencia de la carga da una corriente física entre \num{2.9} y \SI{4}{\percent} por debajo de la referencia. Con la carga aumentada se cumple a \num{0.2} y \SI{0.5}{A}, y a \SI{1.0}{A} la acción satura porque la carga pide más tensión que la disponible, con \SI{-8.6}{\percent} de error. El rizado medido, de \num{0.275}, \num{0.465} y \SI{0.526}{A} pico a pico, supera el límite de \SI{0.20}{A} como predijeron el análisis y la simulación conmutada. Los escalones de consigna se establecen en unos \SI{30}{ms} y el cambio de carga no se distingue en la corriente. El tiempo muerto medido es de \SI{1}{\micro s} en la pierna B y de \SI{1.23}{\micro s} y \SI{430}{ns} en la pierna A.
 \end{abstract}
 
 
@@ -33,11 +33,11 @@
 \label{sec:intro}
 \IEEEPARstart{E}{ste} informe reúne los resultados experimentales del componente de potencia del Proyecto 4 \cite{enunciado}, un inversor monofásico en puente H con carga $R$--$L$ y un regulador proporcional-resonante discreto \cite{teodorescu2006} que corre en un MicroBlaze V sobre una Basys~3. Se presentan los parámetros medidos del montaje, el método de adquisición y de procesamiento, los registros de los ensayos, el error de amplitud y el desfase de la fundamental, el rizado de conmutación y la comparación con el análisis y con las simulaciones. El dimensionamiento, el modelo de la planta y el diseño del regulador están en el documento de diseño, y aquí se citan solo los valores que hacen falta para comparar. Los registros crudos y los scripts de procesamiento están en el repositorio del proyecto \cite{repositorio}.
 
-Los criterios del enunciado \cite{enunciado} son un error relativo de amplitud de la fundamental menor a \SI{10}{\percent} en una ventana de al menos cinco períodos de \SI{50}{Hz} para referencias de \num{0.2}, \num{0.5} y \SI{1.0}{A} pico, y un rizado de conmutación menor a \SI{0.20}{A} pico a pico. Además se evalúan los cambios de referencia de \num{0.2} a \num{0.5} y de \num{0.5} a \SI{1.0}{A}, y un cambio de la resistencia de al menos \SI{25}{\percent} con \SI{0.5}{A}. De esos ensayos solo quedó registro del cambio de \num{0.5} a \SI{0.2}{A} y del cambio de carga a \SI{1.0}{A}, como se detalla en la Sección~\ref{sec:res_nominal}.
+Los criterios del enunciado \cite{enunciado} son un error relativo de amplitud de la fundamental menor a \SI{10}{\percent} en una ventana de al menos cinco períodos de \SI{50}{Hz} para referencias de \num{0.2}, \num{0.5} y \SI{1.0}{A} pico, y un rizado de conmutación menor a \SI{0.20}{A} pico a pico. Además se evalúan los cambios de referencia de \num{0.2} a \num{0.5} y de \num{0.5} a \SI{1.0}{A}, y un cambio de la resistencia de al menos \SI{25}{\percent} con \SI{0.5}{A}. Todos tienen registro del 25 de noviembre. Los ensayos del 23 y 24 de noviembre quedan como antecedente en la Sección~\ref{sec:antecedente}, porque lo que se encontró en ellos motivó los cambios del firmware y del acondicionador.
 
 \section{Parámetros medidos del montaje}
 \label{sec:caract}
-La carga son dos resistencias de \SI{4.7}{\ohm} y \SI{5}{W} en serie con dos inductores de \SI{100}{\micro H}. Las resistencias se midieron con multímetro y la resistencia total con inductores y cables también, a dos hilos y en frío. La Tabla~\ref{tab:caract} compara lo nominal del documento de diseño con lo medido en banco.
+La carga son dos resistencias de \SI{4.7}{\ohm} y \SI{5}{W} en serie con dos inductores de \SI{100}{\micro H}. Las resistencias y la resistencia total con inductores y cables se midieron con multímetro, a dos hilos y en frío, y los inductores con un medidor LCR a \SI{1}{kHz}. La Tabla~\ref{tab:caract} compara lo nominal del documento de diseño con lo medido en banco.
 
 \begin{table}[!ht]
 	\centering
@@ -49,41 +49,40 @@ La carga son dos resistencias de \SI{4.7}{\ohm} y \SI{5}{W} en serie con dos ind
 		\midrule
 		$R$ de las resistencias & \SI{9.4}{\ohm} & \SI{9.46}{\ohm} \\
 		$R$ total con devanados y cables & --- & \SI{11.8}{\ohm} \\
-		$L$ total & \SI{200}{\micro H} & \SI{106.2}{\micro H} en uno de dos \\
-		$R$ añadida para el ensayo de carga & \SI{2.5}{\ohm} & \SI{2.5}{\ohm} \\
+		$R$ total de la carga aumentada & \SI{14.3}{\ohm} & \SI{18.7}{\ohm} \\
+		$L$ total & \SI{200}{\micro H} & \SI{212}{\micro H}, \SI{106.2}{\micro H} cada uno \\
 		Tiempo muerto, pierna A & \SI{1.00}{\micro s} & \SI{1.23}{\micro s} y \SI{430}{ns} \\
 		Tiempo muerto, pierna B & \SI{1.00}{\micro s} & \SI{1.00}{\micro s} en ambos flancos \\
 		Período de la rutina (JB1) & \SI{50}{\micro s} & \SI{50}{\micro s} \\
-		Cero del sensor & \num{2048} cuentas & \num{2808} en el firmware, \num{2569} calibrado \\
-		Ganancia del sensor y acondicionador & \SI{0.2196}{V/A} & factor de \num{1.162}, Sección~\ref{sec:res_calibracion} \\
-		Límite de la fuente con \SI{12.5}{V} & --- & \SI{0.52}{A} \\
-		Límite de la fuente con \SI{18}{V} & --- & \SI{1}{A} \\
+		Cero del sensor & \num{2048} cuentas & medido al habilitar \\
+		Bus y límite de la fuente & \SI{18}{V} & \SI{18}{V}, \SI{0.74}{A} \\
 		\bottomrule
 	\end{tabularx}
 \end{table}
 
-La resistencia total de \SI{11.8}{\ohm} queda \SI{2.3}{\ohm} por encima de las resistencias por los devanados, las conexiones y el cableado. Uno de los inductores midió \SI{106.2}{\micro H} con un medidor LCR a \SI{1}{kHz}, \SI{6}{\percent} sobre su nominal. El otro no se midió, y suponiéndolo igual la inductancia total es de unos \SI{212}{\micro H}. Con la resistencia añadida el cambio es de \SI{26.4}{\percent} sobre las resistencias externas y de \SI{21.2}{\percent} sobre la carga completa, así que solo el primero llega al \SI{25}{\percent} del enunciado. Con \SI{1.0}{A} pico cada resistencia de \SI{4.7}{\ohm} disipa \SI{2.35}{W}, el \SI{47}{\percent} de su nominal, y la de \SI{2.5}{\ohm} \SI{1.25}{W}. No se midieron temperaturas, así que el margen de disipación sale de esa cuenta.
+La resistencia total de \SI{11.8}{\ohm} queda \SI{2.3}{\ohm} por encima de las resistencias por los devanados, las conexiones y el cableado. Los dos inductores midieron \SI{106.2}{\micro H}, \SI{6}{\percent} sobre su nominal. Para el ensayo de carga se añadieron \SI{2.5}{\ohm} en serie. Con los valores nominales la carga quedaría en \SI{14.3}{\ohm}, un \SI{21}{\percent} más, pero el multímetro dio \SI{18.7}{\ohm} y la acción de control en banco corresponde a unos \SI{15.7}{\ohm} (Sección~\ref{sec:res_tension}). Los tres valores no cuadran y la diferencia no se aisló, aunque con los dos medidos el cambio supera el \SI{25}{\percent} del enunciado. Con \SI{1.0}{A} pico cada resistencia de \SI{4.7}{\ohm} disipa \SI{2.35}{W}, el \SI{47}{\percent} de su nominal, y la de \SI{2.5}{\ohm} \SI{1.25}{W}. No se midieron temperaturas, así que el margen de disipación sale de esa cuenta.
 
 \section{Montaje y adquisición}
 \label{sec:montaje}
-Cada ensayo se registra por dos caminos. El histórico del controlador se toma por la UART a \num{115200} baudios, una trama de \num{12310} bytes con \num{2048} registros a \SI{20}{kS/s}, es decir \SI{102}{ms} o cinco períodos de \SI{50}{Hz}, con la corriente que ve el sensor ACS712 \cite{acs712}, la referencia, la acción y las banderas de saturación y falla. El osciloscopio Keysight DSO-X 2002A \cite{dsox2000} mide la tensión sobre las dos resistencias de la carga con un cable BNC con caimanes 1:1, y esa tensión dividida entre \SI{9.46}{\ohm} es la corriente física. Las compuertas se midieron con las puntas contra la tierra de potencia, con el bus apagado y los \SI{15}{V} de los drivers puestos.
+Cada ensayo se registra por dos caminos. El histórico del controlador se toma por la UART a \num{115200} baudios, una trama de \num{12310} bytes con \num{2048} registros a \SI{20}{kS/s}, es decir \SI{102}{ms} o cinco períodos de \SI{50}{Hz}, con la corriente que ve el sensor ACS712 \cite{acs712}, la referencia, la acción y las banderas de saturación y falla. Un osciloscopio GW Instek mide con una sola punta la tensión sobre la resistencia de \SI{9.6}{\ohm} de la carga, y esa tensión dividida entre \SI{9.6}{\ohm} es la corriente física. Las compuertas se midieron el 24 de noviembre con el osciloscopio Keysight DSO-X 2002A \cite{dsox2000}, con las puntas contra la tierra de potencia, el bus apagado y los \SI{15}{V} de los drivers puestos.
+
+El firmware de los ensayos mide el cero del sensor al subir \texttt{enable}. Deja el puente conmutando con la acción en cero, descarta \num{256} muestras y promedia las \num{1024} siguientes, unos \SI{64}{ms} en total, y usa ese promedio como cero. La pendiente es $k=-\SI{1.292e-3}{A}$ por cuenta, calibrada contra el osciloscopio con los registros del 23 de noviembre (Sección~\ref{sec:antecedente}). El amplificador AD822 del acondicionador se alimentó a \SI{10}{V}, porque a \SI{5}{V} su salida se quedaba plana cerca de \SI{0.49}{V} y recortaba el lado positivo de la corriente.
 
 \begin{table}[!ht]
 	\centering
-	\caption{Archivos de captura, con rutas relativas a \texttt{muestras\_Inversor/}.}
+	\caption{Archivos de captura del 25 de noviembre, con rutas relativas a \texttt{muestras\_Inversor/}.}
 	\label{tab:archivos}
 	\small
 	\begin{tabularx}{\columnwidth}{Lcc}
 		\toprule
 		Archivo & Muestreo & Ventana \\
 		\midrule
-		CSV del receptor, \texttt{*A\_*.csv} en la raíz y en \texttt{muestras\_\allowbreak prueba\_25/}, \texttt{muestras\_\allowbreak recorte/} y \texttt{muestras\_\allowbreak sensor/} & \SI{50}{\micro s} & \SI{102}{ms} \\
-		\texttt{Muestras Osciloscopio/\allowbreak osc\_*.csv}, fundamental & \SI{100}{\micro s} & \SI{200}{ms} \\
-		\texttt{Muestras Osciloscopio/\allowbreak rizado/\allowbreak scope\_a2.csv} a \texttt{scope\_a4.csv} & \SI{0.1}{\micro s} & \SI{100}{\micro s} \\
-		\texttt{Muestras Osciloscopio/\allowbreak transitorios/\allowbreak scope\_g\_\allowbreak cambio\_\allowbreak consigna.png} & \SI{8}{\micro s} & \SI{200}{ms} \\
-		\texttt{Muestras Osciloscopio/\allowbreak transitorios/\allowbreak scope\_g1\_\allowbreak cambio\_\allowbreak carga\_1A.png} & \SI{4}{\micro s} & \SI{100}{ms} \\
-		\texttt{Muestras Compuertas/\allowbreak scope\_a\_\allowbreak piernaB\_\allowbreak tiempo\_\allowbreak muerto\_\allowbreak alta\_\allowbreak apaga.png} y \texttt{scope\_a1\_\allowbreak piernaB\_\allowbreak tiempo\_\allowbreak muerto\_\allowbreak baja\_\allowbreak apaga.png} & \SI{1}{ns} & \SI{10}{\micro s} \\
-		\texttt{Muestras Compuertas/\allowbreak scope\_a5\_\allowbreak habilitar.png} y \texttt{scope\_a6\_\allowbreak deshabilitar.png} & \SI{10}{\micro s} & \SI{500}{\micro s} \\
+		CSV del receptor, \texttt{mediciones\_\allowbreak finales/\allowbreak *.csv} & \SI{50}{\micro s} & \SI{102}{ms} \\
+		\texttt{mediciones\_\allowbreak finales/\allowbreak transitorios/\allowbreak escalon\_*} & \SI{20}{\micro s} & \SI{200}{ms} \\
+		\texttt{mediciones\_\allowbreak finales/\allowbreak transitorios/\allowbreak cambio\_R\_0.5A} y \texttt{arranque\_0-0.2A} & \SI{5}{\micro s} & \SI{50}{ms} \\
+		\texttt{Muestras Osciloscopio/\allowbreak rizado/\allowbreak rizado\_18V\_*.csv} & \SI{20}{ns} & \SI{200}{\micro s} \\
+		\texttt{Muestras Compuertas/\allowbreak scope\_a\_\allowbreak piernaB\_\allowbreak tiempo\_\allowbreak muerto\_\allowbreak alta\_\allowbreak apaga.png} y \texttt{scope\_a1\_\allowbreak piernaB\_\allowbreak tiempo\_\allowbreak muerto\_\allowbreak baja\_\allowbreak apaga.png}, 24/11 & \SI{1}{ns} & \SI{10}{\micro s} \\
+		\texttt{Muestras Compuertas/\allowbreak scope\_a5\_\allowbreak habilitar.png} y \texttt{scope\_a6\_\allowbreak deshabilitar.png}, 24/11 & \SI{10}{\micro s} & \SI{500}{\micro s} \\
 		\bottomrule
 	\end{tabularx}
 \end{table}
@@ -94,27 +93,27 @@ Las dos fuentes de datos miden la corriente por caminos distintos y por eso se c
 \label{sec:resultados}
 \subsection{Procesamiento}
 \label{sec:proc}
-La corriente se muestrea una vez por período de portadora, en el valle, así que el histórico no contiene el rizado de conmutación. Sobre los últimos cinco períodos enteros se ajusta por mínimos cuadrados una senoidal de \SI{50}{Hz} más un término constante, a la corriente y a la referencia, con \texttt{potencia/analizar\_csv.m}. El error de amplitud es $|\,|I_1|-|R_1|\,|/|R_1|$ y el desfase es positivo cuando la corriente adelanta. Las capturas largas del osciloscopio se ajustan igual con \texttt{potencia/analizar\_osc.m}. El rizado se mide en las capturas de \SI{0.1}{\micro s} por punto como el pico a pico de los tramos continuos de la corriente, la forma triangular que predice la modulación unipolar \cite[sec.~8-3-2]{mohan2003power}, \cite[sec.~8.10]{hart2011}.
+La corriente se muestrea una vez por período de portadora, en el valle, así que el histórico no contiene el rizado de conmutación. Sobre los últimos cinco períodos enteros se ajusta por mínimos cuadrados una senoidal de \SI{50}{Hz} más un término constante, a la corriente y a la referencia, igual que \texttt{potencia/analizar\_csv.m}. El error de amplitud es $|\,|I_1|-|R_1|\,|/|R_1|$ y el desfase es positivo cuando la corriente adelanta. Las capturas del osciloscopio se ajustan igual en ventanas de \SI{20}{ms}. El rizado se mide con \texttt{potencia/analizar\_rizado.py}, que se describe en la Sección~\ref{sec:res_rizado}.
 
 \subsection{Seguimiento de la fundamental}
 \label{sec:res_nominal}
-La Tabla~\ref{tab:med_nominal} resume los siete registros con el lazo cerrado, y la Fig.~\ref{fig:banco} muestra seis de ellos. El bus fue de \SI{12.5}{V} en todos salvo el de \SI{1.0}{A} con \SI{18}{V}.
+La Tabla~\ref{tab:med_nominal} resume los siete registros con el lazo cerrado, y la Fig.~\ref{fig:banco} muestra los seis con corriente.
 
 \begin{table*}[!t]
 	\centering
-	\caption{Seguimiento según el sensor, ajuste de cinco períodos. Criterio, error menor a \SI{10}{\percent}.}
+	\caption{Seguimiento según el sensor con \SI{18}{V}, ajuste de cinco períodos. Criterio, error menor a \SI{10}{\percent}.}
 	\label{tab:med_nominal}
 	\begin{tabularx}{\textwidth}{Lccccccc}
 		\toprule
-		Registro & Carga & Bus & Ref. (A) & Medida (A) & Error (\%) & Desfase (°) & Saturadas \\
+		Registro & Carga & Ref. (A) & Medida (A) & Error (\%) & Desfase (°) & Continua (A) & Saturadas \\
 		\midrule
-		\texttt{0.2A\_18-52} & nominal & \SI{12.5}{V} & \num{0.1994} & \num{0.2002} & \num{0.39} & \num{0.07} & 0 \\
-		\texttt{0.5A\_18-53} & nominal & \SI{12.5}{V} & \num{0.4993} & \num{0.5003} & \num{0.19} & $-0.03$ & 0 \\
-		\texttt{1A\_18-55} & nominal & \SI{12.5}{V} & \num{0.9994} & \num{0.6504} & \num{34.92} & \num{21.72} & 31 \\
-		\texttt{muestras\_recorte/\allowbreak 1A\_10-22} & nominal & \SI{18}{V} & \num{0.9994} & \num{0.8814} & \num{11.81} & \num{16.58} & 25 \\
-		\texttt{muestras\_prueba\_25/\allowbreak 0.2A\_10-15} & $+\SI{2.5}{\ohm}$ & \SI{12.5}{V} & \num{0.1994} & \num{0.2002} & \num{0.42} & $-0.02$ & 0 \\
-		\texttt{muestras\_prueba\_25/\allowbreak 0.5A\_10-15} & $+\SI{2.5}{\ohm}$ & \SI{12.5}{V} & \num{0.4993} & \num{0.5000} & \num{0.14} & \num{0.01} & 0 \\
-		\texttt{muestras\_prueba\_25/\allowbreak 1A\_10-16} & $+\SI{2.5}{\ohm}$ & \SI{12.5}{V} & \num{0.9994} & \num{0.7276} & \num{27.20} & \num{21.65} & 30 \\
+		\texttt{0A} & nominal & 0 & \num{0.0002} & --- & --- & $+0.002$ & 0 \\
+		\texttt{0.2A} & nominal & \num{0.1993} & \num{0.2002} & \num{0.42} & $-0.02$ & $+0.010$ & 0 \\
+		\texttt{0.5A} & nominal & \num{0.4993} & \num{0.4997} & \num{0.08} & \num{0.02} & $-0.003$ & 0 \\
+		\texttt{1.0A} & nominal & \num{0.9994} & \num{1.0001} & \num{0.07} & \num{0.01} & $+0.010$ & 0 \\
+		\texttt{carga25\_0.2A} & aumentada & \num{0.1994} & \num{0.2000} & \num{0.33} & $-0.01$ & $+0.015$ & 0 \\
+		\texttt{carga25\_0.5A} & aumentada & \num{0.4993} & \num{0.5002} & \num{0.17} & \num{0.00} & $+0.008$ & 0 \\
+		\texttt{carga25\_1.0A} & aumentada & \num{0.9994} & \num{0.9132} & $-8.62$ & \num{13.91} & $+0.020$ & 20 \\
 		\bottomrule
 	\end{tabularx}
 \end{table*}
@@ -122,123 +121,79 @@ La Tabla~\ref{tab:med_nominal} resume los siete registros con el lazo cerrado, y
 \begin{figure*}[!t]
 	\centering
 	\includegraphics[width=0.85\textwidth]{banco_regimen}
-	\caption{Corriente según el sensor y referencia en seis registros de \SI{102}{ms}. Los puntos negros marcan las muestras con la acción saturada. La continua de unos \SI{0.2}{A} es error del cero del sensor (Sección~\ref{sec:res_cero}).}
+	\caption{Corriente según el sensor y referencia en seis registros de \SI{102}{ms} con \SI{18}{V}, carga nominal a la izquierda y aumentada a la derecha. Los puntos negros marcan las muestras con la acción saturada.}
 	\label{fig:banco}
 \end{figure*}
 
-A \num{0.2} y \SI{0.5}{A}, con las dos cargas, el resonante lleva el error por debajo de \SI{0.5}{\percent} con desfase nulo, que es lo esperable de un PR con ganancia infinita en \SI{50}{Hz} \cite{teodorescu2006,yepes2010}. El cambio de \SI{2.5}{\ohm} no mueve el error en régimen. A \SI{1.0}{A} con \SI{12.5}{V} la acción llega al límite de $\pm\num{0.92}$ en cada semiciclo y la corriente se recorta en unos \SI{0.74}{A}. El documento de diseño ya anticipaba que con \SI{12}{V} el límite solo alcanza para \SI{11}{\ohm} a \SI{1.0}{A}, y la carga medida tiene \SI{11.8}{\ohm}. Con \SI{18}{V} el recorte sigue y es asimétrico, el semiciclo negativo llega a $-\SI{1.03}{A}$ y el positivo se queda en \SI{0.71}{A}. Con \SI{18}{V} el \SI{92}{\percent} del bus son \SI{16.6}{V} y bastan unos \SI{13}{V} para \SI{1}{A}, así que el bus real cayó durante el ensayo. Lo compatible con eso es el límite de \SI{1}{A} de la fuente, cercano a lo que pide el puente en el pico. La tensión del bus no se registró y queda como hipótesis.
+Con la carga nominal el resonante lleva el error por debajo de \SI{0.5}{\percent} con desfase nulo en los tres puntos, que es lo esperable de un PR con ganancia infinita en \SI{50}{Hz} \cite{teodorescu2006,yepes2010}. Con la carga aumentada pasa lo mismo a \num{0.2} y \SI{0.5}{A}. La continua queda dentro de $\pm\SI{0.02}{A}$ en todos los registros, contra \num{0.12} a \SI{0.33}{A} con el cero fijo de los ensayos anteriores.
 
-El 24 de noviembre se registraron dos transitorios con el osciloscopio, en modo de alta resolución, sobre la tensión de las resistencias de la carga (Fig.~\ref{fig:transitorios}). Las capturas solo se guardaron como imagen, así que las amplitudes se leyeron de la cuadrícula. En el cambio de consigna de \num{0.5} a \SI{0.2}{A}, la corriente física pasa de unos \num{0.62} a unos \SI{0.24}{A} pico y se asienta en cerca de un período de \SI{50}{Hz}, sin oscilación posterior. Las dos amplitudes quedan sobre la referencia en la misma proporción que el error de ganancia del sensor de la Sección~\ref{sec:res_ganancia}. En el cambio de carga, hecho a \SI{1.0}{A} con \SI{18}{V}, la acción ya estaba saturada y la amplitud cae cerca de un \SI{18}{\percent} al añadir la resistencia. Es lo que predice el cociente \num{11.8}/\num{14.3} cuando la tensión aplicada queda fija, así que el regulador no tiene margen para compensar el cambio. A \SI{0.5}{A} el mismo cambio no produjo una diferencia visible en la corriente, pero esa captura no se guardó. Tampoco se guardaron los cambios de \num{0.2} a \num{0.5} y de \num{0.5} a \SI{1.0}{A}, así que esos dos ensayos no tienen evidencia en este informe. En las dos capturas el canal 2 estaba en acople de alterna, así que la continua de la traza no corresponde a la corriente y solo se usa la amplitud.
+A \SI{1.0}{A} con la carga aumentada la acción llega a $\pm\num{0.92}$ en 20 muestras, 11 en el semiciclo positivo y 9 en el negativo, y los picos instantáneos llegan a $+\num{1.00}$ y $-\SI{1.03}{A}$. La saturación aplana la senoide alrededor de cada pico, la fundamental queda en \SI{0.913}{A} y el desfase sube a \ang{14}. El error cumple el \SI{10}{\percent} por poco. La Sección~\ref{sec:saturacion} explica por qué satura.
 
-\begin{figure}[!ht]
-	\centering
-	\includegraphics[width=\columnwidth]{transitorio_consigna}\\[2pt]
-	\includegraphics[width=\columnwidth]{transitorio_carga}
-	\caption{Tensión sobre las resistencias de la carga (\SI{9.46}{\ohm}) en dos transitorios, \SI{5}{V/div}. Arriba, cambio de consigna de \num{0.5} a \SI{0.2}{A}, \SI{20}{ms/div}. Abajo, cambio de carga de \SI{2.5}{\ohm} a \SI{1.0}{A} con \SI{18}{V} y la acción saturada, \SI{10}{ms/div}.}
-	\label{fig:transitorios}
-\end{figure}
-
-\subsection{Cero del sensor}
-\label{sec:res_cero}
-Con el control deshabilitado, sin corriente, el sensor marcó $-\num{0.65}$ y $-\SI{0.54}{A}$ en dos registros separados por cuatro minutos, unas \num{490} a \num{590} cuentas por encima de las \num{2808} del firmware, con una deriva de \num{100} cuentas. Con el lazo cerrado y referencia nula marcó $+\SI{0.24}{A}$, mientras el osciloscopio daba $-\SI{0.03}{A}$ de continua física. El resonante no actúa en continua y el proporcional convierte el error del cero en una continua real de signo opuesto, y de ahí sale un cero de unas \num{2560} cuentas con el puente conmutando. La diferencia de unas \num{800} cuentas, \SI{0.2}{V} a la entrada del XADC, indica que la conmutación desplaza la referencia del acondicionador. La causa no se aisló.
-
-\subsection{Ganancia del sensor frente al osciloscopio}
+\subsection{Corriente física frente al osciloscopio}
 \label{sec:res_ganancia}
+La Tabla~\ref{tab:ganancia} compara la fundamental del sensor con la del osciloscopio en los tramos estables de las capturas de los transitorios. Las capturas no son del mismo minuto que los CSV, pero sí de la misma sesión, con el mismo firmware y el mismo montaje.
+
 \begin{table}[!ht]
 	\centering
-	\caption{Fundamental según el sensor y según el osciloscopio, \SI{12.5}{V} y carga nominal.}
+	\caption{Fundamental según el sensor y según el osciloscopio, \SI{18}{V}. $^{*}$Carga aumentada.}
 	\label{tab:ganancia}
-	\begin{tabularx}{\columnwidth}{ccCC}
+	\begin{tabularx}{\columnwidth}{cCCc}
 		\toprule
-		Ref. (A) & Sensor (A) & Osciloscopio (A) & Error físico (\%) \\
+		Ref. (A) & Sensor (A) & Osc. (A) & Error físico (\%) \\
 		\midrule
-		\num{0.2} & \num{0.2002} & \num{0.2285} & $+14.6$ \\
-		\num{0.5} & \num{0.5003} & \num{0.5928} & $+18.7$ \\
-		\num{1.0} & \num{0.6504} & \num{0.8285} & $-17.1$ \\
+		\num{0.2} & \num{0.2002} & \num{0.192} & $-3.9$ \\
+		\num{0.5} & \num{0.4997} & \num{0.48} & $-4$ \\
+		\num{1.0} & \num{1.0001} & \num{0.971} & $-2.9$ \\
+		\num{0.5}$^{*}$ & \num{0.5002} & \num{0.477} & $-4.5$ \\
 		\bottomrule
 	\end{tabularx}
 \end{table}
 
-Las capturas del osciloscopio (\texttt{osc\_*.csv}) se tomaron durante los mismos ensayos que los CSV. La corriente física queda \num{14.6} y \SI{18.7}{\percent} sobre la referencia a \num{0.2} y \SI{0.5}{A}, fuera del \SI{10}{\percent}, aunque el sensor diga que cumple (Tabla~\ref{tab:ganancia}). El desfase de la corriente física no se puede obtener de estas capturas, porque el osciloscopio no registró la referencia ni una señal sincronizada con ella, así que todos los desfases del informe son según el sensor. Una parte del error de amplitud es el sesgo de muestrear en el valle y el resto es la ganancia real de la cadena, menor que los \SI{0.2196}{V/A} que usa el firmware. Los dos efectos se separan en la Sección~\ref{sec:res_calibracion}.
+La corriente física queda dentro del \SI{10}{\percent} en los tres puntos, así que el criterio se cumple también con una medición independiente del sensor. Las referencias son amplitudes pico, con valores RMS de \num{0.141}, \num{0.354} y \SI{0.707}{A}, y las corrientes físicas equivalen a \num{0.136}, \num{0.34} y \SI{0.687}{A} RMS de fundamental. El desfase de la corriente física no se puede obtener de estas capturas, porque el osciloscopio no registró la referencia, así que los desfases del informe son según el sensor.
 
-\subsection{Calibración del sensor}
-\label{sec:res_calibracion}
-El histórico convierte la cuenta $c$ del XADC a corriente con $i=(c-c_0)\,k$, con $c_0=\num{2808}$ y $k=-\SI{1.1118e-3}{A}$ por cuenta. El cero salió de una captura a \SI{0}{A} con el puente apagado y la pendiente de la ganancia nominal de \SI{0.2196}{V/A}, sin compararla con un instrumento. Para calibrarlos se usaron los pares de CSV y osciloscopio de la Tabla~\ref{tab:ganancia}, con el osciloscopio como referencia. La cuenta media se reconstruye a partir de la continua del histórico con los $c_0$ y $k$ del firmware.
-
-\begin{table}[!ht]
-	\centering
-	\caption{Datos de la calibración, \SI{12.5}{V} y carga nominal.}
-	\label{tab:calibracion}
-	\begin{tabularx}{\columnwidth}{cCCcc}
-		\toprule
-		Ref. (A) & Cuenta media & Continua osc. (A) & Cociente & $c_0'$ \\
-		\midrule
-		\num{0} & \num{2589} & $-0.030$ & --- & \num{2566} \\
-		\num{0.2} & \num{2614} & $-0.059$ & \num{1.140} & \num{2569} \\
-		\num{0.5} & \num{2618} & $-0.061$ & \num{1.184} & \num{2571} \\
-		\bottomrule
-	\end{tabularx}
-\end{table}
-
-La ganancia sale del cociente entre la fundamental del osciloscopio y la del sensor. El punto de \SI{1.0}{A} queda fuera porque la acción satura y el cociente sube a \num{1.27}. Con el promedio de los otros dos, \num{1.162}, la pendiente queda en $k'=-\SI{1.292e-3}{A}$ por cuenta. El cero se obtiene de la cuenta media de cada registro corregida por la continua que marca el osciloscopio, $c_0'=\bar{c}-I_{dc}/k'$, y los tres registros dan entre \num{2566} y \num{2571} cuentas (Tabla~\ref{tab:calibracion}). Se toma $c_0'=\num{2569}$, \num{239} cuentas por debajo del valor del firmware, igual al cero con el puente conmutando de la Sección~\ref{sec:res_cero}.
-
-Con $k'$ la fundamental del sensor queda en \num{0.2328} y \SI{0.5818}{A}, a $+\num{1.9}$ y $-\SI{1.9}{\percent}$ de la del osciloscopio. El cociente incluye el sesgo del valle. Descontado el del modelo de Octave, que atrasa los flancos como el núcleo, el error propio de la cadena del sensor es de \num{8.6} y \SI{14.1}{\percent}. Con el de PLECS sería de \num{4.1} y \SI{9.9}{\percent}, y sin ningún sesgo de \num{14.0} y \SI{18.4}{\percent}. El sesgo del banco es menor que el de PLECS (Sección~\ref{sec:comparacion}), así que el error de la cadena queda más cerca de los dos últimos pares. La diferencia entre los dos puntos indica que la cadena no es del todo lineal o que el sesgo real difiere del simulado, y con dos puntos no se pueden separar esas causas. Por eso conviene cargar en el firmware el factor completo, que compensa los dos efectos juntos entre \num{0.2} y \SI{0.5}{A}.
-
-La calibración es a posteriori. Explica la diferencia entre el sensor y el osciloscopio y fija las constantes para los próximos ensayos, pero no cambia los registros ya tomados, que usaron $c_0$ y $k$ del firmware. Las constantes nuevas todavía no se cargaron en \texttt{sw/lazo\_control.h} ni se repitieron los ensayos con ellas. Las capturas del osciloscopio tienen \SI{100}{\micro s} por punto, así que el rizado de \SI{20}{kHz} se pliega sobre ellas y agrega incertidumbre a la fundamental.
-
-Aplicada a los registros con la resistencia aumentada, que no tienen captura del osciloscopio, la calibración da una corriente física de \num{0.233} y \SI{0.581}{A}, \num{16.7} y \SI{16.4}{\percent} sobre la referencia, igual que con la carga nominal. Los registros de \SI{1.0}{A} quedan fuera del rango calibrado y no se estiman.
-
-El cero también deriva entre sesiones. Con la continua de los registros de referencia nula y el modelo del proporcional de la Sección~\ref{sec:res_cero}, el cero implícito baja de \num{2540} cuentas el 23/11 a \num{2491} el 24/11, unas \num{50} cuentas o \SI{0.06}{A}. El mismo modelo da \num{2540} donde la calibración con el osciloscopio da \num{2566}, así que tiene un error de unas \num{25} cuentas, y por eso la deriva se compara entre dos resultados del mismo modelo. La deriva mueve la continua y no la fundamental, pero obliga a medir el cero al inicio de cada sesión.
-
-\subsection{Valores pico y RMS de la corriente física}
-\label{sec:res_rms}
-La Tabla~\ref{tab:rms} separa la amplitud pico de la fundamental, su valor RMS y el RMS total de la corriente física medida con el osciloscopio. Las referencias son amplitudes pico, con valores RMS de \num{0.141}, \num{0.354} y \SI{0.707}{A}.
-
-\begin{table}[!ht]
-	\centering
-	\caption{Corriente física según el osciloscopio, \SI{12.5}{V} y carga nominal. THD con las armónicas 3, 5 y 7.}
-	\label{tab:rms}
-	\small
-	\setlength{\tabcolsep}{3pt}
-	\begin{tabularx}{\columnwidth}{*{6}{C}}
-		\toprule
-		Ref. (A) & Pico (A) & RMS fund. (A) & RMS total (A) & DC (A) & THD (\%) \\
-		\midrule
-		\num{0.2} & \num{0.2285} & \num{0.1616} & \num{0.1727} & $-0.059$ & \num{4.7} \\
-		\num{0.5} & \num{0.5928} & \num{0.4192} & \num{0.4237} & $-0.061$ & \num{2.2} \\
-		\num{1.0} & \num{0.8285} & \num{0.5859} & \num{0.5916} & $-0.038$ & \num{8.4} \\
-		\bottomrule
-	\end{tabularx}
-\end{table}
-
-El RMS total incluye la continua y las armónicas. A \SI{0.2}{A} queda \SI{7}{\percent} sobre el de la fundamental por la continua de $-\SI{0.06}{A}$ que explica la calibración. Las armónicas se ajustan sobre el residuo de la fundamental. A \num{0.2} y \SI{0.5}{A} domina la deformación del tiempo muerto en los cruces por cero \cite[sec.~8-5]{mohan2003power}, que pesa más a \SI{0.2}{A} porque la pérdida de tensión es casi fija y la fundamental es menor. A \SI{1.0}{A} el recorte por saturación sube la tercera armónica a \SI{0.060}{A} y el THD a \SI{8.4}{\percent}. Con \SI{100}{\micro s} por punto el rizado se pliega sobre estas capturas, y los valores cargan esa incertidumbre.
+El signo del error no es el que predicen las simulaciones, que ponen la corriente física entre \num{2} y \SI{10}{\percent} por encima de la muestra del valle (Sección~\ref{sec:comparacion}). En banco queda unos \SI{4}{\percent} por debajo. La pendiente $k$ se calibró el 23 de noviembre con el AD822 a \SI{5}{V}, y la resistencia donde va la punta se toma como \SI{9.6}{\ohm}. Cualquiera de las dos puede explicar unos puntos porcentuales y no se aisló cuál pesa más.
 
 \subsection{Tensión aplicada a la carga}
 \label{sec:res_tension}
-El bus y la tensión de salida del puente no se registraron. Como estimación, la fundamental del índice de modulación del histórico por la tensión nominal del bus da la tensión que pidió el regulador (Tabla~\ref{tab:tension}), sin el tiempo muerto ni las caídas en los MOSFET. En los registros saturados el índice recortado no es senoidal y la tabla da solo su fundamental.
+El bus no se registró durante las capturas. Como estimación, la fundamental del índice de modulación del histórico por \SI{18}{V} da la tensión que pidió el regulador (Tabla~\ref{tab:tension}), sin el tiempo muerto ni las caídas en los MOSFET. En el registro saturado el índice recortado no es senoidal y la tabla da solo su fundamental.
 
 \begin{table}[!ht]
 	\centering
-	\caption{Fundamental del índice de modulación $m_1$ y tensión estimada $V_1=m_1V_{dc}$, en valores pico.}
+	\caption{Fundamental del índice de modulación $m_1$ y tensión estimada $V_1=m_1V_{dc}$ con \SI{18}{V}, en valores pico.}
 	\label{tab:tension}
-	\begin{tabularx}{\columnwidth}{cCccc}
+	\begin{tabularx}{\columnwidth}{cCcc}
 		\toprule
-		Ref. (A) & Carga & Bus & $m_1$ & $V_1$ (V) \\
+		Ref. (A) & Carga & $m_1$ & $V_1$ (V) \\
 		\midrule
-		\num{0.2} & nominal & \SI{12.5}{V} & \num{0.275} & \num{3.44} \\
-		\num{0.5} & nominal & \SI{12.5}{V} & \num{0.639} & \num{7.99} \\
-		\num{1.0} & nominal & \SI{12.5}{V} & \num{0.939} & \num{11.74} \\
-		\num{1.0} & nominal & \SI{18}{V} & \num{0.853} & \num{15.36} \\
-		\num{0.2} & $+\SI{2.5}{\ohm}$ & \SI{12.5}{V} & \num{0.360} & \num{4.50} \\
-		\num{0.5} & $+\SI{2.5}{\ohm}$ & \SI{12.5}{V} & \num{0.792} & \num{9.89} \\
-		\num{1.0} & $+\SI{2.5}{\ohm}$ & \SI{12.5}{V} & \num{0.885} & \num{11.06} \\
+		\num{0.2} & nominal & \num{0.172} & \num{3.09} \\
+		\num{0.5} & nominal & \num{0.368} & \num{6.63} \\
+		\num{1.0} & nominal & \num{0.714} & \num{12.85} \\
+		\num{0.2} & aumentada & \num{0.233} & \num{4.19} \\
+		\num{0.5} & aumentada & \num{0.495} & \num{8.90} \\
+		\num{1.0} & aumentada & \num{0.860} & \num{15.49} \\
 		\bottomrule
 	\end{tabularx}
 \end{table}
 
-Con la carga nominal, la recta entre los puntos de \num{0.2} y \SI{0.5}{A} con la corriente del osciloscopio tiene una pendiente de \SI{12.5}{\ohm} y una ordenada de \SI{0.58}{V}. La pendiente coincide con los \SI{11.8}{\ohm} de la carga más unos \SI{0.4}{\ohm} de los dos MOSFET en conducción. La ordenada coincide con la pérdida por tiempo muerto, una onda cuadrada de $2t_df_{sw}V_{dc}=\SI{0.5}{V}$ en fase con la corriente \cite[sec.~8-5]{mohan2003power}, cuya fundamental vale $(4/\pi)\cdot\SI{0.5}{V}=\SI{0.64}{V}$. Esta comprobación no pasa por el sensor, porque usa solo la acción del regulador y la corriente del osciloscopio, y respalda la ganancia calibrada. Con la resistencia aumentada y la corriente calibrada la recta da \SI{15.5}{\ohm} y \SI{0.90}{V}, contra unos \SI{14.7}{\ohm} esperados, pero ese punto depende de la calibración del día anterior.
+Con la carga nominal, la recta entre los puntos de \num{0.2} y \SI{1.0}{A} con la corriente del sensor tiene una pendiente de \SI{12.2}{\ohm} y una ordenada de \SI{0.65}{V}. La pendiente queda cerca de los \SI{11.8}{\ohm} de la carga más unos \SI{0.4}{\ohm} de los dos MOSFET en conducción. La ordenada corresponde a la pérdida por tiempo muerto, una onda cuadrada de $2t_df_{sw}V_{dc}=\SI{0.72}{V}$ en fase con la corriente \cite[sec.~8-5]{mohan2003power}, cuya fundamental vale \SI{0.92}{V}. Con la carga aumentada, la recta entre \num{0.2} y \SI{0.5}{A} da \SI{15.7}{\ohm} y \SI{1.05}{V}.
 
-A \SI{0.5}{A} la corriente queda igual con las dos cargas y el índice sube de \num{0.639} a \num{0.792}, \num{1.24} veces, contra \num{1.21} veces de la resistencia. El regulador compensó el cambio de carga subiendo la tensión aplicada, que es lo que se espera del ensayo en régimen. El transitorio a \SI{0.5}{A} no se guardó (Sección~\ref{sec:res_nominal}).
+A \SI{0.5}{A} la corriente queda igual con las dos cargas y el índice sube de \num{0.368} a \num{0.495}, \num{1.34} veces. El regulador compensó el cambio de carga subiendo la tensión aplicada, que es lo que se espera del ensayo en régimen. El cociente queda entre los \num{1.21} de la carga nominal y los \num{1.58} del multímetro.
+
+\subsection{Transitorios}
+\label{sec:res_transitorios}
+Los transitorios se registraron con el osciloscopio sobre la resistencia de la carga. La referencia no da escalones, porque el firmware limita su cambio a \SI{1}{A} cada \SI{20}{ms}.
+
+En el escalón de \num{0.5} a \SI{1.0}{A} (Fig.~\ref{fig:transitorios}) la fundamental pasa de \num{0.485} a \SI{0.97}{A} y se establece en unos \SI{30}{ms}, la rampa más un poco de respuesta del regulador, sin oscilación visible. En el de \num{0.2} a \SI{0.5}{A} la corriente pasa unos \SI{30}{ms} por cero. La amplitud se elige con dos interruptores, donde 01 es \SI{0.2}{A} y 10 es \SI{0.5}{A}, y al bajar el primero antes de subir el segundo se pasa por 00, que es \SI{0}{A}. Desde cero llega a \SI{0.48}{A} en unos \SI{30}{ms}.
+
+En el cambio de resistencia a \SI{0.5}{A} la fundamental queda en \SI{0.48}{A} en toda la ventana de \SI{50}{ms}, sin transitorio visible a esa escala. Para el regulador el cambio de carga es una perturbación de \SI{50}{Hz}, que el resonante rechaza \cite{teodorescu2006}. Que la carga cambió se ve en la acción de la Sección~\ref{sec:res_tension}.
+
+\begin{figure}[!ht]
+	\centering
+	\includegraphics[width=\columnwidth]{transitorio_escalon_05_10}\\[2pt]
+	\includegraphics[width=\columnwidth]{transitorio_cambio_r}
+	\caption{Tensión sobre la resistencia de \SI{9.6}{\ohm}, \SI{5}{V/div}. Arriba, escalón de consigna de \num{0.5} a \SI{1.0}{A}, \SI{20}{ms/div}. Abajo, cambio de carga a \SI{0.5}{A}, \SI{5}{ms/div}, con dos barridos superpuestos.}
+	\label{fig:transitorios}
+\end{figure}
 
 \subsection{Compuertas y tiempo muerto}
 \label{sec:res_compuertas}
@@ -255,9 +210,37 @@ El pin JB1, que sube al entrar a la rutina periódica y baja al salir, se repite
 
 \subsection{Rizado}
 \label{sec:res_rizado}
-En banco se leyeron \SI{3.27}{V} pico a pico sobre las resistencias con \SI{12.5}{V}, es decir \SI{0.35}{A}, sin anotar la consigna. Las tres capturas de \SI{0.1}{\micro s} por punto muestran el rizado unipolar al doble de la portadora, con tramos continuos de \num{2.4}, \num{4.4} y \SI{6.3}{V} pico a pico, \num{0.25}, \num{0.46} y \SI{0.66}{A}. Tienen además saltos y picos en las conmutaciones que la corriente por \SI{200}{\micro H} no puede hacer, efecto de que los dos extremos de las resistencias saltan con el bus, y se excluyen del pico a pico. En todos los casos el rizado supera \SI{0.20}{A}.
+Las capturas se tomaron a \SI{20}{\micro s/div} y \SI{50}{MS/s}, unas \num{1250} muestras por período de \SI{25}{\micro s}, con una sola punta sobre la resistencia. En cada flanco del puente aparecen picos de hasta \SI{3.2}{V} que duran menos de \SI{1}{\micro s}. La corriente por la bobina no puede saltar así, así que son de la medición, probablemente el $dv/dt$ del puente acoplado en la punta y su cable de tierra, y se quitan con una mediana móvil de \SI{1}{\micro s}. La baja frecuencia sale de un promedio móvil de \SI{50}{\micro s}, un período de la portadora, que cancela el rizado al doble de esa frecuencia. El rizado es el pico a pico de lo que queda (Fig.~\ref{fig:rizado}).
 
-La consigna de las capturas no se anotó, pero el nivel medio de corriente indica en qué parte del ciclo se tomó cada una. Da $+\num{0.31}$, $-\num{0.46}$ y $-\SI{0.42}{A}$ en \texttt{scope\_a2}, \texttt{a3} y \texttt{a4}, más que el pico físico del ensayo de \SI{0.2}{A}, así que las tres son de \num{0.5} o \SI{1.0}{A}. Con ese nivel el índice instantáneo es $m\approx Ri/V_{dc}$, y el rizado unipolar $\Delta I=V_{dc}\,m(1-m)/(2Lf_{sw})$ \cite[sec.~8-3-2]{mohan2003power} da \num{0.31}, \num{0.36} y \SI{0.35}{A} pico a pico con \SI{12.5}{V} y \SI{212}{\micro H}, con un máximo de \SI{0.37}{A} en $m=0.5$. Si los valores medidos siguen el orden de los archivos, los dos primeros quedan a \num{19} y \SI{27}{\percent} de la teoría. El tercero, \SI{0.66}{A}, supera incluso el máximo de \SI{0.53}{A} con \SI{18}{V}, y lo más probable es que esa medición incluya parte de los saltos de conmutación, aunque no se pudo comprobar.
+\begin{table}[!ht]
+	\centering
+	\caption{Rizado con \SI{18}{V}. $i_{bf}$ es la corriente de baja frecuencia en la captura y la última columna el modelo de Octave con \SI{9}{\ohm} y \SI{200}{\micro H}.}
+	\label{tab:rizado}
+	\begin{tabularx}{\columnwidth}{cCcc}
+		\toprule
+		Ref. (A) & $i_{bf}$ (A) & Rizado (A pp) & Octave (A pp) \\
+		\midrule
+		\num{0.2} & \num{0.18} & \num{0.275} & \num{0.268} \\
+		\num{0.2} & \num{0.09} & \num{0.176} & --- \\
+		\num{0.5} & $-0.42$ & \num{0.465} & \num{0.483} \\
+		\num{1.0} & $-0.66$ & \num{0.526} & \num{0.597} \\
+		\num{1.0} & $-0.21$ & \num{0.294} & --- \\
+		\bottomrule
+	\end{tabularx}
+\end{table}
+
+En la modulación unipolar el rizado crece con $|m|$ hasta \num{0.5} \cite[sec.~8-3-2]{mohan2003power}, así que en cada punto se reporta la captura más cercana al máximo de $|m|$, \num{0.275}, \num{0.465} y \SI{0.526}{A} pico a pico. Las tres superan los \SI{0.20}{A}. Con el nivel de baja frecuencia el índice instantáneo es $m\approx Ri/V_{dc}$, y $\Delta I=V_{dc}\,m(1-m)/(2Lf_{sw})$ con \SI{18}{V} y \SI{212}{\micro H} da \num{0.22}, \num{0.43} y \SI{0.52}{A} en el punto de cada captura principal.
+
+\begin{figure}[!ht]
+	\centering
+	\includegraphics[width=\columnwidth]{rizado_18V_10A}
+	\caption{Rizado a \SI{18}{V} y \SI{1.0}{A} pico sobre \SI{9.6}{\ohm}. En gris la medición cruda, en azul sin los picos de conmutación y en negro la baja frecuencia.}
+	\label{fig:rizado}
+\end{figure}
+
+\subsection{Antecedente de los ensayos del 23 y 24 de noviembre}
+\label{sec:antecedente}
+Esos ensayos se hicieron con el cero del sensor fijo en \num{2808} cuentas, con \SI{12.5}{V} y \SI{0.52}{A} de límite salvo un punto de \SI{1.0}{A} con \SI{18}{V}, y con el rizado medido restando dos puntas. Los registros siguen en \texttt{muestras\_Inversor/} y lo anotado en \texttt{potencia/\allowbreak mediciones/\allowbreak 2026-11-24/\allowbreak registro.md}. Con el control deshabilitado el sensor marcaba entre $-\num{0.54}$ y $-\SI{0.65}{A}$ y con el lazo cerrado y referencia nula $+\SI{0.24}{A}$, unas \num{800} cuentas de diferencia entre los dos estados del puente, y el proporcional convertía ese error en una continua física. La corriente física medida con el osciloscopio quedaba \num{14.6} y \SI{18.7}{\percent} sobre la referencia a \num{0.2} y \SI{0.5}{A}. Con esos pares se calibró la pendiente $k$ que usa el firmware actual. El punto de \SI{1.0}{A} se recortaba, con \SI{35}{\percent} de error a \SI{12.5}{V} y \SI{12}{\percent} a \SI{18}{V}, y en banco se vio que el AD822 a \SI{5}{V} aplanaba el lado positivo de la salida del acondicionador. De ahí salieron el autocero y la alimentación del AD822 a \SI{10}{V}.
 
 \section{Simulación en PLECS}
 \label{sec:plecs_res}
@@ -317,81 +300,84 @@ Con un sensor perfecto, la corriente física queda entre \num{6} y \SI{10}{\perc
 	\label{fig:plecs_cerrado}
 \end{figure}
 
-La simulación usa los \SI{200}{\micro H} nominales. Con la inductancia medida en un inductor, la total sería un \SI{6}{\percent} mayor, lo que baja el rizado en una proporción parecida y reduce un poco el sesgo del valle, que depende de $\tau=L/R$.
+La simulación usa los \SI{200}{\micro H} nominales. Con los dos inductores medidos la total es un \SI{6}{\percent} mayor, lo que baja el rizado en una proporción parecida y reduce un poco el sesgo del valle, que depende de $\tau=L/R$.
 
 
 \section{Comparación entre teoría, simulación y experimento}
 \label{sec:comparacion}
-La Tabla~\ref{tab:cmp} pone en una fila cada magnitud con su valor de análisis, de simulación y medido. El análisis son las ecuaciones del documento de diseño evaluadas con la carga medida, \SI{11.8}{\ohm}, \SI{212}{\micro H} y \SI{12.5}{V} (\texttt{potencia/verificar\_pr.m} y la fórmula del rizado unipolar). La simulación conmutada es el modelo de Octave \texttt{potencia/simular\_conmutado.m} con las mismas condiciones y los coeficientes del firmware normalizados a \SI{18}{V}, y la última columna de simulación es el lazo cerrado de PLECS con \SI{11.8}{\ohm} y \SI{200}{\micro H}. El sesgo del valle no tiene una forma cerrada simple. Con $\tau=L/R=\SI{18}{\micro s}$, comparable con el período de \SI{50}{\micro s}, los tramos de corriente son exponenciales y la muestra del valle deja de coincidir con el promedio del período, como pasaría con tramos rectos, así que solo las simulaciones lo estiman.
+La Tabla~\ref{tab:cmp} pone en una fila cada magnitud con su valor de análisis, de simulación y medido. El análisis son las ecuaciones del documento de diseño evaluadas con la carga medida (\texttt{potencia/verificar\_pr.m} y la fórmula del rizado unipolar). La simulación conmutada es el modelo de Octave \texttt{potencia/simular\_conmutado.m} con los coeficientes del firmware, y la última columna de simulación es el lazo cerrado de PLECS con \SI{11.8}{\ohm} y \SI{200}{\micro H}. Las mediciones son con \SI{18}{V}, y las simulaciones de error físico disponibles con la carga medida son con \SI{12.5}{V}. El sesgo del valle no tiene una forma cerrada simple. Con $\tau=L/R=\SI{18}{\micro s}$, comparable con el período de \SI{50}{\micro s}, los tramos de corriente son exponenciales y la muestra del valle deja de coincidir con el promedio del período, como pasaría con tramos rectos, así que solo las simulaciones lo estiman.
 
 \begin{table*}[!t]
 	\centering
-	\caption{Comparación por magnitud con \SI{12.5}{V}, salvo donde se indica.}
+	\caption{Comparación por magnitud. Mediciones con \SI{18}{V}.}
 	\label{tab:cmp}
 	\resizebox{\textwidth}{!}{%
 	\begin{tabular}{lcccc}
 		\toprule
 		Magnitud & Análisis & Simulación conmutada & PLECS lazo cerrado & Medición \\
 		\midrule
-		Error según el sensor, 0,2 / 0,5 A & \SI{0}{\percent} (resonante ideal) & \SI{0.00}{\percent} & --- & \num{0.39} / \SI{0.19}{\percent} \\
-		Error de la corriente física, 0,2 / 0,5 A & sesgo del valle, sin forma cerrada & \num{4.94} / \SI{3.79}{\percent} & \num{9.59} / \SI{7.75}{\percent} & \num{14.6} / \SI{18.7}{\percent} (osciloscopio) \\
-		Saturación a \SI{1.0}{A}, $R$ de \SI{11.8}{\ohm} & satura, pide $m=\num{1.03}$ & satura, $-\SI{7.3}{\percent}$ & satura, $-\SI{8.9}{\percent}$ & satura, \SI{34.9}{\percent} sensor, $-\SI{17}{\percent}$ física \\
-		Saturación a \SI{1.0}{A}, \SI{18}{V} & no satura, $m=\num{0.73}$ & no satura, \SI{2.4}{\percent} & no satura, \SI{5.9}{\percent} & satura, \SI{11.8}{\percent} sensor \\
-		Error con $+\SI{2.5}{\ohm}$ (\SI{+21}{\percent} total), \SI{0.5}{A}, sensor & \SI{0}{\percent} & \SI{0.00}{\percent} (física \SI{5.1}{\percent}) & \SI{9.71}{\percent} (física) & \SI{0.14}{\percent} \\
-		Rizado, 0,2 / 0,5 / 1,0 A (A pp) & \num{0.226} / \num{0.367} / \num{0.369} & \num{0.248} / \num{0.380} / \num{0.380} & \num{0.280} / \num{0.384} / \num{0.396} & \num{0.25} a \num{0.66}, \num{0.35} en banco \\
+		Error según el sensor, 0,2 / 0,5 / 1,0 A & \SI{0}{\percent} (resonante ideal) & \SI{0.00}{\percent} & --- & \num{0.42} / \num{0.08} / \SI{0.07}{\percent} \\
+		Error de la corriente física, 0,2 / 0,5 A & sesgo del valle, sin forma cerrada & \num{4.94} / \SI{3.79}{\percent} (\SI{12.5}{V}) & \num{9.59} / \SI{7.75}{\percent} (\SI{12.5}{V}) & $-\num{3.9}$ / $-\SI{4}{\percent}$ (osciloscopio) \\
+		Error de la corriente física, 1,0 A & --- & \SI{2.4}{\percent} & \SI{5.9}{\percent} & $-\SI{2.9}{\percent}$ \\
+		Saturación a \SI{1.0}{A}, carga nominal & no satura, $m=\num{0.73}$ & no satura & no satura, $|m|_{max}=\num{0.78}$ & no satura, $m_1=\num{0.71}$ \\
+		Saturación a \SI{1.0}{A}, carga aumentada & al límite, pide \SI{16.7}{V} con \SI{15.7}{\ohm} & --- & no satura con \SI{14.3}{\ohm}, $|m|_{max}=\num{0.91}$ & satura, $-\SI{8.6}{\percent}$ sensor \\
+		Cambio de carga a \SI{0.5}{A}, sensor & \SI{0}{\percent} & \SI{0.00}{\percent} (física \SI{5.1}{\percent}) & \SI{9.71}{\percent} (física, \SI{12.5}{V}) & \SI{0.17}{\percent}, física $-\SI{4.5}{\percent}$ \\
+		Rizado, 0,2 / 0,5 / 1,0 A (A pp) & \num{0.22} / \num{0.43} / \num{0.52} & \num{0.268} / \num{0.483} / \num{0.597} (\SI{9}{\ohm}) & \num{0.560} a \SI{1.0}{A} & \num{0.275} / \num{0.465} / \num{0.526} \\
 		Tiempo muerto & \SI{1.00}{\micro s} & \SI{1.00}{\micro s} (RTL) & --- & B \SI{1.00}{\micro s}, A \SI{1.23}{\micro s} y \SI{430}{ns} \\
 		Período de la rutina & \SI{50}{\micro s} & \SI{50}{\micro s} (RTL) & --- & \SI{50}{\micro s} \\
 		\bottomrule
 	\end{tabular}}
 \end{table*}
 
-Lo que coincide es todo lo que depende del lazo visto desde el sensor. El error según el sensor es casi nulo como predicen el análisis y la simulación, el tiempo muerto y el período de la rutina son los programados, la saturación a \SI{1.0}{A} con \SI{12.5}{V} era esperable con \SI{11.8}{\ohm}, y el rizado medido cae en el rango de la simulación conmutada. Lo que no coincide depende de la medición de la corriente. La corriente física supera a la referencia más de lo que predicen las simulaciones. PLECS, con la carga medida, da entre \num{7.8} y \SI{9.6}{\percent} por el muestreo en el valle, y el modelo de Octave entre \num{3.8} y \SI{4.9}{\percent}, contra \num{14.6} y \SI{18.7}{\percent} en el banco. Con \SI{18}{V}, PLECS no satura a \SI{1.0}{A} ni con la resistencia aumentada, y en el banco el lazo saturó y la corriente cayó al añadir la resistencia, lo que apunta a la fuente y no al regulador.
+Lo que coincide es todo lo que depende del lazo visto desde el sensor y la etapa de potencia. El error según el sensor es casi nulo como predicen el análisis y la simulación, el tiempo muerto y el período de la rutina son los programados, y el rizado medido queda a \num{3}, \num{4} y \SI{12}{\percent} de la simulación conmutada. Con la carga nominal y \SI{18}{V}, \SI{1.0}{A} no satura, como predecían el análisis y PLECS. Lo que no coincide es el signo del error físico. Las dos simulaciones ponen la corriente física sobre la muestra del valle, y el banco la pone unos \SI{4}{\percent} por debajo. PLECS tampoco satura con la carga aumentada porque usa \SI{14.3}{\ohm}, menos que lo que indica la acción en banco.
 
 La diferencia entre las dos simulaciones sale de cómo modelan el tiempo muerto. Alrededor del valle conducen las dos altas, la carga ve \SI{0}{V} y la corriente decae con $\tau=L/R$, así que la muestra depende del punto de ese tramo en que cae la conversión. En el núcleo del PWM y en el modelo de Octave la compuerta que entra se enciende $T_M$ después del cruce, el tramo de tensión nula termina $T_M$ más tarde y su centro queda \SI{0.5}{\micro s} después del valle. En PLECS el hueco está centrado en el cruce, el tramo queda centrado en el valle y la muestra cae en su centro, donde la corriente es menor. Con el modelo de Octave, \SI{11.8}{\ohm}, \SI{212}{\micro H} y \SI{12.5}{V}, moviendo solo el instante de muestreo, el error de la corriente física a \num{0.2} y \SI{0.5}{A} es de \num{2.16} y \SI{0.98}{\percent} con la muestra \SI{0.5}{\micro s} antes del valle, \num{4.94} y \SI{3.79}{\percent} en el valle, \num{7.85} y \SI{6.60}{\percent} \SI{0.5}{\micro s} después y \num{10.93} y \SI{9.45}{\percent} \SI{1}{\micro s} después, unos tres puntos por cada \SI{0.5}{\micro s} (\texttt{simular\_conmutado.m} con el corrimiento del muestreo como sexto argumento, salidas con el sufijo \texttt{\_muestra} en \texttt{docs/\allowbreak informe/\allowbreak evidencia/}). El caso de \SI{0.5}{\micro s} después equivale al centrado de PLECS, y lo que falta hasta sus \num{9.59} y \SI{7.75}{\percent} corresponde a su constante de tiempo menor, con \SI{200}{\micro H} y los \SI{0.4}{\ohm} de los MOSFET.
 
-En el banco la cadena de compuertas atrasa además cada flanco entre \num{0.1} y \SI{0.91}{\micro s} respecto de la orden del núcleo, mientras el XADC convierte en el valle, así que la muestra cae antes del centro del tramo y el sesgo real queda por debajo del de PLECS, del orden del de Octave o menor. El filtro antialias, que no está en ninguna de las dos simulaciones, promedia además parte del rizado antes de la conversión. Por eso la mayor parte de la diferencia con el banco corresponde a la ganancia de la cadena del sensor (Sección~\ref{sec:res_calibracion}).
+En el banco la cadena de compuertas atrasa además cada flanco entre \num{0.1} y \SI{0.91}{\micro s} respecto de la orden del núcleo, mientras el XADC convierte en el valle, así que la muestra cae antes del centro del tramo y el sesgo real debería quedar por debajo del de PLECS, del orden del de Octave o menor. Eso reduce el sesgo pero no le cambia el signo, así que la diferencia con el banco corresponde a la cadena de medida, la pendiente del sensor o la resistencia donde va la punta (Sección~\ref{sec:res_ganancia}).
 
 \section{Discusión}
 \label{sec:discusion}
 \subsection{Efecto del cambio de carga}
-La carga pasó de \SI{30}{mH} a \SI{200}{\micro H} con el regulador ya diseñado. Con \SI{200}{\micro H} la carga es casi resistiva a \SI{50}{Hz}, y eso hizo fácil el seguimiento de la fundamental, que se ve en los errores menores a \SI{0.5}{\percent} según el sensor. El precio fue el rizado. El rizado de la modulación unipolar baja con $L$ y con la frecuencia de conmutación \cite[sec.~8-3-2]{mohan2003power}. A \SI{20}{kHz} la inductancia no alcanza para bajarlo de \SI{0.20}{A} pico a pico con ningún bus del rango, y la medición lo confirma. Hacía falta al menos \SI{0.56}{mH}, o subir la portadora a \SI{40}{kHz} con \SI{12}{V}.
+La carga pasó de \SI{30}{mH} a \SI{200}{\micro H} con el regulador ya diseñado. Con \SI{200}{\micro H} la carga es casi resistiva a \SI{50}{Hz}, y eso hizo fácil el seguimiento de la fundamental, que se ve en los errores menores a \SI{0.5}{\percent} según el sensor. El precio fue el rizado. El rizado de la modulación unipolar baja con $L$ y con la frecuencia de conmutación \cite[sec.~8-3-2]{mohan2003power}. A \SI{20}{kHz} la inductancia no alcanza para bajarlo de \SI{0.20}{A} pico a pico con ningún bus del rango, y la medición lo confirma en los tres puntos. Hacía falta al menos \SI{0.56}{mH}, o subir la portadora a \SI{40}{kHz} con \SI{12}{V}.
 
-\subsection{Saturación y fuente}
-La resistencia real de \SI{11.8}{\ohm} es mayor que los \SI{9.6}{\ohm} con que se planeó \SI{12.5}{V}, y eso basta para que \SI{1.0}{A} no entre. Con la recta de la Sección~\ref{sec:res_tension}, \SI{1.0}{A} pide unos $\SI{12.5}{\ohm}\cdot\SI{1}{A}+\SI{0.58}{V}=\SI{13.1}{V}$ de fundamental, y con el límite de \num{0.92} el puente entrega a lo sumo $\num{0.92}\cdot\SI{12.5}{V}=\SI{11.5}{V}$, lo que deja la corriente en unos $(\num{11.5}-\num{0.58})/\num{12.5}\approx\SI{0.87}{A}$. A eso se suma la fuente. A \SI{1.0}{A} pico con \SI{11.8}{\ohm} la potencia media en la carga es de \SI{5.9}{W}, unos \SI{0.47}{A} de la fuente de \SI{12.5}{V} sin contar pérdidas, y el límite de la fuente era de \SI{0.52}{A}. El \SI{35}{\percent} de la Tabla~\ref{tab:med_nominal} es según el sensor, y la corriente física medida con el osciloscopio fue de \SI{0.83}{A}, \SI{17}{\percent} bajo la referencia. La simulación conmutada con \SI{11.8}{\ohm}, \SI{212}{\micro H} y \SI{12.5}{V}, que no limita la corriente de la fuente, da \SI{0.93}{A} con la acción saturada. La recta medida, que incluye las pérdidas reales del puente, queda más cerca, y la diferencia que resta entre \num{0.87} y \SI{0.83}{A} es compatible con la fuente trabajando en su límite. Como el bus no se registró, no se puede separar cuánto aporta cada causa. Con los \SI{2.5}{\ohm} añadidos harían falta unos \SI{15.3}{V}. Con \SI{18}{V} el puente entrega hasta \SI{16.6}{V} y la tensión alcanza, pero el límite de corriente de la fuente se fijó en \SI{1}{A}, y el puente pide cerca de eso en el pico. Para repetir el ensayo hay que subir ese límite y registrar la tensión del bus durante la captura.
+El cambio de resistencia a \SI{0.5}{A} no se ve en la corriente. El resonante rechaza la perturbación y la acción sube \num{1.34} veces en régimen.
+
+\subsection{Saturación con la carga aumentada}
+\label{sec:saturacion}
+Con \SI{18}{V} el tope de \num{0.92} da \SI{16.6}{V}. Con la recta de la Sección~\ref{sec:res_tension}, la carga aumentada pide para \SI{1.0}{A} unos $\SI{15.7}{\ohm}\cdot\SI{1}{A}+\SI{1.05}{V}\approx\SI{16.7}{V}$, justo por encima de lo disponible. Por eso la acción toca el límite en cada pico y la fundamental queda en \SI{0.913}{A}, cerca de la corriente máxima alcanzable. La saturación la explica la carga, y no hace falta suponer que la fuente limitó, que era la hipótesis de los ensayos anteriores. Con la carga nominal, \SI{1.0}{A} pide \SI{12.9}{V} y queda margen.
 
 \subsection{Diferencias entre predicción y práctica}
-La diferencia más grande es la medición de la corriente. Un error de ganancia del sensor cambia igual la amplitud medida y la que el lazo cree que tiene, así que el lazo converge al valor equivocado con un error pequeño según el histórico y grande según el osciloscopio, que es lo que se observó. El cero tampoco es fijo. Se mueve con el estado del puente y deriva en minutos, y como el resonante no corrige continua, cada cuenta de error en el cero se convierte en corriente continua en la carga a través del proporcional.
+La diferencia más grande es el signo del error de la corriente física. Las simulaciones suponen un sensor con ganancia y cero exactos. En banco el cero ya no aporta error, porque el autocero lo mide en las condiciones de operación y la continua quedó en \SI{0.02}{A} o menos, pero la pendiente viene de una calibración con el acondicionador anterior. Un error de ganancia del sensor cambia igual la amplitud medida y la que el lazo cree que tiene, así que el lazo converge a un valor que difiere del físico en esa proporción.
+
+La resistencia de la carga aumentada tampoco cuadra entre la suma nominal, el multímetro y la acción de control. Las conexiones de la resistencia añadida pueden sumar resistencia, y la lectura a dos hilos con el multímetro puede incluir contactos, pero no se comprobó.
 
 \subsection{Limitaciones del modelo}
-El lazo promedio no tiene rizado, cuantización ni ruido. El modelo conmutado no tiene el filtro del sensor ni los retardos de los drivers, y supone un sensor con ganancia y cero exactos, que es justo lo que no se cumplió en banco. Las armónicas impares del tiempo muerto \cite[sec.~8-5]{mohan2003power} no las corrige el resonante, que solo actúa en \SI{50}{Hz}, y deforman la corriente en los cruces por cero sin afectar la fundamental.
+El lazo promedio no tiene rizado, cuantización ni ruido. El modelo conmutado no tiene el filtro del sensor ni los retardos de los drivers, y supone un sensor con ganancia y cero exactos. Las armónicas impares del tiempo muerto \cite[sec.~8-5]{mohan2003power} no las corrige el resonante, que solo actúa en \SI{50}{Hz}, y deforman la corriente en los cruces por cero sin afectar la fundamental.
 
 \subsection{Limitaciones de las mediciones}
-No se volvió al laboratorio, así que lo que dependía de medir queda como limitación, y cada una dice qué criterio del enunciado deja sin demostrar.
+Cada limitación dice qué criterio del enunciado deja sin demostrar.
 \begin{itemize}
-	\item Tiempo muerto de la pierna A. Los \SI{1.23}{\micro s} y los \SI{430}{ns} salen de lo anotado en el banco y no hay captura. Se presentan como medición anotada y no como evidencia archivada. Solo la pierna B tiene captura, con \SI{1}{\micro s} en los dos flancos.
-	\item Cambios de consigna de \num{0.2} a \num{0.5} y de \num{0.5} a \SI{1.0}{A}, y cambio de resistencia a \SI{0.5}{A}. No hay registro. Solo existen la imagen del cambio de \num{0.5} a \SI{0.2}{A} y la del cambio de carga a \SI{1.0}{A} con la acción saturada, con amplitudes leídas de la cuadrícula. Los transitorios se sostienen con la simulación y con lo observado a ojo en el banco, sin tiempo de establecimiento ni sobrepico medidos.
-	\item Rizado. Las capturas no tienen consigna ni bus anotados y restan dos puntas. Los \num{0.25} a \SI{0.66}{A} pico a pico se reportan con ese alcance, y el valor más alto queda como discrepancia sin causa comprobada.
-	\item Ganancia del sensor. No hubo calibración en el mismo minuto. La calibración a posteriori de la Sección~\ref{sec:res_calibracion} reparte la diferencia de \num{14.6} y \SI{18.7}{\percent} entre el sesgo del valle y el error de la cadena, de \num{8.6} y \SI{14.1}{\percent} con el sesgo del modelo de Octave, pero sale de dos puntos y el cociente cambia con la amplitud. El criterio de \SI{10}{\percent} queda demostrado según el sensor y no se cumple según el osciloscopio.
-	\item Cero del sensor. Con el puente conmutando sale de la calibración contra el osciloscopio, \num{2569} cuentas, y deriva unas \num{50} cuentas entre días. La causa del desplazamiento de unas \num{800} cuentas respecto del puente apagado no se aisló.
+	\item Tiempo muerto de la pierna A. Los \SI{1.23}{\micro s} y los \SI{430}{ns} salen de lo anotado en el banco y no hay captura. Solo la pierna B tiene captura, con \SI{1}{\micro s} en los dos flancos.
+	\item Simultaneidad. Las capturas del osciloscopio no son del mismo minuto que los CSV, aunque sí de la misma sesión.
+	\item Signo del error físico. La corriente física queda unos \SI{4}{\percent} bajo la referencia, contra lo que predicen las simulaciones, sin causa aislada.
+	\item Resistencia de la carga aumentada. Los \SI{14.3}{\ohm} nominales, los \SI{18.7}{\ohm} del multímetro y los \SI{15.7}{\ohm} de la acción no cuadran. Con cualquiera de los medidos el cambio supera el \SI{25}{\percent}.
 	\item Desfase de la corriente física. El osciloscopio no registró la referencia, así que solo hay desfase según el sensor.
-	\item Inductancia y resistencia. Solo se midió uno de los dos inductores, \SI{106.2}{\micro H}, y se supone el otro igual. La resistencia no se midió a cuatro hilos ni en caliente.
-	\item Tensión de bus a \SI{1.0}{A}. No se anotó. El límite de la fuente queda como hipótesis y el punto de \SI{1.0}{A} no se demuestra con ninguna carga.
+	\item Resistencia. No se midió a cuatro hilos ni en caliente.
+	\item Tensión del bus. Se anotó la de la fuente, \SI{18}{V}, pero no se registró durante las capturas.
 	\item Rutina de control y falla. Solo se afirma el período de \SI{50}{\micro s}. El ancho máximo y el jitter, la precarga de \SI{70}{\micro s}, el último pulso truncado, la fase entre ADC, temporizador y PWM, el filtro antialias y la prueba de falla no se midieron.
 	\item Plataforma digital. La simulación temporizada del periférico PWM pasó su autochequeo sin errores, pero es del periférico solo y sin retardos de entrada y salida. Los retardos de las compuertas salen del banco y no de esa simulación.
 \end{itemize}
 
 \subsection{Mejoras al procedimiento}
-Medir el cero del sensor con el puente conmutando y la referencia nula, no con el puente apagado, y repetirlo al inicio de cada sesión porque deriva entre días (Sección~\ref{sec:res_calibracion}). Cargar las constantes calibradas y repetir la calibración contra el osciloscopio en el mismo minuto que el CSV, con modo de alta resolución o un muestreo de al menos \SI{1}{MS/s} para que el rizado no se pliegue. Registrar la tensión del bus en cada captura. Medir con LCR el segundo inductor y la resistencia en caliente. Y medir el rizado con una sola punta diferencial o con el cable BNC solo, sin restar dos puntas cuyos extremos saltan con el bus.
+Repetir la calibración de la pendiente contra el osciloscopio con el acondicionador actual y en el mismo minuto que el CSV. Registrar la tensión del bus durante cada captura. Medir la resistencia de la carga aumentada a cuatro hilos. Y en los cambios de consigna que necesitan mover dos interruptores, moverlos a la vez para que la referencia no pase por cero.
 
 \section{Conclusiones}
 \label{sec:conclusiones}
-El regulador PR cumple el criterio de \SI{10}{\percent} a \num{0.2} y \SI{0.5}{A} según el sensor de la placa, con menos de \SI{0.5}{\percent} de error, desfase nulo según el mismo sensor y el mismo resultado con la resistencia aumentada. Ante ese cambio de carga el regulador subió el índice de modulación \num{1.24} veces a \SI{0.5}{A}, en proporción a la resistencia, y mantuvo la corriente. A \SI{1.0}{A} no cumple porque la acción satura. Con \SI{12.5}{V} el puente entrega a lo sumo \SI{11.5}{V} de los \SI{13.1}{V} que pide la carga real de \SI{11.8}{\ohm}, y además la fuente quedaba cerca de su límite de \SI{0.52}{A}. Con \SI{18}{V} la causa probable es el límite de \SI{1}{A} de la fuente.
+El regulador PR cumple el criterio de \SI{10}{\percent} a \num{0.2}, \num{0.5} y \SI{1.0}{A} con la carga nominal y \SI{18}{V}, con menos de \SI{0.5}{\percent} de error y desfase nulo según el sensor, y con la corriente física entre \num{2.9} y \SI{4}{\percent} por debajo de la referencia según el osciloscopio. El autocero dejó la continua dentro de \SI{0.02}{A}. Con la carga aumentada se cumple a \num{0.2} y \SI{0.5}{A}. A \SI{1.0}{A} la acción satura porque la carga pide unos \SI{16.7}{V} y el puente da \SI{16.6}{V}, con \SI{-8.6}{\percent} de error y \ang{14} de desfase.
 
-La medición independiente con el osciloscopio da una corriente física \num{14.6} y \SI{18.7}{\percent} sobre la referencia, así que a \num{0.2} y \SI{0.5}{A} la corriente física no cumple el \SI{10}{\percent}. La calibración contra esas capturas da $c_0'=\num{2569}$ cuentas y $k'=-\SI{1.292e-3}{A}$ por cuenta, que dejan el sensor a \SI{2}{\percent} del osciloscopio y quedan para repetir los ensayos. El cero deriva unas \num{50} cuentas entre días, así que hay que medirlo en cada sesión. El desfase de la corriente física no se midió.
+El rizado medido, de \num{0.275}, \num{0.465} y \SI{0.526}{A} pico a pico, no cumple los \SI{0.20}{A}, como predicen el análisis y la simulación conmutada, a \num{3}, \num{4} y \SI{12}{\percent} de esta última. Bajarlo pide más inductancia o más frecuencia de conmutación.
 
-El rizado medido, de \num{0.25} a \SI{0.66}{A} pico a pico, no cumple los \SI{0.20}{A}, como predicen el análisis y la simulación, aunque el valor más alto supera lo simulado y queda sin explicar. El tiempo muerto y el período de la rutina son los de diseño.
-
-Quedan sin demostrar, y no se repitieron en el laboratorio, los cambios de consigna y de resistencia a \SI{0.5}{A}, el tiempo muerto de la pierna A con captura, la calibración de la ganancia y del cero en el mismo minuto y el ancho y el jitter de la rutina. Los transitorios se apoyan en la simulación, y la discusión de limitaciones dice qué se midió y qué solo se anotó.
+Los escalones de consigna se establecen en unos \SI{30}{ms}, la rampa de la referencia más la respuesta del regulador. El cambio de resistencia a \SI{0.5}{A} no se distingue en la corriente, y la acción subió \num{1.34} veces para compensarlo. El tiempo muerto y el período de la rutina son los de diseño. Quedan sin demostrar el tiempo muerto de la pierna A con captura y el ancho y el jitter de la rutina, y quedan sin explicar el signo del error físico y la resistencia de la carga aumentada.
 
 \appendix
 \section{Archivos para reproducir los resultados}
@@ -401,14 +387,15 @@ Todas las rutas son relativas a la raíz del repositorio.
 \begin{itemize}
 	\item \texttt{potencia/diseno\_pr.md}, \texttt{potencia/diseno\_puente\_h.md} y \texttt{potencia/docs/modelo\_planta.md}, con el diseño del regulador, del puente y de la planta.
 	\item \texttt{potencia/verificar\_pr.m} y \texttt{potencia/aliasing\_pr.m}, los cálculos y simulaciones del lazo en Octave.
-	\item \texttt{potencia/informe/figuras\_informe.m}, que genera las figuras de este informe.
+	\item \texttt{potencia/informe/figuras\_informe.m}, que genera las figuras de diseño de este informe.
 	\item \texttt{sw/generar\_pr\_params.m}, que escribe los coeficientes en \texttt{sw/pr\_params.h}.
 	\item \texttt{potencia/sim/}, el modelo conmutado en PLECS y su archivo de parámetros, con \texttt{lazo\_cerrado.plecs} y \texttt{lazo\_cerrado.py} para el lazo cerrado, cuya salida está en \texttt{docs/\allowbreak informe/\allowbreak evidencia/\allowbreak plecs\_lazo\_cerrado\_11p8ohm.txt}.
-	\item \texttt{sw/receptor\_pc.py}, que recibe los registros exportados, y \texttt{potencia/analizar\_csv.m}, \texttt{potencia/analizar\_osc.m} y \texttt{potencia/figuras\_banco.py}, que los procesan. \texttt{docs/\allowbreak informe/\allowbreak evidencia/\allowbreak verificar\_pr\_11p8ohm\_12p5V.log} y los \texttt{modelo\_conmutado\_11p8ohm\_212uH\_*.txt} de la misma carpeta tienen el análisis y la simulación conmutada con la carga medida de la Tabla~\ref{tab:cmp}. \texttt{potencia/analizar\_registros.py} da los valores pico y RMS, las armónicas, la tensión aplicada estimada, la corriente calibrada, la deriva del cero y el nivel de las capturas de rizado.
-	\item \texttt{muestras\_Inversor/} y \texttt{potencia/\allowbreak mediciones/\allowbreak 2026-11-24/\allowbreak registro.md}, los registros y capturas de banco del 23 y 24 de noviembre.
+	\item \texttt{sw/receptor\_pc.py}, que recibe los registros exportados, \texttt{potencia/analizar\_csv.m} y \texttt{potencia/figuras\_banco.py}, que los procesan, y \texttt{potencia/analizar\_rizado.py}, que separa el rizado de la baja frecuencia.
+	\item \texttt{muestras\_Inversor/\allowbreak mediciones\_finales/}, con los registros del 25 de noviembre, los transitorios del osciloscopio y su \texttt{registro.md}, y \texttt{muestras\_Inversor/\allowbreak Muestras Osciloscopio/\allowbreak rizado/\allowbreak rizado\_18V\_*}, con las capturas de rizado.
+	\item \texttt{muestras\_Inversor/} y \texttt{potencia/\allowbreak mediciones/\allowbreak 2026-11-24/\allowbreak registro.md}, los registros y capturas del 23 y 24 de noviembre que quedan como antecedente.
 \end{itemize}
 
-De lo anterior tiene evidencia archivada el régimen a \num{0.2} y \SI{0.5}{A}, el cero, la comparación de ganancia, el tiempo muerto de la pierna B, la habilitación y parada, el cambio de \num{0.5} a \SI{0.2}{A}, el cambio de carga a \SI{1.0}{A} y las tres capturas de rizado. Solo está anotado en el registro del banco el tiempo muerto de la pierna A, el período de la rutina y la lectura de \SI{3.27}{V} pico a pico del rizado. No existe ningún respaldo de los cambios de consigna de \num{0.2} a \num{0.5} y de \num{0.5} a \SI{1.0}{A}, ni del cambio de resistencia a \SI{0.5}{A}.
+De lo anterior tienen evidencia archivada los siete registros en régimen, las capturas de corriente física, los tres puntos de rizado, los dos escalones de consigna, el cambio de resistencia, el tiempo muerto de la pierna B y la habilitación y parada. Solo están anotados en el registro del banco el tiempo muerto de la pierna A, el período de la rutina, la resistencia de la carga aumentada y la salida del AD822 en \SI{0.74}{V}.
 
 \printbibliography
 

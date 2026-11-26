@@ -3,13 +3,15 @@ import matplotlib
 matplotlib.use("Agg") # sin ventana, solo el png del informe
 import matplotlib.pyplot as plt
 
+# Mediciones finales del 25.11 con 18 V, columna izquierda carga original y derecha carga +25 %
+CARPETA = "muestras_Inversor/mediciones_finales/"
 ENSAYOS = [
-    ("muestras_Inversor/0.2A_18-52.csv", "0,2 A, carga original"),
-    ("muestras_Inversor/0.5A_18-53.csv", "0,5 A, carga original"),
-    ("muestras_Inversor/1A_18-55.csv", "1,0 A, carga original, 12,5 V"),
-    ("muestras_Inversor/muestras_recorte/1A_10-22.csv", "1,0 A, carga original, 18 V"),
-    ("muestras_Inversor/muestras_prueba_25/0.5A_10-15.csv", "0,5 A, carga +2,5 Ω"),
-    ("muestras_Inversor/muestras_prueba_25/1A_10-16.csv", "1,0 A, carga +2,5 Ω, 12,5 V"),
+    (CARPETA + "0.2A.csv", "0,2 A, carga original"),
+    (CARPETA + "carga25_0.2A.csv", "0,2 A, carga +25 %"),
+    (CARPETA + "0.5A.csv", "0,5 A, carga original"),
+    (CARPETA + "carga25_0.5A.csv", "0,5 A, carga +25 %"),
+    (CARPETA + "1.0A.csv", "1,0 A, carga original"),
+    (CARPETA + "carga25_1.0A.csv", "1,0 A, carga +25 %"),
 ]
 
 fig, ejes = plt.subplots(3, 2, figsize=(10, 8), sharex=True)

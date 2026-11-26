@@ -7,7 +7,7 @@ Profesores: Dr.-Ing. Jeferson González-Gómez, PhD. Yeiner Arias-Esquivel e Ing
 
 Integrantes: Carlos Castro Villegas, Jefferson Chinchilla Quesada, Mattio Coghi Quirós y Nicolás Mena Valerio.
 
-Revisión documental: 24 de noviembre de 2026. Fuentes de implementación: `develop`, commit `13dad7e`. Los reportes de implementación de Vivado se regeneraron el 24 de noviembre con esas fuentes. Los datos de banco del 23 y 24 de noviembre (CSV del receptor y capturas del osciloscopio) están en `muestras_Inversor/`, y lo anotado durante los ensayos en `potencia/mediciones/2026-11-24/registro.md`. Las celdas que todavía no tienen dato quedan marcadas como PENDIENTE.
+Revisión documental: 26 de noviembre de 2026. Fuentes de implementación: `develop`, commit `13dad7e`, y el autocero del offset de `arreglo-final`. Los reportes de implementación de Vivado se regeneraron el 24 de noviembre con esas fuentes. Las mediciones finales de banco del 25 de noviembre están en `muestras_Inversor/mediciones_finales/`, con lo anotado en su `registro.md`. Los datos del 23 y 24 de noviembre siguen en `muestras_Inversor/` como antecedente. Las celdas que todavía no tienen dato quedan marcadas como PENDIENTE.
 
 ## Tabla de contenidos
 
@@ -43,10 +43,11 @@ Los resultados se clasifican por su procedencia. Una prueba de software en PC ve
 | Reportes de Vivado del diseño ruteado | Recursos, timing, metodología y CDC regenerados el 24 de noviembre de 2026. |
 | Simulación conmutada en Octave | Lazo cerrado con tiempo muerto y ADC cuantizado para 9 Ω y 18 V, y repetida para 9,6 Ω y 12 V (`simular_conmutado.m`). No incluye filtro ni drivers. |
 | Resultados PLECS archivados | Lazo abierto con 12 Ω y 30 mH, como antecedente. Lazo abierto con 9,6 Ω y lazo cerrado con el PR del firmware y 11,8 Ω, con sensor ideal (12.11). |
-| Ajustes de banco del 23 de noviembre | Polaridad de corriente invertida detectada por correlación entre duty y corriente, y cero del sensor fijado en 2808 cuentas con una captura a 0 A. Los cuatro `.bin` del 23 de noviembre traen ese offset en la cabecera. |
-| Banco del 23 y 24 de noviembre | Lazo cerrado a 0,2, 0,5 y 1,0 A pico con la carga original y con 2,5 Ω añadidos, 1,0 A con 18 V, capturas de compuertas, tiempo muerto, rizado y fundamental en el osciloscopio. Resultados en 12.8. |
+| Ajustes de banco del 23 de noviembre | Polaridad de corriente invertida detectada por correlación entre duty y corriente, y cero del sensor fijado en 2808 cuentas con una captura a 0 A. Reemplazado después por el autocero. |
+| Banco del 23 y 24 de noviembre | Antecedente (12.8.7). Capturas de compuertas y tiempo muerto que se siguen usando en 12.8.4. |
+| Banco del 25 de noviembre | Lazo cerrado a 0,2, 0,5 y 1,0 A pico con 18 V, carga original y +25 %, corriente física, rizado en los tres puntos y transitorios con el osciloscopio. Resultados en 12.8. |
 
-La simulación temporizada post-implementación del PWM quedó aprobada (18.3), y sigue pendiente la calibración integral del sensor. En banco, el CSV sigue a la referencia con menos de 0,5 % de error a 0,2 y 0,5 A, pero la medición independiente con el osciloscopio da entre 14 y 19 % más corriente física, el punto de 1,0 A satura tanto con 12,5 como con 18 V, y el rizado medido supera 0,20 A pp. Por ello no se declara cumplimiento global del sistema.
+La simulación temporizada post-implementación del PWM quedó aprobada (18.3). En banco, el CSV sigue a la referencia con menos de 0,5 % de error en los tres puntos con la carga original, y la medición independiente con el osciloscopio da una corriente física entre 3 y 4,5 % por debajo de la referencia. Con la carga de +25 % el punto de 1,0 A satura y cumple el 10 % por poco. El rizado medido supera 0,20 A pp en los tres puntos, así que no se declara cumplimiento global del sistema.
 
 ## 1. Resumen
 
@@ -56,7 +57,7 @@ El PWM produce cuatro señales de compuerta mediante modulación unipolar, con t
 
 La configuración nominal actual es una resistencia externa de 8 Ω y dos inductores de 100 µH en serie, con aproximadamente 0,5 Ω de devanado cada uno: 9 Ω totales y 200 µH. El modelo y los coeficientes actuales usan un bus de 18 V, `Kp = 4,5 V/A`, `Kr = 10000` y `Ts = 50 µs`. Con el modelo continuo de diseño y un retardo supuesto de 75 µs se obtiene un cruce de 215,7 Hz, margen de fase de 112,4° y margen de ganancia de 7,8 dB.
 
-Las pruebas RTL y de software disponibles pasan sin errores. El reporte de Vivado archivado registra 5567 LUT, 3651 flip-flops, ocho RAMB36 y siete DSP, con WNS de 0,519 ns a 100 MHz. Sin embargo, los cálculos RL ideales predicen aproximadamente 0,201, 0,414 y 0,548 A pico a pico de rizado para 0,2, 0,5 y 1,0 A pico a 18 V. Este resultado exige revisar el dimensionamiento y validarlo con conmutación y mediciones. En banco, con 9,46 Ω en las resistencias y 11,8 Ω en total, el lazo sigue 0,2 y 0,5 A con menos de 0,5 % de error según el sensor, pero el osciloscopio da entre 14,6 y 18,7 % más corriente física, 1,0 A no se alcanza y el rizado medido, de 0,25 a 0,66 A pp, supera el límite. Los plazos de ejecución del firmware siguen sin demostrarse.
+Las pruebas RTL y de software disponibles pasan sin errores. El reporte de Vivado archivado registra 5567 LUT, 3651 flip-flops, ocho RAMB36 y siete DSP, con WNS de 0,519 ns a 100 MHz. Sin embargo, los cálculos RL ideales predicen aproximadamente 0,201, 0,414 y 0,548 A pico a pico de rizado para 0,2, 0,5 y 1,0 A pico a 18 V. Este resultado exige revisar el dimensionamiento y validarlo con conmutación y mediciones. En banco, con 11,8 Ω en total y 18 V, el lazo sigue 0,2, 0,5 y 1,0 A con menos de 0,5 % de error según el sensor, y el osciloscopio da la corriente física entre 3 y 4 % por debajo de la referencia. El rizado medido, de 0,275, 0,465 y 0,526 A pp, supera el límite. Los plazos de ejecución del firmware siguen sin demostrarse.
 
 ## 2. Introducción y objetivos
 
@@ -444,11 +445,11 @@ Estos valores son nominales; no se presentan como una medición LCR del montaje 
 
 Si la R medida se aparta más de ±25 % o la L más de ±30 % del nominal, se debe volver a ejecutar `potencia/verificar_pr.m` con los valores reales antes de cerrar el lazo. Aun dentro de ese intervalo, la comparación final debe usar lo medido. La hoja de datos de cada inductor debe confirmar una corriente de saturación holgadamente superior a 1,3 A, y debe comprobarse también el pico real que suma fundamental y rizado.
 
-La carga montada en banco el 24 de noviembre usa dos resistencias de 4,7 Ω y 5 W en lugar de la de 8 Ω. Se registraron 9,46 Ω para las dos resistencias juntas y 11,8 Ω para la carga completa con inductores y cableado; la inductancia quedó en su valor nominal de 200 µH, sin medición LCR. La diferencia de 2,3 Ω entre ambas lecturas reúne devanados, conexiones y cables.
+La carga montada en banco usa dos resistencias de 4,7 Ω y 5 W en lugar de la de 8 Ω. Se registraron 9,46 Ω para las dos resistencias juntas el 24 de noviembre y 11,8 Ω para la carga completa con inductores y cableado, confirmados el 25 de noviembre. Los dos inductores midieron igual con el LCR, 106,2 µH cada uno a 1 kHz, unos 212 µH en total. La diferencia de 2,3 Ω entre ambas lecturas reúne devanados, conexiones y cables.
 
-Para el ensayo resistivo se añadieron 2,5 Ω en serie, conservando los inductores. Es un aumento de 26,4 % sobre las resistencias externas y de 21,2 % sobre la carga completa. El primero satisface el cambio mínimo de 25 %, el segundo no, así que el informe reporta ambos y no declara cumplido el criterio sobre la resistencia total. Con 3 Ω o más se cumplirían los dos.
+Para el ensayo resistivo se añadieron 2,5 Ω en serie, conservando los inductores. Con los valores nominales serían 14,3 Ω, un 21 % sobre la carga completa y un 26 % sobre las resistencias externas. El multímetro dio 18,7 Ω para la carga completa de +25 % (+58 %), y la acción de control en banco corresponde a unos 15,7 Ω (+29 %, 12.8.1). Los tres valores no cuadran entre sí y la diferencia no se aisló (12.8.8), pero con cualquiera de los dos medidos el cambio supera el 25 % del enunciado.
 
-Para una senoidal ideal de 1 A pico, `Irms = 0,707 A`, y cada resistencia de 4,7 Ω disipa unos 2,35 W, el 47 % de sus 5 W. La de 2,5 Ω añadida disipa 1,25 W en el mismo punto. Son potencias de la fundamental ideal; el rizado aumenta la corriente RMS y las pérdidas. Si la corriente física supera a la del sensor en la proporción de 12.8, a 1 A pico de consigna cada resistencia de 4,7 Ω llegaría a unos 3,3 W, todavía bajo su nominal. No se midieron temperaturas; el margen de disipación se justifica con este cálculo.
+Para una senoidal ideal de 1 A pico, `Irms = 0,707 A`, y cada resistencia de 4,7 Ω disipa unos 2,35 W, el 47 % de sus 5 W. La de 2,5 Ω añadida disipa 1,25 W en el mismo punto. Son potencias de la fundamental ideal; el rizado aumenta la corriente RMS y las pérdidas. En banco la corriente física quedó unos 3 % por debajo de la consigna a 1,0 A (12.8.3), así que estas cifras son una cota. No se midieron temperaturas; el margen de disipación se justifica con este cálculo.
 
 ### 9.3 Sensor y acondicionamiento
 
@@ -458,15 +459,15 @@ $$G_{cadena}=0{,}183\cdot1{,}2=0{,}2196\ \mathrm{V/A}.$$
 
 Este producto es una conversión calculada a partir de parámetros de la cadena; no equivale a una calibración integral del sensor, acondicionador y ADC. El firmware usa:
 
-$$i=(N-N_0)K_I,\qquad N_0=2808,\qquad K_I=-1{,}1118\cdot10^{-3}\ \mathrm{A/cuenta}.$$
+$$i=(N-N_0)K_I,\qquad K_I=-1{,}292\cdot10^{-3}\ \mathrm{A/cuenta},$$
 
-El cero empezó en 2785 cuentas, por 0,68 V medidos con multímetro en J3 con corriente nula el 23 de noviembre, y se afinó a 2808 con el promedio de una captura a 0 A con el control deshabilitado (commit `e9299a6`). Ambos quedan por encima de los 0,5 V de diseño (2048 cuentas). El signo de `K_I` es negativo porque la corriente entra al ACS712 por el lado contrario al supuesto, lo que se detectó con una correlación de −1 entre duty y corriente. Si se invierten los cables del primario vuelve a ser positivo. Ambos valores están en `sw/lazo_control.h` y viajan en la cabecera de la trama, así que `receptor_pc.py` escala correctamente los CSV.
+con `N_0` medido por el firmware al habilitar (autocero) y `K_I` calibrado contra el osciloscopio con los registros del 23 de noviembre (`sw/lazo_control.h`). Al subir `enable`, `lazo_control.c` deja el puente conmutando con la acción en cero, descarta 256 muestras y promedia las 1024 siguientes, unos 64 ms en total, y usa ese promedio como cero. La cabecera de la trama manda el offset vigente. Antes el cero era una constante, primero 2785 cuentas, por 0,68 V medidos con multímetro en J3, y después 2808 con una captura a 0 A con el control deshabilitado (`e9299a6`). Las mediciones del 24 de noviembre mostraron que el cero se mueve unas 800 cuentas entre el puente apagado y conmutando (12.8.7), y por eso se pasó a medirlo en las condiciones de operación. El AD822 del acondicionador quedó alimentado a 10 V, porque a 5 V su salida se quedaba plana cerca de 0,49 V y recortaba el lado positivo de la corriente. El signo de `K_I` es negativo porque la corriente entra al ACS712 por el lado contrario al supuesto, lo que se detectó con una correlación de −1 entre duty y corriente. Si se invierten los cables del primario vuelve a ser positivo. Ambos valores están en `sw/lazo_control.h` y viajan en la cabecera de la trama, así que `receptor_pc.py` escala correctamente los CSV.
 
 Con fondo de escala nominal de 1 V y 12 bits, un paso ideal representa 0,244 mV. Para ±1,3 A, la salida ideal del acondicionador sería aproximadamente 0,215 a 0,785 V. Deben comprobarse offset, ganancia, ruido y margen de tensión reales. El antiguo esquema con ganancia 2,4 no se utiliza como evidencia del acondicionador actual de 1,2.
 
 ### 9.4 Calibración y filtro
 
-Con corriente física cero, se exportan 2048 muestras y se calcula la media de las cuentas ADC originales. La expectativa de diseño era 2048 ±102 cuentas; los valores medidos en banco quedan fuera de esa banda y por eso el cero se fijó en el firmware. Un desplazamiento de 102 cuentas equivale aproximadamente a 0,113 A con la escala nominal, así que el offset se corrige y no se acepta como sesgo. Las capturas del 24 de noviembre (12.8) muestran además que el cero cambia según el estado del puente, así que un único valor de 2808 cuentas no deja la continua en cero en todas las condiciones.
+Con corriente física cero, se exportan 2048 muestras y se calcula la media de las cuentas ADC originales. La expectativa de diseño era 2048 ±102 cuentas; los valores medidos en banco quedan fuera de esa banda y por eso el cero se fijó en el firmware. Un desplazamiento de 102 cuentas equivale aproximadamente a 0,113 A con la escala nominal, así que el offset se corrige y no se acepta como sesgo. Las capturas del 24 de noviembre muestran además que el cero cambia según el estado del puente, así que un único valor de 2808 cuentas no dejaba la continua en cero en todas las condiciones. Con el autocero la continua queda en +0,002 A con consigna nula (12.8.2).
 
 Para la ganancia se compara la fundamental del CSV con una medición independiente de corriente. Puede obtenerse mediante sonda o mediante la tensión sobre la resistencia externa dividida entre su resistencia medida. Dividir la tensión sobre toda la carga RL entre 8 Ω no sería equivalente. Se deben comprobar ambos signos y, de ser posible, varios niveles de corriente, guardando pendiente, offset y residuo del ajuste. Los valores calibrados se trasladan al firmware y a la cabecera de exportación.
 
@@ -712,77 +713,75 @@ El reporte de metodología (`reportes/metodologia.rpt`) trae tres reglas, y se c
 
 Este resultado no implica que todas las interfaces externas estén caracterizadas ni que la ISR cumpla 50 µs.
 
-### 12.8 Mediciones de banco del 23 y 24 de noviembre
+### 12.8 Mediciones de banco
 
-Los ensayos se hicieron con la carga de 9,46 Ω en resistencias, 11,8 Ω en total y 200 µH nominales (9.2), firmware con el cero en 2808 cuentas (`e9299a6`) y los coeficientes normalizados de `sw/pr_params.h`, de modo que la ganancia física es `0,25·Vdc` (3,1 V/A con 12,5 V y 4,5 V/A con 18 V). El límite de corriente de la fuente fue de 0,52 A con 12,5 V y de 1 A con 18 V. La tensión de bus no se anotó archivo por archivo; se usó 12,5 V salvo en el punto de 1 A con 18 V, según la guía del día. Lo anotado en banco está en `potencia/mediciones/2026-11-24/registro.md`.
+Las mediciones que se reportan son las del 25 de noviembre, con el firmware de `arreglo-final`, que mide el offset del ADC al habilitar con el puente conmutando (autocero), y con el AD822 del acondicionador alimentado a 10 V. Los coeficientes son los normalizados de `sw/pr_params.h`, con ganancia física `0,25·Vdc`, 4,5 V/A con 18 V. El bus fue de 18 V con el límite de la fuente en 0,74 A en todas las mediciones. La carga original mide 11,8 Ω en total y la de +25 % 18,7 Ω, las dos con multímetro (9.2). El osciloscopio GW Instek mide con una sola punta sobre la resistencia de 9,6 Ω. Todo lo anotado en el banco está en `muestras_Inversor/mediciones_finales/registro.md`.
+
+Los ensayos del 23 y 24 de noviembre quedan como antecedente en 12.8.7. Ahí el cero del sensor era una constante, el punto de 1,0 A se recortaba y el rizado se midió restando dos puntas, y lo que se encontró motivó el autocero y el cambio del AD822.
 
 | Ensayo | Archivos | Estado |
 |---|---|---|
-| R de la carga | `registro.md` | 9,46 Ω en resistencias y 11,8 Ω en total. Sin medición a cuatro hilos ni en caliente. |
-| L con LCR | informe técnico de PEDP | 106,2 µH a 1 kHz en uno de los dos inductores. El otro no se midió, y los modelos usan 200 µH. |
-| Cero de corriente | `muestras_sensor/`, `0A_18-50.csv`, `muestras_prueba_25/0A_10-14.csv` | Medido. El cero no es estable (12.8.2). |
-| Ganancia integral | `osc_*.csv` contra los CSV del 23 de noviembre | Comparación hecha con capturas de 100 µs por punto (12.8.3). Falta una calibración en el mismo minuto. |
+| R de la carga | `mediciones_finales/registro.md` | 11,8 Ω la original y 18,7 Ω la de +25 %. Sin medición a cuatro hilos ni en caliente. |
+| L con LCR | `mediciones_finales/registro.md` | Los dos inductores iguales, 106,2 µH cada uno, unos 212 µH en total. |
+| Cero de corriente | `mediciones_finales/0A.csv` | +0,002 A con consigna 0 (12.8.2). |
+| Régimen a 0,2, 0,5 y 1,0 A, dos cargas | `mediciones_finales/*.csv` | Medido (12.8.1). |
+| Corriente física | `mediciones_finales/transitorios/` | Medida con el osciloscopio en los tramos estables (12.8.3). |
 | Filtro | | PENDIENTE. |
-| Tiempo muerto | `Muestras Compuertas/scope_a_piernaB_tiempo_muerto_alta_apaga.png`, `scope_a1_piernaB_tiempo_muerto_baja_apaga.png`, `registro.md` | Pierna B con captura. La pierna A solo está anotada en el banco, sin captura archivada (12.8.4). |
+| Tiempo muerto | `Muestras Compuertas/scope_a_piernaB_tiempo_muerto_alta_apaga.png`, `scope_a1_piernaB_tiempo_muerto_baja_apaga.png`, `potencia/mediciones/2026-11-24/registro.md` | Pierna B con captura. La pierna A solo está anotada en el banco, sin captura archivada (12.8.4). |
 | Habilitación y parada | `Muestras Compuertas/scope_a5_habilitar.png`, `scope_a6_deshabilitar.png` | Capturado a 50 ms/div. |
-| ISR | `registro.md` | Período de 50 µs. Ancho máximo y jitter PENDIENTES. |
+| ISR | `potencia/mediciones/2026-11-24/registro.md` | Período de 50 µs. Ancho máximo y jitter PENDIENTES. |
 | Fase ADC/Timer/PWM | | PENDIENTE. |
-| Régimen a 0,2, 0,5 y 1,0 A | CSV del 23 de noviembre y `muestras_recorte/` | Medido (12.8.1). |
-| Cambios de consigna | `Muestras Osciloscopio/transitorios/scope_g_cambio_consigna.png` | Solo 0,5→0,2 A, captura de pantalla con acople de alterna. Los cambios 0,2→0,5 y 0,5→1,0 A se observaron sin registro archivado. |
-| Cambio de R a 0,5 A | `muestras_prueba_25/`, `transitorios/scope_g1_cambio_carga_1A.png` | Régimen con 2,5 Ω añadidos. El transitorio guardado es a 1,0 A con 18 V y la acción saturada, el de 0,5 A no se guardó. |
-| Rizado | `Muestras Osciloscopio/rizado/`, `registro.md` | Medido (12.8.5). |
+| Rizado | `Muestras Osciloscopio/rizado/rizado_18V_*` | Medido en los tres puntos (12.8.5). |
+| Cambios de consigna | `mediciones_finales/transitorios/escalon_*` | 0,2→0,5 y 0,5→1,0 A registrados (12.8.6). |
+| Cambio de R a 0,5 A | `mediciones_finales/transitorios/cambio_R_0.5A.*`, `carga25_0.5A.csv` | Registrado (12.8.6). |
 | Falla | | PENDIENTE. |
 
-Los CSV se procesaron con `octave --eval "addpath('potencia'); analizar_csv('<archivo>')"`, que ajusta seno, coseno y continua sobre los últimos cinco períodos completos. La figura 6 sale de `python3 potencia/figuras_banco.py`. Las capturas del osciloscopio se procesaron con `analizar_osc.m`.
+Los CSV del receptor se procesaron ajustando seno, coseno y continua sobre los últimos cinco períodos completos, igual que `potencia/analizar_csv.m`. La figura 6 sale de `python3 potencia/figuras_banco.py`. Las capturas del osciloscopio se procesaron con el mismo ajuste en ventanas de 20 ms, y el rizado con `potencia/analizar_rizado.py`.
 
 #### 12.8.1 Seguimiento según el sensor
 
-Fase positiva cuando la corriente adelanta a la referencia. La continua es la que ve el sensor, no la física (12.8.2).
+Fase positiva cuando la corriente adelanta a la referencia. La acción es la fundamental del índice de modulación, y la tensión aplicada es esa acción por 18 V, una estimación que no descuenta el tiempo muerto ni las caídas del puente.
 
-| Archivo | Carga | Bus | Ref pico (A) | Medida pico (A) | Error (%) | Fase (°) | Continua (A) | Residuo RMS (A) | Muestras saturadas |
+| Archivo | Carga | Ref pico (A) | Medida pico (A) | Error (%) | Fase (°) | Continua (A) | Acción pico | V aplicada pico (V) | Muestras saturadas |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| `0.2A_18-52.csv` | original | 12,5 V | 0,1994 | 0,2002 | 0,39 | 0,07 | 0,215 | 0,023 | 0 |
-| `0.5A_18-53.csv` | original | 12,5 V | 0,4993 | 0,5003 | 0,19 | −0,03 | 0,212 | 0,021 | 0 |
-| `1A_18-55.csv` | original | 12,5 V | 0,9994 | 0,6504 | 34,92 | 21,72 | 0,170 | 0,065 | 31 |
-| `muestras_recorte/1A_10-22.csv` | original | 18 V | 0,9994 | 0,8814 | 11,81 | 16,58 | −0,042 | 0,075 | 25 |
-| `muestras_prueba_25/0.2A_10-15.csv` | +2,5 Ω | 12,5 V | 0,1994 | 0,2002 | 0,42 | −0,02 | 0,330 | 0,022 | 0 |
-| `muestras_prueba_25/0.5A_10-15.csv` | +2,5 Ω | 12,5 V | 0,4993 | 0,5000 | 0,14 | 0,01 | 0,266 | 0,020 | 0 |
-| `muestras_prueba_25/1A_10-16.csv` | +2,5 Ω | 12,5 V | 0,9994 | 0,7276 | 27,20 | 21,65 | 0,117 | 0,079 | 30 |
+| `0A.csv` | original | 0 | 0,0002 | | | +0,002 | | | 0 |
+| `0.2A.csv` | original | 0,1993 | 0,2002 | 0,42 | −0,02 | +0,010 | 0,172 | 3,09 | 0 |
+| `0.5A.csv` | original | 0,4993 | 0,4997 | 0,08 | +0,02 | −0,003 | 0,368 | 6,63 | 0 |
+| `1.0A.csv` | original | 0,9994 | 1,0001 | 0,07 | +0,01 | +0,010 | 0,714 | 12,85 | 0 |
+| `carga25_0.2A.csv` | +25 % | 0,1994 | 0,2000 | 0,33 | −0,01 | +0,015 | 0,233 | 4,19 | 0 |
+| `carga25_0.5A.csv` | +25 % | 0,4993 | 0,5002 | 0,17 | 0,00 | +0,008 | 0,495 | 8,90 | 0 |
+| `carga25_1.0A.csv` | +25 % | 0,9994 | 0,9132 | −8,62 | +13,91 | +0,020 | 0,860 | 15,49 | 20 |
 
 ![Corriente del CSV contra referencia en banco](figuras/banco_regimen.png)
 
-*Figura 6. Corriente según el sensor y referencia en los registros de 2048 muestras (102 ms). Los puntos negros marcan muestras con `saturado` en 1.*
+*Figura 6. Corriente según el sensor y referencia en los registros de 2048 muestras (102 ms) del 25 de noviembre, con la carga original a la izquierda y la de +25 % a la derecha. Los puntos negros marcan muestras con `saturado` en 1.*
 
-A 0,2 y 0,5 A, con las dos cargas, el PR lleva la corriente que ve el sensor a la referencia con menos de 0,5 % de error y fase prácticamente nula. Es lo que predicen 12.9 y 12.10 para la corriente muestreada. El punto de 1,0 A no se alcanza en ningún caso. Con 12,5 V la acción llega al límite de ±0,92 en cada semiciclo y la corriente se recorta en unos +0,74 A; con 2,5 Ω añadidos pasa lo mismo, como anticipaba 12.10 para R por encima de 11 Ω. Sin embargo, la simulación conmutada con la carga medida (12.12) da solo 7 % de error físico en este punto y el banco 35 %. A 1,0 A pico con 11,8 Ω la carga consume 5,9 W, unos 0,47 A medios a 12,5 V sin contar pérdidas, y el límite de la fuente era de 0,52 A, así que ese límite es la explicación más probable, sin confirmar porque no se registró el bus.
+Con la carga original el PR lleva la corriente que ve el sensor a la referencia con menos de 0,5 % de error y fase prácticamente nula en los tres puntos, incluido 1,0 A, que antes se recortaba. Con la carga de +25 % pasa lo mismo a 0,2 y 0,5 A. Los valores RMS de la fundamental son el pico dividido entre √2, 0,142, 0,353 y 0,707 A con la carga original.
 
-Con 18 V el recorte persiste y es asimétrico. El semiciclo negativo llega a −1,03 A y el positivo se queda en +0,71 A con la acción saturada en +0,92. Con 18 V y 11,8 Ω el 92 % del bus son 16,6 V y bastan unos 13 V para 1 A, así que la saturación indica que la tensión de bus real fue menor durante el ensayo. Una explicación compatible es el límite de 1 A de la fuente, cercano a la corriente que pide el puente en el pico de la senoide; la tensión de bus durante este registro no quedó anotada y la hipótesis queda sin confirmar.
+A 1,0 A con la carga de +25 % la acción llega a ±0,92 en 20 muestras, 11 en el semiciclo positivo y 9 en el negativo, y los picos instantáneos llegan a +1,00 y −1,03 A. La saturación aplana la senoide alrededor de cada pico, la fundamental queda en 0,913 A y la fase se corre 14°. El error cumple el 10 % por poco. Con 18 V, el tope de 0,92 da 16,6 V. Ajustando la tensión aplicada de los CSV a 0,2 y 0,5 A con una resistencia más una caída fija, la carga de +25 % da unos 15,7 Ω con 1,0 V de caída, así que 1,0 A pide unos 16,7 V, justo por encima de lo disponible. La saturación la explica la carga, sin necesidad de suponer que la fuente limitó.
 
 #### 12.8.2 Cero del sensor
 
-| Archivo | Condición | Media (A) | Desviación (A) | Cuentas equivalentes |
+Con el autocero y consigna 0 el sensor marca +0,002 A de continua, con 0,023 A RMS de ruido. En los seis registros con corriente la continua queda entre −0,003 y +0,020 A. Antes del autocero el cero era una constante de 2808 cuentas y la continua iba de 0,12 a 0,33 A (12.8.7). La salida del AD822 se midió en 0,74 V.
+
+#### 12.8.3 Corriente física con el osciloscopio
+
+Sale de los tramos estables de las capturas de `mediciones_finales/transitorios/`, ajustando la fundamental en ventanas de 20 ms y dividiendo entre 9,6 Ω.
+
+| Consigna | Captura | CSV, pico (A) | Osciloscopio, pico (A) | Error físico respecto de la consigna |
 |---|---|---:|---:|---:|
-| `muestras_sensor/0A_09-59.csv` | control deshabilitado | −0,652 | 0,045 | 3394 |
-| `muestras_sensor/1A_10-03.csv` | control deshabilitado, cuatro minutos después | −0,540 | 0,023 | 3294 |
-| `0A_18-50.csv` | lazo cerrado con referencia nula, 23 de noviembre | +0,243 | 0,022 | 2590 |
-| `muestras_prueba_25/0A_10-14.csv` | lazo cerrado con referencia nula, +2,5 Ω | +0,297 | 0,022 | 2541 |
+| 0,2 A | `escalon_0.2-0.5A`, antes del cambio | 0,2002 | 0,192 | −3,9 % |
+| 0,5 A | `escalon_0.2-0.5A` y `escalon_0.5-1.0A` | 0,4997 | 0,48 | −4 % |
+| 1,0 A | `escalon_0.5-1.0A`, después del cambio | 1,0001 | 0,971 | −2,9 % |
+| 0,5 A, carga +25 % | `cambio_R_0.5A` | 0,5002 | 0,477 | −4,5 % |
 
-Con el control deshabilitado la corriente física es nula, así que la lectura de −0,54 a −0,65 A es error del cero, unas 490 a 590 cuentas por encima de las 2808 del firmware, y derivó 100 cuentas en cuatro minutos. Con el lazo cerrado y referencia nula el sensor marca +0,24 A, pero la captura del osciloscopio del mismo día (`osc_0A.csv`) da −0,03 A de continua física. El resonante no actúa en continua, y el proporcional convierte el error del cero en una corriente continua real de signo opuesto, como anticipa 13.3. De ahí se deduce un cero de unas 2560 cuentas con el puente conmutando. La diferencia de unas 800 cuentas entre los dos estados, unos 0,2 V en la entrada del XADC, apunta a que la conmutación del puente o su alimentación desplaza la referencia del acondicionador. La causa no se aisló.
+La corriente física queda dentro del 10 % en los tres puntos. Las capturas no son del mismo minuto que los CSV, pero sí de la misma sesión, con el mismo firmware y el mismo montaje. Los RMS físicos son 0,136, 0,34 y 0,687 A.
 
-#### 12.8.3 Ganancia frente al osciloscopio
-
-Las capturas `Muestras Osciloscopio/osc_*.csv` del 23 de noviembre registran la tensión sobre las dos resistencias de 4,7 Ω con un punto cada 100 µs durante nueve períodos. Divididas entre 9,46 Ω dan la corriente física.
-
-| Consigna | CSV, pico (A) | Osciloscopio, pico (A) | Cociente | Error físico respecto de la consigna | Continua en el osciloscopio (A) |
-|---|---:|---:|---:|---:|---:|
-| 0,2 A | 0,2002 | 0,2285 | 1,141 | +14,6 % | −0,059 |
-| 0,5 A | 0,5003 | 0,5928 | 1,185 | +18,7 % | −0,061 |
-| 1,0 A, saturado | 0,6504 | 0,8285 | 1,274 | −17,1 % | −0,038 |
-
-Si las capturas corresponden a los mismos ensayos que los CSV, la corriente física supera a la referencia en 14,6 y 18,7 % a 0,2 y 0,5 A, fuera del 10 % del enunciado, aunque el CSV cumpla. El sesgo de muestrear en el valle (12.10) explica unos 3 a 6 puntos; el resto apunta a que la ganancia real de la cadena del sensor es menor que los 0,2196 V/A supuestos. El cociente crece con la amplitud, así que no se corrige con un único factor sin antes repetir la comparación en el mismo minuto y con una captura de mayor resolución temporal, porque con 100 µs por punto el rizado de 20 kHz se pliega sobre las muestras. Esta calibración es el pendiente principal del banco.
+El signo del error no es el que predice la simulación. En 12.9 la corriente física queda 1 a 5 % por encima de la muestreada en el valle, y en banco queda unos 4 % por debajo. Las causas posibles son la resistencia real donde va la punta, que se toma como 9,6 Ω, y la ganancia del sensor. No se aisló cuál pesa más.
 
 #### 12.8.4 Compuertas, tiempo muerto e ISR
 
-Con el bus apagado y los 15 V de los drivers, el tiempo muerto medido fue de 1 µs en ambos flancos de la pierna B. En la pierna A fue de 1,23 µs cuando la baja apaga y la alta enciende, y de 430 ns en el flanco contrario. Los 430 ns quedan por debajo del µs programado, pero mantienen un intervalo sin conducción simultánea; la asimetría se atribuye a diferencias de retardo de encendido y apagado en la cadena de esa pierna. Las capturas archivadas son las de la pierna B, con cursores en 1 µs. La captura de la pierna A no se subió al repositorio, esas dos cifras salen de lo anotado en el banco.
+Con el bus apagado y los 15 V de los drivers, el tiempo muerto medido fue de 1 µs en ambos flancos de la pierna B. En la pierna A fue de 1,23 µs cuando la baja apaga y la alta enciende, y de 430 ns en el flanco contrario. Los 430 ns quedan por debajo del µs programado, pero mantienen un intervalo sin conducción simultánea; la asimetría se atribuye a diferencias de retardo de encendido y apagado en la cadena de esa pierna. Las capturas archivadas son las de la pierna B, con cursores en 1 µs. La captura de la pierna A no se subió al repositorio, esas dos cifras salen de lo anotado en el banco el 24 de noviembre.
 
 ![Tiempo muerto, alta apaga y baja enciende](../../muestras_Inversor/Muestras%20Compuertas/scope_a_piernaB_tiempo_muerto_alta_apaga.png)
 
@@ -794,20 +793,53 @@ La salida JB1 de la ISR se repite cada 50 µs, el período de muestreo de diseñ
 
 #### 12.8.5 Rizado
 
-En banco se leyeron 3,27 V pp sobre las resistencias, unos 0,35 A pp, con 12,5 V; la consigna de esa lectura no quedó anotada. Las tres capturas archivadas (`Muestras Osciloscopio/rizado/scope_a2.csv` a `scope_a4.csv`, 0,1 µs por punto y dos períodos de conmutación) muestran el rizado unipolar a 40 kHz, con tramos continuos de 2,4, 4,4 y 6,3 V pp, es decir 0,25, 0,46 y 0,66 A pp. También tienen saltos y picos en las conmutaciones que una corriente a través de 200 µH no puede producir; son efecto de medir la diferencia entre dos puntas cuyos extremos saltan con el bus, y se excluyen del pico a pico. Tampoco quedó anotada la consigna de cada captura. En todos los casos el rizado supera 0,20 A pp, El de 0,25 A pp cabe en lo que predicen 12.6 y 12.10 para 12 V (0,19 a 0,40 A pp). Los de 0,46 y 0,66 A pp lo superan, y el de 0,66 supera también la predicción de 18 V (0,55 A pp ideal, 0,60 conmutada). Sin la consigna ni el bus de cada captura, y con una medición que resta dos puntas, esa diferencia no se puede atribuir al modelo ni al montaje.
+Las capturas se tomaron a 20 µs/div y 50 MSa/s, una muestra cada 20 ns y unas 1250 por período de 25 µs. En cada flanco del puente aparecen picos de hasta 3,2 V que duran menos de 1 µs. La corriente por la bobina no puede saltar así, así que son de la medición, probablemente el dv/dt del puente acoplado en la punta y su cable de tierra, y se quitan con una mediana móvil de 1 µs. La componente de baja frecuencia sale de un promedio móvil de 50 µs, un período de la f_sw, que cancela el rizado de 40 kHz. El rizado es el pico a pico de lo que queda. El procedimiento completo está en `Muestras Osciloscopio/rizado/rizado_18V_0.5A.md`.
 
-#### 12.8.6 Limitaciones de las mediciones
+| Consigna | Captura | Baja frecuencia (A) | Rizado (A pp) | Octave 18 V, 12.9 (A pp) |
+|---|---|---:|---:|---:|
+| 0,2 A | `rizado_18V_0.2A_9p6ohm_i0.18A` | 0,18 | 0,275 | 0,268 |
+| 0,2 A | `rizado_18V_0.2A_9p6ohm_i0.09A` | 0,09 | 0,176 | |
+| 0,5 A | `rizado_18V_0.5A_9p6ohm` | −0,42 | 0,465 | 0,483 |
+| 1,0 A | `rizado_18V_1.0A_9p6ohm_i0.66A` | −0,66 | 0,526 | 0,597 |
+| 1,0 A | `rizado_18V_1.0A_9p6ohm_i0.21A` | −0,21 | 0,294 | |
 
-No se vuelve al laboratorio, así que lo que dependía de medir queda como limitación. Cada punto dice qué no se midió y qué criterio del enunciado se queda sin demostrar.
+En PWM unipolar el rizado crece con |m| hasta 0,5, así que en cada punto se reporta la captura más cercana al máximo de |m|, 0,275, 0,465 y 0,526 A pp. Las tres superan 0,20 A pp y el criterio no se cumple, como predecían 12.6 y 12.9. Contra Octave quedan a 3, 4 y 12 %, con la salvedad de que esa simulación es con 9 Ω y 200 µH. La fórmula del unipolar, `ΔI_pp ≈ Vdc·|m|(1−|m|)/(2·L·f_sw)`, con 18 V y 212 µH da 0,22, 0,43 y 0,52 A pp en el punto de cada captura principal.
 
-- Pierna A del tiempo muerto. Los 1,23 µs y los 430 ns salen de lo anotado en el banco y no hay captura. Se presentan como medición anotada y no como evidencia archivada. El tiempo muerto de 1 µs solo está demostrado con captura en la pierna B.
-- Cambios de consigna 0,2 a 0,5 A y 0,5 a 1,0 A, y cambio de R a 0,5 A. No hay registro. Solo existe la imagen del cambio 0,5 a 0,2 A y la del cambio de carga a 1,0 A con la acción saturada, con amplitudes leídas de la cuadrícula. El comportamiento ante cambios de amplitud y de R se sostiene con la simulación (PLECS, Octave conmutado y modelo promediado) y con lo observado a ojo en el banco, dicho como tal, sin tiempo de establecimiento ni sobrepico medidos.
-- Rizado. Las tres capturas no tienen consigna ni bus anotados y restan dos puntas. Los 0,25 a 0,66 A pp se reportan con ese alcance, y el 0,66 queda como discrepancia sin causa identificada. Lo que sí se sostiene es que el rizado supera 0,20 A pp, y el criterio de rizado queda incumplido.
-- Ganancia del sensor. No hubo calibración contra el osciloscopio en el mismo minuto. El sesgo de 14,6 y 18,7 % queda como diferencia medida entre sensor y osciloscopio. El sesgo del valle (3 a 10 % según el modelo) y la ganancia del sensor son causas posibles y no se repartió el resto. El criterio de 10 % de error de la fundamental queda demostrado según el sensor y sin demostrar según el osciloscopio.
-- Cero del sensor con el puente conmutando. Queda la deducción de unas 2560 cuentas a partir del proporcional y la causa del desplazamiento de 800 cuentas sin aislar. No se midió el cero directamente con el puente en marcha.
-- Segundo inductor y R en caliente. Solo se midió uno de los dos inductores, 106,2 µH, y se supone el otro igual. La R no se midió a cuatro hilos ni caliente. Los modelos usan 200 µH y 11,8 Ω.
-- Tensión de bus en la captura de 1,0 A. No se anotó. La hipótesis del límite de la fuente (0,47 A medios contra 0,52 A de límite con 12,5 V) queda como hipótesis, y el punto de 1,0 A no se demuestra con ninguna carga.
+![Rizado a 1,0 A pico](figuras/rizado_18V_10A.png)
+
+*Figura 8. Rizado a 18 V y 1,0 A pico sobre 9,6 Ω. En gris la medición cruda con los picos de conmutación, en azul sin picos y en negro la baja frecuencia. Las figuras de 0,2 y 0,5 A son `figuras/rizado_18V_02A.png` y `figuras/rizado_18V_05A.png`.*
+
+#### 12.8.6 Transitorios
+
+Cada transitorio tiene una captura del osciloscopio en `mediciones_finales/transitorios/`, con su CSV y su imagen. Antes de comparar hay que recordar que la referencia no da escalones, porque la rampa de `sw/lazo_control.c` limita su cambio a 1 A cada 20 ms (8.4).
+
+- De 0,5 a 1,0 A, la fundamental pasa de 0,485 a 0,97 A y se establece en unos 30 ms, un poco más de un período. Es la rampa de la referencia más la respuesta del PR.
+- De 0,2 a 0,5 A, la corriente pasa unos 30 ms por cero antes de subir a 0,48 A. La amplitud se elige con SW[1:0] (`sw/control_principal.c`), donde 01 es 0,2 A y 10 es 0,5 A, y al bajar SW0 antes de subir SW1 se pasa por 00, que es 0 A. Desde cero llega a 0,48 A en unos 30 ms.
+- En el cambio de R a 0,5 A la fundamental queda en 0,48 A en toda la ventana de 50 ms, sin transitorio visible a esa escala. El PR trata el cambio de R como una perturbación de 50 Hz y la rechaza. Que la R cambió se ve en la acción de los CSV a 0,5 A, que pasa de 0,368 a 0,495, un 34 % más con la misma corriente.
+- El arranque de 0 a 0,2 A (`arranque_0-0.2A`) llega a unos 0,27 A en los 50 ms de la ventana, por encima de la consigna, y la captura termina antes de que se establezca. El enunciado no pide este ensayo.
+
+![Escalón de 0,5 a 1,0 A](../../muestras_Inversor/mediciones_finales/transitorios/escalon_0.5-1.0A.png)
+
+*Figura 9. Escalón de consigna de 0,5 a 1,0 A, tensión sobre 9,6 Ω a 5 V/div y 20 ms/div.*
+
+#### 12.8.7 Antecedente de los ensayos del 23 y 24 de noviembre
+
+Esos ensayos se hicieron con el cero fijo en 2808 cuentas (`e9299a6`), con 12,5 V y 0,52 A de límite salvo un punto de 1,0 A con 18 V, y con el rizado medido restando dos puntas. Los CSV y capturas siguen en `muestras_Inversor/` y lo anotado en `potencia/mediciones/2026-11-24/registro.md`. Tres cosas de esos ensayos motivaron los cambios.
+
+- El cero no era estable. Con el control deshabilitado el sensor marcaba −0,54 a −0,65 A y con el lazo cerrado y referencia nula +0,24 A, unas 800 cuentas de diferencia entre los dos estados del puente. El proporcional convertía ese error en una continua física. De ahí el autocero.
+- La corriente física medida con el osciloscopio quedaba 14,6 y 18,7 % sobre la referencia a 0,2 y 0,5 A, con capturas de 100 µs por punto que plegaban el rizado.
+- El punto de 1,0 A se recortaba, con 35 % de error a 12,5 V y 12 % a 18 V. En banco el AD822 a 5 V aplanaba además el lado positivo de la salida del acondicionador, y a 10 V dejó de hacerlo.
+
+#### 12.8.8 Limitaciones de las mediciones
+
+Cada punto dice qué no se midió y qué criterio del enunciado se queda sin demostrar.
+
+- Pierna A del tiempo muerto. Los 1,23 µs y los 430 ns salen de lo anotado en el banco y no hay captura. El tiempo muerto de 1 µs solo está demostrado con captura en la pierna B.
 - ISR y falla. Solo se afirma el período de 50 µs en JB1. El ancho máximo y el jitter de la ISR, la precarga de 70 µs, el último pulso truncado, la fase ADC/Timer/PWM, el filtro antialias y la prueba de falla se marcan como no medidos.
+- R de la carga. No se midió a cuatro hilos ni en caliente.
+- R de la carga de +25 %. Hay tres valores que no cuadran. 11,8 Ω más los 2,5 Ω agregados dan 14,3 Ω (+21 %), el multímetro dio 18,7 Ω (+58 %) y la acción de control da unos 15,7 Ω (+29 %). Queda como diferencia sin aislar. En los tres casos el cambio supera el 25 % del enunciado.
+- Sesgo de la corriente física. Queda unos 4 % por debajo de la referencia, con signo contrario al que predice la simulación, sin causa aislada.
+- Simultaneidad. Las capturas del osciloscopio no son del mismo minuto que los CSV.
 
 ### 12.9 Simulación conmutada y sensibilidades en Octave
 
@@ -933,9 +965,9 @@ Se corrió `simular_conmutado(11.8, 200e-6, 12.5, 18)`, es decir 11,8 Ω, 200 µ
 | Esquina R −25 %, 1,0 A | 1,0086 | 0,86 | 0,60 | 1,0000 | 0,415 | No |
 | Esquina R +25 %, 1,0 A | 0,7814 | 21,86 | 15,91 | 0,7707 | 0,384 | Sí |
 
-El error físico de este modelo a 0,2 y 0,5 A (5,9 y 4,4 %) queda por debajo del de PLECS (9,6 y 7,8 %), y los dos quedan por debajo del 14,6 y 18,7 % que dio el osciloscopio. A 1,0 A los dos modelos dan un error de 7 a 9 % con la acción saturada, y el banco dio 35 %. Ninguno incluye el límite de corriente de la fuente.
+El error físico de este modelo a 0,2 y 0,5 A (5,9 y 4,4 %) queda por debajo del de PLECS (9,6 y 7,8 %), y los dos quedan por debajo del 14,6 y 18,7 % que dio el osciloscopio en los ensayos del 23 de noviembre (12.8.7). A 1,0 A con 12,5 V los dos modelos dan un error de 7 a 9 % con la acción saturada, y aquel banco dio 35 %. Las mediciones finales se hicieron con 18 V (12.8).
 
-Con el inductor medido por dos (212,4 µH, `evidencia/modelo_conmutado_11p8ohm_212uH_12p5V_pr18V.txt`) el error físico baja de 5,9 y 4,4 % a 4,9 y 3,7 % a 0,2 y 0,5 A, y el rizado de 0,26 y 0,40 a 0,25 y 0,38 A pp. A 1,0 A satura igual, con 7,3 % de error físico y 0,38 A pp. Suponer el segundo inductor igual al medido cambia el sesgo del valle en un punto porcentual y el rizado en 0,02 A pp, así que no explica el 0,66 A pp medido ni la diferencia con el osciloscopio.
+Con el inductor medido por dos (212,4 µH, `evidencia/modelo_conmutado_11p8ohm_212uH_12p5V_pr18V.txt`) el error físico baja de 5,9 y 4,4 % a 4,9 y 3,7 % a 0,2 y 0,5 A, y el rizado de 0,26 y 0,40 a 0,25 y 0,38 A pp. A 1,0 A satura igual, con 7,3 % de error físico y 0,38 A pp. Suponer el segundo inductor igual al medido cambia el sesgo del valle en un punto porcentual y el rizado en 0,02 A pp, así que no explicaba el 0,66 A pp ni la diferencia con el osciloscopio de los ensayos del 23 y 24 de noviembre.
 
 ## 13. Análisis de resultados
 
@@ -957,13 +989,13 @@ El resonante ideal explica el error estacionario casi nulo del modelo promediado
 
 El error de continua tampoco conserva el valor de la sintonización antigua. En el modelo de baja frecuencia, el resonante ideal tiene ganancia nula en continua y la acción proporcional actual da `Kp/(R+Kp) = 1/3`. Un sesgo de medida `δi` puede inducir aproximadamente `−δi/3` de corriente continua física en ese modelo. Por ejemplo, 102 cuentas con la escala nominal representan cerca de 0,113 A de sesgo de lectura y del orden de 0,038 A de corriente física de continua inducida. Esto refuerza la necesidad de calibrar, sin presentar ese ejemplo como un resultado medido.
 
-En banco, la diferencia de 14,6 y 18,7 % entre el sensor y el osciloscopio no se puede repartir entre el sesgo del valle y la ganancia del sensor, porque no hubo calibración en el mismo minuto y las capturas del osciloscopio son de 100 µs por punto, con el rizado plegado (12.8.6). El cero tampoco se midió con el puente conmutando, solo se dedujo del proporcional. Por eso el 10 % de error queda demostrado según el sensor y sin demostrar según el osciloscopio, y no se repitió porque no se vuelve al laboratorio.
+En banco, con el autocero y la ganancia calibrada, la continua quedó dentro de ±0,02 A y la corriente física medida con el osciloscopio entre 3 y 4,5 % por debajo de la referencia (12.8.3). El 10 % de error queda demostrado según el sensor y según el osciloscopio. Lo que no se explica es el signo. Las simulaciones predicen que la muestra del valle queda por debajo del promedio físico, y en banco la corriente física queda por debajo de la muestreada. La resistencia real donde va la punta y un resto de error de ganancia, ahora que el acondicionador cambió, son las causas posibles.
 
 ### 13.4 Transitorios y rampa
 
 La rampa limita la velocidad de variación de la amplitud aplicada y reduce la exigencia de tensión respecto de un escalón ideal. Por ello hay que distinguir el cambio del interruptor de consigna de la referencia que utiliza el PR. Los modelos numéricos muestran transiciones estables bajo las hipótesis declaradas, pero no permiten atribuir un sobrepico físico máximo ni un tiempo de establecimiento experimental.
 
-El ensayo resistivo debe variar la resistencia externa a 0,5 A pico y mantener L. El ejemplo de 8 a 11 Ω externos cumple este criterio. Una simulación anterior de cambio de R a 1 A, aunque útil para robustez, no sustituye este ensayo exigido.
+En banco (12.8.6), el escalón de 0,5 a 1,0 A se establece en unos 30 ms, que es la rampa de 20 ms más un poco de respuesta del PR, sin oscilación visible. El de 0,2 a 0,5 A pasa por cero por la codificación de los switches, así que lo que se ve es un arranque desde cero hasta 0,48 A en unos 30 ms. En el cambio de R a 0,5 A la corriente no muestra transitorio a la escala de la captura. Para el PR el cambio de R es una perturbación de 50 Hz, y el resonante la rechaza mientras la acción absorbe el cambio, que subió 34 % en régimen.
 
 ### 13.5 Rizado y aliasing
 
@@ -971,26 +1003,26 @@ El obstáculo principal de la carga actual es el rizado. Un PR puede corregir la
 
 Un filtro en la cadena de medida puede suavizar lo que ve el ADC, pero no reduce por sí mismo el rizado físico de la carga. Tampoco una muestra síncrona permite reconstruir sus máximos. Debe medirse con suficiente ancho de banda y compararse con la predicción RL y el modelo conmutado final. Si el dimensionamiento cambia, se actualizan conjuntamente parámetros, análisis, simulaciones e informe.
 
-El rizado medido se leyó restando dos puntas y sin consigna ni bus anotados, así que el 0,66 A pp que supera incluso la predicción de 18 V queda como discrepancia sin causa identificada. Lo que sí soporta la medición es que el rizado pasa de 0,20 A pp en todas las capturas. Tampoco se probó la mitigación de 12 V con 40 kHz, y no se hará.
+El rizado medido con una sola punta y la consigna anotada da 0,275, 0,465 y 0,526 A pp a 0,2, 0,5 y 1,0 A, a 3, 4 y 12 % de la simulación conmutada a 18 V (12.8.5). La discrepancia de 0,66 A pp de los ensayos anteriores venía de restar dos puntas y desaparece. El criterio de 0,20 A pp no se cumple, y bajarlo pide más inductancia o más f_sw. La mitigación de 12 V con 40 kHz no se probó.
 
 ### 13.6 Comparación entre predicción, simulación y medición
 
 | Indicador | Predicción | Simulación | Medición |
 |---|---|---|---|
-| Carga | 9 Ω y 200 µH de diseño, 9,6 Ω y 12 V en 12.10 | 11,8 Ω y 200 µH en PLECS y Octave (12.11, 12.12) | 9,46 Ω en resistencias, 11,8 Ω total, 106,2 µH en uno de dos inductores |
-| Fundamental según el sensor, 0,2 / 0,5 A | Resonante ideal, 0 % | Octave 0,01 y 0,00 % | 0,39 y 0,19 %, fase 0,07° y −0,03° |
-| Fundamental física, 0,2 / 0,5 A | Sesgo del valle, 3 a 6 % | Octave 5,9 y 4,4 %, PLECS 9,6 y 7,8 % | 14,6 y 18,7 % con el osciloscopio a 100 µs por punto |
-| 1,0 A con 12,5 V y 11,8 Ω | Satura sobre 11 Ω | Octave 7,1 %, PLECS −8,9 % | 34,9 %, con límite de fuente de 0,52 A |
-| 1,0 A con 18 V | No satura | PLECS no satura, 5,9 % | Satura, 11,8 %, con límite de fuente de 1 A |
-| Cambio de R a 0,5 A | Resonante, 0 % | Octave 0,00 % en la muestra, PLECS con 14,3 Ω 9,7 % físico | 0,14 % según el sensor con 2,5 Ω añadidos |
-| Rizado 0,2 / 0,5 / 1,0 A | 0,19 / 0,34 / 0,36 A pp a 12 V | Octave 0,26 / 0,40 / 0,40, PLECS 0,28 / 0,38 / 0,40 | 0,25 a 0,66 A pp, 0,35 en banco |
+| Carga | 9 Ω y 200 µH de diseño, 9,6 Ω y 12 V en 12.10 | 11,8 Ω y 200 µH en PLECS y Octave (12.11, 12.12) | 11,8 Ω total, 212 µH con los dos inductores medidos, 18,7 Ω la de +25 % |
+| Fundamental según el sensor, 0,2 / 0,5 / 1,0 A, 18 V | Resonante ideal, 0 % | Octave 0,01 y 0,00 % | 0,42 / 0,08 / 0,07 %, fase menor a 0,02° |
+| Fundamental física, 0,2 / 0,5 / 1,0 A | Sesgo del valle, la física sobre la muestreada | Octave 2,9 / 2,7 / 2,0 % a 18 V, PLECS 9,6 y 7,8 % a 12,5 V | −3,9 / −4 / −2,9 % con el osciloscopio |
+| 1,0 A con 18 V y 11,8 Ω | No satura | PLECS no satura, 5,9 % | No satura, 0,07 % según el sensor |
+| 1,0 A con 18 V y carga +25 % | Pide unos 16,7 V con 15,7 Ω, al límite de 16,6 V | PLECS con 14,3 Ω no satura, 6,0 % | Satura, −8,6 % y 14° según el sensor |
+| Cambio de R a 0,5 A | Resonante, 0 % | Octave 0,00 % en la muestra, PLECS con 14,3 Ω 9,7 % físico | 0,17 % según el sensor, −4,5 % físico, acción 34 % mayor |
+| Rizado 0,2 / 0,5 / 1,0 A, 18 V | 0,22 / 0,43 / 0,52 A pp con la fórmula en el punto de cada captura | Octave 0,27 / 0,48 / 0,60 con 9 Ω, PLECS 0,56 a 1,0 A | 0,275 / 0,465 / 0,526 A pp |
 | Tiempo muerto | 1 µs | RTL nominal aprobado | Pierna B 1 µs, pierna A 1,23 µs y 430 ns, sin captura archivada |
 | Precarga | 70 µs | RTL nominal aprobado | PENDIENTE, 50 ms/div no la resuelve |
 | Valle→CONVST | 30 ns en lógica estacionaria | Diagnóstico RTL conjunto | PENDIENTE |
 | Parada | Puede truncar el último pulso | RTL: 17,750 µs frente a 36,490 µs regular | PENDIENTE |
 | ISR | Período de 50 µs | Timer configurado | Período de 50 µs en JB1, ancho máximo y jitter PENDIENTES |
 
-Las diferencias de esta tabla deben leerse con las limitaciones de 12.8.6. En 1,0 A, la saturación de 35 % del banco contra 7 a 9 % de las simulaciones se atribuye al límite de la fuente solo como hipótesis, porque no se anotó el bus. En los transitorios, la tabla compara contra simulación porque no hay registro de tres de los cuatro ensayos. En el tiempo muerto, la pierna A se reporta como anotada. Donde la medición dice PENDIENTE, el ensayo no se hizo y no se repitió.
+Las diferencias de esta tabla deben leerse con las limitaciones de 12.8.8. La saturación a 1,0 A con la carga de +25 % se explica con la carga, que pide unos 16,7 V contra 16,6 V disponibles. PLECS no satura porque usa 14,3 Ω, menos que lo que indica la acción en banco. La corriente física queda bajo la referencia y las simulaciones la ponen por encima, diferencia que no se aisló. En el tiempo muerto, la pierna A se reporta como anotada. Donde la medición dice PENDIENTE, el ensayo no se hizo.
 
 ### 13.7 Estado de cumplimiento del enunciado
 
@@ -999,11 +1031,11 @@ Las diferencias de esta tabla deben leerse con las limitaciones de 12.8.6. En 1,
 | PWM propio con AXI4-Lite y autochequeo | Implementación y pruebas funcionales disponibles. |
 | Simulación temporizada post-implementación | Hecha sobre `periferico_pwm` con netlist y SDF, 0 errores (18.3). Sin retardos de entrada y salida. |
 | Memoria, procesador y periféricos | Diseño disponible; desviación de caché y reproducibilidad de construcción por resolver. |
-| PR, ecuación en diferencias y análisis de estabilidad | Documentados para la carga de diseño. En banco cumple según el sensor a 0,2 y 0,5 A, y falta medir mejor R y L. |
+| PR, ecuación en diferencias y análisis de estabilidad | Documentados para la carga de diseño. En banco cumple con la carga medida de 11,8 Ω y 212 µH. |
 | Validación previa en PLECS del control final | Hecha en PLECS en lazo cerrado con 11,8 Ω (12.11) y en Octave (12.9 y 12.12). |
-| Error de fundamental y fase en banco | Según el sensor, menos de 0,5 % y 0,1° a 0,2 y 0,5 A. Según el osciloscopio, 14,6 y 18,7 %, fuera del 10 %. A 1,0 A no se llega. |
-| Rizado ≤0,20 A pp | No cumple, 0,25 a 0,66 A pp medidos. |
-| Cambios de consigna y resistencia | Registrados solo 0,5→0,2 A y el cambio de carga a 1,0 A con la acción saturada. Sin registro 0,2→0,5, 0,5→1,0 y el cambio de R a 0,5 A. |
+| Error de fundamental y fase en banco | Según el sensor, menos de 0,5 % y 0,02° en los tres puntos con la carga original. Según el osciloscopio, entre −2,9 y −4 %. Con la carga de +25 % a 1,0 A, −8,6 % y 14° con la acción saturada. |
+| Rizado ≤0,20 A pp | No cumple, 0,275, 0,465 y 0,526 A pp medidos. |
+| Cambios de consigna y resistencia | Registrados con el osciloscopio 0,2→0,5 (pasando por cero por los switches), 0,5→1,0 A y el cambio de R a 0,5 A. |
 | Adquisición sincronizada con el PWM | `CONVST` 20 ns después de `pwm_trigger_o` en el testbench de la envoltura. En banco, 0 muestras sin dato nuevo en 26 624 (12.2). |
 | Uso de recursos y timing | Reportes disponibles, con advertencias y alcance delimitados. |
 | Informe Markdown enriquecido | Este documento conserva formato, tablas, ecuaciones, figuras y evidencia reproducible. |
@@ -1018,9 +1050,10 @@ Las diferencias de esta tabla deben leerse con las limitaciones de 12.8.6. En 1,
 | Afirmación de parada con último pulso completo | Se documenta el truncamiento observado y el alcance real de `enable` y `running`. |
 | Protocolo UART descrito sin referencia | Se incluyen los tres campos del registro y la referencia `i_ref_ma`. |
 | Extrapolación de pruebas de PC al tiempo real | Se separan pruebas lógicas, timing del circuito y medición de ISR. |
-| Rizado calculado superior al permitido | Se explicita el incumplimiento previsto. El banco lo confirmó (12.8.5) y sigue pendiente el redimensionamiento. |
+| Rizado calculado superior al permitido | Se explicita el incumplimiento previsto. El banco lo confirmó en los tres puntos (12.8.5) y sigue pendiente el redimensionamiento. |
 | Corriente con signo contrario en el CSV | La correlación entre duty y corriente dio −1 el 23 de noviembre. Se dejó `ADC_AMPERES_POR_CUENTA` negativo en lugar de rehacer el cableado del primario. |
-| Cero del sensor de 0,68 V en vez de 0,5 V | Se fijó `ADC_OFFSET_CUENTAS` primero en 2785 con la medición en J3 y el 23 de noviembre en 2808 con una captura a 0 A. El 24 de noviembre el cero se movió unas 800 cuentas entre puente apagado y conmutando (12.8.2). |
+| Cero del sensor de 0,68 V en vez de 0,5 V | Se fijó `ADC_OFFSET_CUENTAS` primero en 2785 con la medición en J3 y el 23 de noviembre en 2808 con una captura a 0 A. El 24 de noviembre el cero se movió unas 800 cuentas entre puente apagado y conmutando (12.8.7), y se pasó a medirlo al habilitar con el puente conmutando (autocero, 9.3). Con eso la continua quedó en +0,002 A. |
+| Salida del acondicionador plana en el lado positivo | Con el AD822 a 5 V la salida se quedaba cerca de 0,49 V y el punto de 1,0 A se recortaba. Se alimentó a 10 V y dejó de recortar. |
 | Una sola luz de falla para todas las causas | `supervisor_falla` recuerda la causa que disparó primero y `control_principal` enciende un LED por causa. |
 | Reproducción incompleta desde una sola rama | Se identifican commits y dependencias de ramas en el anexo. No se declara una construcción completa verificada de Vivado/Vitis. |
 
@@ -1032,7 +1065,7 @@ La limitación técnica más relevante es que la carga de 200 µH cambia el prob
 
 La trazabilidad todavía requiere reunir las herramientas y documentos en la rama de entrega, vincular la ejecución de Vivado con una revisión concreta y completar el flujo de Vitis. El uso de memoria local sin la caché solicitada debe justificarse expresamente. Las mejoras prioritarias son cerrar el dimensionamiento de la carga, confirmar el sensor y su filtro, ejecutar las verificaciones pendientes y conservar los datos crudos de los ensayos. Un IP empaquetado o mejoras de automatización pueden facilitar reutilización, pero no sustituyen estas validaciones.
 
-Hay cosas que no se pudieron demostrar y no se repitieron porque no se vuelve al laboratorio (12.8.6). Faltan la captura del tiempo muerto de la pierna A, el registro de los cambios 0,2 a 0,5 A, 0,5 a 1,0 A y de R a 0,5 A, la calibración de la ganancia y el cero en el mismo minuto, el ancho y el jitter de la ISR y la prueba de falla. La consecuencia para el enunciado es que el error de fundamental queda demostrado solo según el sensor, el rizado queda incumplido y los transitorios se sostienen con simulación. La mejora más barata habría sido anotar consigna, bus y escalas en cada captura.
+Quedan sin demostrar la captura del tiempo muerto de la pierna A, el ancho y el jitter de la ISR y la prueba de falla (12.8.8). Las mediciones del 25 de noviembre cerraron el resto. El error de fundamental quedó demostrado según el sensor y según el osciloscopio, los transitorios tienen registro y el rizado quedó medido en los tres puntos, incumplido. Lo que más ayudó fue anotar consigna, bus y escalas en cada captura y medir el rizado con una sola punta. Quedan abiertos el signo del error físico y la R de la carga de +25 %.
 
 ## 16. Conclusiones y aprendizaje obtenido
 
@@ -1041,10 +1074,10 @@ Hay cosas que no se pudieron demostrar y no se repitieron porque no se vuelve al
 3. La simulación promediada confirma seguimiento estable en los casos ideales estudiados, pero no acredita el error de la corriente real. La calibración, el sesgo de muestreo y la validación conmutada son necesarios para contrastar ese resultado.
 4. La predicción de rizado a 18 V supera 0,20 A pp, claramente en 0,5 y 1,0 A pico. El sistema no puede declararse conforme al enunciado mientras no se resuelva y verifique este punto con la configuración final.
 5. La revisión de formas de onda corrigió dos interpretaciones del diseño: el valle interno precede a `CONVST` por 30 ns en la lógica ensayada, y el apagado puede truncar el último pulso. Describir la implementación a partir de lo observado resulta más fiable que inferir su comportamiento de los comentarios del código.
-6. En banco, según el sensor, el PR deja la fundamental a 0,2 y 0,5 A con menos de 0,5 % de error y menos de 0,1° de fase, con la carga original y con 2,5 Ω añadidos. El osciloscopio da entre 14,6 y 18,7 % más corriente física, así que el criterio de 10 % no se puede dar por cumplido hasta calibrar la ganancia y el cero, que además se mueve unas 800 cuentas con el estado del puente. A 1,0 A no se llega, con 12,5 V probablemente por el límite de 0,52 A de la fuente y con 18 V por el de 1 A.
-7. El rizado medido, de 0,25 a 0,66 A pp, no cumple 0,20 A pp, como predecían el análisis y las simulaciones. El valor más alto supera todas las predicciones y no tiene causa identificada. La mitigación de 12 V con 40 kHz sigue sin probarse.
-8. Quedan pendientes el ancho y el jitter de la ISR, la captura del tiempo muerto de la pierna A, los cambios de consigna 0,2→0,5 y 0,5→1,0 A, el cambio de R a 0,5 A y la medición del segundo inductor. El aprendizaje principal es mantener separados el modelo, la verificación digital y la medición física, y anotar en cada captura la consigna, el bus y las escalas, porque sin eso varias medidas de este informe no se pueden interpretar.
-9. Lo anterior no se repitió en el laboratorio. Cada pendiente se declara en 12.8.6 con el criterio que deja sin demostrar, y los transitorios, el efecto de R y el sesgo del valle se sostienen con las simulaciones y no con registros de banco.
+6. En banco, con 18 V, el autocero y el AD822 a 10 V, el PR deja la fundamental a 0,2, 0,5 y 1,0 A con menos de 0,5 % de error según el sensor, y la corriente física queda entre 3 y 4 % por debajo de la referencia según el osciloscopio. El criterio de 10 % se cumple con la carga original. Con la carga de +25 % se cumple a 0,2 y 0,5 A, y a 1,0 A la acción satura porque la carga pide más tensión de la que da el bus, con −8,6 % de error.
+7. El rizado medido, de 0,275, 0,465 y 0,526 A pp, no cumple 0,20 A pp, como predecían el análisis y las simulaciones, a 3, 4 y 12 % de la simulación conmutada. La mitigación de 12 V con 40 kHz sigue sin probarse.
+8. Los escalones de consigna se establecen en unos 30 ms, y el cambio de R a 0,5 A no se ve en la corriente porque el resonante lo rechaza mientras la acción sube 34 %. Quedan pendientes el ancho y el jitter de la ISR, la captura del tiempo muerto de la pierna A y la prueba de falla.
+9. El aprendizaje principal es mantener separados el modelo, la verificación digital y la medición física. Los ensayos del 23 y 24 de noviembre no se podían interpretar sin la consigna, el bus y las escalas, y el cero fijo del sensor escondía una continua física. Medir el cero en las condiciones de operación y anotar cada captura fue lo que permitió cerrar los resultados.
 
 ## 17. Referencias
 
@@ -1164,6 +1197,8 @@ Las salidas de esta revisión están en `evidencia/verificar_pr.log`, `aliasing_
 | `evidencia/verificar_pr.log`, `aliasing_pr.log`, `modelo_promediado.txt` | Márgenes, aliasing, rizado ideal y modelo promediado, salida de Octave. |
 | `reportes/timing.rpt`, `utilizacion.rpt`, `utilizacion_jerarquica.rpt` | Copias de los reportes originales de Vivado, sin modificar sus advertencias. |
 | `evidencia/plecs_lazo_cerrado_11p8ohm.txt`, `modelo_conmutado_11p8ohm_12p5V_pr18V.txt` | PLECS en lazo cerrado y Octave conmutado con la carga medida de 11,8 Ω. |
+| `muestras_Inversor/mediciones_finales/` | CSV del receptor del 25 de noviembre, `transitorios/` con las capturas del osciloscopio, `registro.md` y los intentos descartados. |
+| `muestras_Inversor/Muestras Osciloscopio/rizado/rizado_18V_*` | Capturas de rizado del 25 de noviembre a 50 MSa/s, procesadas con `potencia/analizar_rizado.py`. |
 | `mediciones/PLANTILLA_RESULTADOS.csv` | Tabla vacía con las columnas de cada ensayo. Aquí van los CSV y capturas de banco. |
 
 Para cada futuro ensayo se guardarán fecha, operador, revisión de hardware/software, instrumentos, sondas, R/L medidas, bus, consigna, frecuencia, tiempo muerto, filtro, configuración ADC, archivos crudos y procedimiento de procesamiento. Las capturas deben mostrar escalas y etiquetas. Los criterios se evaluarán contra esos datos y se actualizarán las conclusiones; no se reemplazan los pendientes por expectativas calculadas.
