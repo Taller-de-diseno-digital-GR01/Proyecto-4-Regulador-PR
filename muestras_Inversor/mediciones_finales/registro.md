@@ -40,3 +40,12 @@ En `muestras_Inversor/Muestras Osciloscopio/rizado/`, procesado con `potencia/an
 - 0,2 A, 0,275 A pp con 0,18 A de baja frecuencia y 0,176 A pp con 0,09 A.
 - 0,5 A, 0,465 A pp con −0,42 A.
 - 1,0 A, 0,526 A pp con −0,66 A y 0,294 A pp con −0,21 A.
+
+## Descartadas
+
+En `descartadas/` quedan los intentos que no sirven, sin borrar.
+
+- `carga25_0.2A_deshabilitado`, con el control apagado.
+- `arranque_0-0.2A_DS0001`, el arranque que no se usa.
+- `previa_1.0A_25-11_16-11`, la prueba de 1,0 A de antes de la sesión, que estaba suelta en la raíz como `muestras.csv`.
+- `prueba_21-11`, una exportación del 21 de noviembre con referencia nula que estaba suelta en `sw/`.
