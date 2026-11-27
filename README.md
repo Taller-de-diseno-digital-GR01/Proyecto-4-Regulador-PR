@@ -42,9 +42,10 @@ El enunciado y las rúbricas están en
   [`entregables/documento_diseno_pedp.pdf`](entregables/documento_diseno_pedp.pdf).
 - Informe técnico de PEDP,
   [`entregables/informe_tecnico_pedp.pdf`](entregables/informe_tecnico_pedp.pdf).
-- `entregables/documento_diseno_pedp.zip`, con el documento de diseño de PEDP y los modelos de
-  PLECS de `potencia/sim/`, junto con `parametros.m`, que los modelos cargan al iniciar, y los
-  scripts de Python que corren los ensayos.
+- `entregables/documento_diseno_pedp.zip`, con el documento de diseño de PEDP, los modelos de
+  PLECS de `potencia/sim/` con sus scripts, los cálculos en Octave con sus salidas para 9,6 Ω y
+  12 V, el diseño de la carga y el sensor en `potencia/carga_RL-Sensor/` y los archivos que cita
+  su apéndice.
 - `entregables/informe_tecnico_pedp.zip`, con el informe técnico de PEDP, los registros de
   banco, los scripts que los procesan, los modelos de PLECS y los cálculos con la carga medida.
 
